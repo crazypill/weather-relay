@@ -23,6 +23,11 @@
 //#define PORT_DEVICE "/dev/serial1"
 
 #define PORT_ERROR -1
+
+#define pascal2inchHg    0.0002953
+#define millibar2inchHg  0.02953
+
+#define kLocalOffsetInHg 0.33
 #define c2f( a ) (((a) * 1.8000) + 32)
 #define ms2mph( a ) ((a) * 2.23694)
 
@@ -117,7 +122,7 @@ int main(int argc, const char * argv[]) {
                 printf( "int temp:   %0.2f°F\n", c2f( frame.intTempC ) );
 
             if( frame.flags & kDataFlag_pressure )
-                printf( "pressure:   %g InHg\n\n", frame.pressure );
+                printf( "pressure:   %g InHg\n\n", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
         }
         sleep( 1 );
     }
