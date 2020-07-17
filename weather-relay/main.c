@@ -103,16 +103,6 @@ int main(int argc, const char * argv[]) {
         
         if( result == sizeof( frame ) )
         {
-            // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
-            // and at least 5 minutes has passed...  !!@ also need to average data over the 5 minute period...
-            receivedFlags |= frame.flags;
-            if( (receivedFlags & 0x7F) == 0x7F )
-            {
-                printf( "Have full weather info...\n" );
-                receivedFlags = 0;
-            }
-
-            
             printf( "\nstation_id: 0x%x\n", frame.station_id );
 //            printf( "flags:      0x%x\n", frame.flags );
             printTime();
@@ -141,6 +131,16 @@ int main(int argc, const char * argv[]) {
 
             if( frame.flags & kDataFlag_pressure )
                 printf( "pressure:   %g InHg\n\n", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
+
+
+            // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
+            // and at least 5 minutes has passed...  !!@ also need to average data over the 5 minute period...
+            receivedFlags |= frame.flags;
+            if( (receivedFlags & 0x7F) == 0x7F )
+            {
+                printf( "Have full weather info...\n" );
+                receivedFlags = 0;
+            }
         }
         sleep( 1 );
     }
