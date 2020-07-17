@@ -42,8 +42,8 @@ typedef struct
 
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"
-//#define PORT_DEVICE "/dev/serial0"
-#define PORT_DEVICE "/dev/serial1"
+#define PORT_DEVICE "/dev/serial0"
+//#define PORT_DEVICE "/dev/serial1"
 
 #define PORT_ERROR -1
 #define c2f( a ) (((a) * 1.8000) + 32)
@@ -84,7 +84,7 @@ int main(int argc, const char * argv[]) {
     newtio.c_cflag &= ~PARENB;
     newtio.c_cflag &= ~CSTOPB;
     newtio.c_cflag &= ~CSIZE;
-    newtio.c_cflag |= CS8;
+    newtio.c_cflag |= CS8 | CLOCAL | CREAD;
     newtio.c_cflag &= ~CRTSCTS;
     
     // Hardware control of port
@@ -108,8 +108,8 @@ int main(int argc, const char * argv[]) {
         Frame frame = {};
 
         result = read( fd, &frame, sizeof( frame ) );
-        if( result )
-            printf( "read size: %ld\n", result );
+//        if( result )
+//            printf( "read size: %ld\n", result );
         
         if( result == sizeof( frame ) )
         {
