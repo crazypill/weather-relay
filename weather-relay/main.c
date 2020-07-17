@@ -111,7 +111,13 @@ int main(int argc, const char * argv[]) {
                 printf( "gust:       %0.2f mph\n", ms2mph( frame.windGustMs ) );
             
             if( frame.flags & kDataFlag_rain )
-                printf( "rain:       %g\n\n", frame.rain );
+                printf( "rain:       %g\n", frame.rain );
+
+            if( frame.flags & kDataFlag_intTemp )
+                printf( "int temp:   %0.2f°F\n", c2f( frame.intTempC ) );
+
+            if( frame.flags & kDataFlag_pressure )
+                printf( "pressure:   %g InHg\n\n", frame.pressure );
         }
         sleep( 1 );
     }
