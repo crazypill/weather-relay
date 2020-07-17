@@ -108,6 +108,9 @@ int main(int argc, const char * argv[]) {
         Frame frame = {};
 
         result = read( fd, &frame, sizeof( frame ) );
+        if( result )
+            printf( "read size: %ld\n", result );
+        
         if( result == sizeof( frame ) )
         {
 //            printf( "magic:      0x%x\n", frame.magic );
