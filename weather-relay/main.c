@@ -138,7 +138,8 @@ int main(int argc, const char * argv[]) {
             receivedFlags |= frame.flags;
             if( (receivedFlags & 0x7F) == 0x7F )
             {
-                printf( "Have full weather info...\n" );
+                printf( "Have full weather info...  " );
+                printTime();
                 receivedFlags = 0;
             }
         }
