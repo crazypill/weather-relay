@@ -41,7 +41,12 @@ typedef struct
 } __attribute__ ((__packed__)) Frame;
 
 
+#define PORT_DEVICE "/dev/cu.usbserial-0001"
+//#define PORT_DEVICE "/dev/serial0"
+
 #define PORT_ERROR -1
+#define c2f( a ) (((a) * 1.8000) + 32)
+#define ms2mph( a ) ((a) * 2.23694)
 
 
 void buffer_input_flush()
@@ -61,7 +66,7 @@ int main(int argc, const char * argv[]) {
     // Settings structure old and new
     struct termios newtio;
     
-    int fd = open( "/dev/cu.usbserial-0001", O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
+    int fd = open( PORT_DEVICE, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
     if( fd < 0 )
         return PORT_ERROR;
 
@@ -91,7 +96,7 @@ int main(int argc, const char * argv[]) {
     if( fd == -1 )
         return PORT_ERROR;
 
-    printf( "port open, reading from serial\n" );
+    printf( "port open, reading from serial...\n\n" );
     
     ssize_t result = 0;
     while( 1 )
@@ -101,15 +106,28 @@ int main(int argc, const char * argv[]) {
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
         {
-//            printf( "magic: %x\n", frame.magic );
-            printf( "station_id: %x\n", frame.station_id );
-            printf( "flags: %x\n", frame.flags );
-            printf( "temp: %0.2f°C\n", frame.tempC );
-            printf( "humidity: %d%%\n", frame.humidity );
-            printf( "wind: %0.2f m/s\n", frame.windSpeedMs );
-            printf( "dir: %0.2f degrees\n", frame.windDirection );
-            printf( "gust: %0.2f m/s\n", frame.windGustMs );
-            printf( "rain: %g\n\n", frame.rain );
+//            printf( "magic:      0x%x\n", frame.magic );
+            printf( "station_id: 0x%x\n", frame.station_id );
+//            printf( "flags:      0x%x\n", frame.flags );
+
+            // read flags
+            if( frame.flags & kDataFlag_temp )
+                printf( "temp:       %0.2f°F\n", c2f( frame.tempC ) );
+
+            if( frame.flags & kDataFlag_humidity )
+                printf( "humidity:   %d%%\n", frame.humidity );
+
+            if( frame.flags & kDataFlag_wind )
+            {
+                printf( "wind:       %0.2f mph\n", ms2mph( frame.windSpeedMs ) );
+                printf( "dir:        %0.2f degrees\n", frame.windDirection );
+            }
+            
+            if( frame.flags & kDataFlag_gust )
+                printf( "gust:       %0.2f mph\n", ms2mph( frame.windGustMs ) );
+            
+            if( frame.flags & kDataFlag_rain )
+                printf( "rain:       %g\n\n", frame.rain );
         }
         sleep( 1 );
     }
