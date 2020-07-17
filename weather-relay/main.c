@@ -13,7 +13,7 @@
 #include <fcntl.h>
 #include <sys/termios.h>
 #include <unistd.h>
-
+#include <stdint.h>
 
 enum
 {
@@ -41,8 +41,9 @@ typedef struct
 } __attribute__ ((__packed__)) Frame;
 
 
-#define PORT_DEVICE "/dev/cu.usbserial-0001"
+//#define PORT_DEVICE "/dev/cu.usbserial-0001"
 //#define PORT_DEVICE "/dev/serial0"
+#define PORT_DEVICE "/dev/serial1"
 
 #define PORT_ERROR -1
 #define c2f( a ) (((a) * 1.8000) + 32)
@@ -68,7 +69,10 @@ int main(int argc, const char * argv[]) {
     
     int fd = open( PORT_DEVICE, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
     if( fd < 0 )
+    {
+        printf( "Failed to open serial port: %s\n", PORT_DEVICE );
         return PORT_ERROR;
+    }
 
     bzero( &newtio, sizeof( newtio ) );
     
