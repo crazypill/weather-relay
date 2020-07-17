@@ -14,6 +14,7 @@
 #include <sys/termios.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "TXDecoderFrame.h"
 
@@ -35,6 +36,12 @@ void buffer_input_flush()
         ;
 }
 
+void printTime()
+{
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+  printf("%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
 
 int main(int argc, const char * argv[]) {
     
@@ -90,9 +97,9 @@ int main(int argc, const char * argv[]) {
         
         if( result == sizeof( frame ) )
         {
-//            printf( "magic:      0x%x\n", frame.magic );
-            printf( "station_id: 0x%x\n", frame.station_id );
+            printf( "\nstation_id: 0x%x\n", frame.station_id );
 //            printf( "flags:      0x%x\n", frame.flags );
+            printTime();
 
             // read flags
             if( frame.flags & kDataFlag_temp )
@@ -117,7 +124,7 @@ int main(int argc, const char * argv[]) {
                 printf( "int temp:   %0.2f°F\n", c2f( frame.intTempC ) );
 
             if( frame.flags & kDataFlag_pressure )
-                printf( "pressure:   %g InHg\n\n", frame.pressure );
+                printf( "pressure:   %g InHg\n\n", frame.pressureInHg );
         }
         sleep( 1 );
     }
