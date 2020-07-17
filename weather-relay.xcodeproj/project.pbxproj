@@ -25,6 +25,7 @@
 /* Begin PBXFileReference section */
 		FA3CB4F4245910C900C1FCC9 /* weather-relay */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "weather-relay"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FA3CB4F7245910C900C1FCC9 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		FAB4A12424C264A500F7BE22 /* TXDecoderFrame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TXDecoderFrame.h; path = "../../tx31u-receiver/TXDecoderFrame.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,6 +58,7 @@
 		FA3CB4F6245910C900C1FCC9 /* weather-relay */ = {
 			isa = PBXGroup;
 			children = (
+				FAB4A12424C264A500F7BE22 /* TXDecoderFrame.h */,
 				FA3CB4F7245910C900C1FCC9 /* main.c */,
 			);
 			path = "weather-relay";
