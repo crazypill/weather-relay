@@ -279,12 +279,12 @@ int main(int argc, const char * argv[])
                 // check the time
                 if( timeGetTimeSec() > s_lastTime + kSendInterval )
                 {
-//                    printTime();
-//                    printf( "Sending weather info to APRS-IS...  next send: " );
-//                    printTimePlus5();
-
-                    printf( "Sending weather info to APRS-IS...  " );
                     printTime();
+                    printf( "Sending weather info to APRS-IS...  next send: " );
+                    printTimePlus5();
+
+//                    printf( "Sending weather info to APRS-IS...  " );
+//                    printTime();
 
                     
                     APRSPacket wx;
