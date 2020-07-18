@@ -20,6 +20,7 @@
 
 #include "TXDecoderFrame.h"
 #include "aprs-wx.h"
+#include "aprs-is.h"
 
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"
@@ -251,10 +252,14 @@ int main(int argc, const char * argv[])
 
                     APRSPacket wx;
                     packetConstructor( &wx );
+
                     uncompressedPosition( wx.latitude,    34.108,     IS_LATITUDE );
                     uncompressedPosition( wx.longitude, -118.3349371, IS_LONGITUDE );
 
-                    int formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(frame.windDirection)) % 360 );
+                    int formatTruncationCheck = snprintf( wx.callsign, 10, "K6LOT-13" );
+                    assert( formatTruncationCheck >= 0 );
+
+                    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(frame.windDirection)) % 360 );
                     assert( formatTruncationCheck >= 0 );
 
                     formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame.windSpeedMs))));
