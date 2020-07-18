@@ -39,6 +39,12 @@
 //#define kSendInterval    60 * 5   // 5 minutes
 #define kSendInterval    30 // debug
 
+
+#ifndef BUFSIZE
+#define BUFSIZE 1025
+#endif
+
+
 static time_t s_lastTime = 0;
 
 
@@ -133,8 +139,11 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 
 }
 
-int main(int argc, const char * argv[]) {
-    
+int main(int argc, const char * argv[])
+{
+    char         packetToSend[BUFSIZE] = "";
+    char         packetFormat = UNCOMPRESSED_PACKET;
+
     // open the serial port
     bool blocking = false;
 
@@ -263,7 +272,7 @@ int main(int argc, const char * argv[]) {
                         h = 1;
                     
                     // APRS requires us to encode 100% as "00".
-                    else if( h == 100 )
+                    else if( h >= 100 )
                         h = 0;
                     
                     formatTruncationCheck = snprintf( wx.humidity, 3, "%.2d", h );
@@ -272,6 +281,8 @@ int main(int argc, const char * argv[]) {
                     // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
                     formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((frame.pressure * millibar2inchHg) + kLocalOffsetInHg))) );
                     assert( formatTruncationCheck >= 0 );
+
+                    printAPRSPacket( &wx, packetToSend, packetFormat, 0);
 
                     s_lastTime = timeGetTimeSec();
                 }
