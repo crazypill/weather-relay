@@ -17,6 +17,7 @@
 #include <time.h>
 #include <math.h>
 #include <assert.h>
+#include <string.h>
 
 #include "TXDecoderFrame.h"
 #include "aprs-wx.h"
