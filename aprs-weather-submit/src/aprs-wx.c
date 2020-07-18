@@ -255,18 +255,18 @@ void printAPRSPacket (APRSPacket* restrict const p, char* restrict const ret, ch
 	}
 	else {
 		/*                              header_________ timestamp____pos__wc_ s_t__*/
-		int ret = snprintf(result, 61, "%s>APRS,TCPIP*:@%.2d%.2d%.2dz%s/%s_%s/%st%s",
+		int ret = snprintf(result, 61, "%s>APRS,TCPIP*:@%.2d%.2d%.2dz%s/%s_%s/%sg%st%s",
 			p->callsign, now->tm_mday, now->tm_hour, now->tm_min,
-			p->latitude, p->longitude, p->windDirection, p->windSpeed,
+            p->latitude, p->longitude, p->windDirection, p->windSpeed, notNull(p->gust) ? p->gust : "000",
 			p->temperature);
 		assert(ret >= 0);
 	}
 
-	if (notNull(p->gust))
-	{
-		strncat(result, "g", 1);
-		strncat(result, p->gust, 3);
-	}
+//	if (notNull(p->gust))
+//	{
+//		strncat(result, "g", 1);
+//		strncat(result, p->gust, 3);
+//	}
 
 	if (notNull(p->rainfallLastHour))
 	{
