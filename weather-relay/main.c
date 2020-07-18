@@ -35,8 +35,8 @@
 #define c2f( a ) (((a) * 1.8000) + 32)
 #define ms2mph( a ) ((a) * 2.23694)
 
-#define kSendInterval    60 * 5   // 5 minutes
-//#define kSendInterval    30 // debug
+//#define kSendInterval    60 * 5   // 5 minutes
+#define kSendInterval    30 // debug
 
 static time_t s_lastTime = 0;
 
@@ -256,7 +256,7 @@ int main(int argc, const char * argv[]) {
                     formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f( frame.tempC ))) );
                     assert( formatTruncationCheck >= 0 );
 
-                    unsigned short int h = (unsigned short)(round(frame.humidity));
+                    unsigned short int h = frame.humidity;
                     // APRS only supports values 1-100. Round 0% up to 1%.
                     if( h == 0 )
                         h = 1;
