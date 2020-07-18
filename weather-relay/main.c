@@ -283,6 +283,8 @@ int main(int argc, const char * argv[])
                     assert( formatTruncationCheck >= 0 );
 
                     printAPRSPacket( &wx, packetToSend, packetFormat, 0);
+                    sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", 8347, packetToSend );
+                    
                     printf( "%s\n", packetToSend );
                     s_lastTime = timeGetTimeSec();
                 }
