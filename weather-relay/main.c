@@ -220,6 +220,7 @@ int main(int argc, const char * argv[]) {
             if( frame.flags & kDataFlag_pressure )
                 printf( "pressure:   %g InHg\n\n", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
 
+            updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
 
             // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
             // and at least 5 minutes has passed...  !!@ also need to average data over the 5 minute period...
@@ -227,7 +228,6 @@ int main(int argc, const char * argv[]) {
             if( (receivedFlags & 0x7F) == 0x7F )
             {
                 printf( "Have full weather info...  " );
-                updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
 
                 printTime();
                 receivedFlags = 0;
