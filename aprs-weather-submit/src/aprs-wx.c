@@ -234,9 +234,7 @@ notNull (const char* const val)
  *                          name and version in the comment field.
  * @since 0.1
  */
-void
-printAPRSPacket (APRSPacket* restrict const p, char* restrict const ret,
-                 char compressPacket, char suppressUserAgent)
+void printAPRSPacket (APRSPacket* restrict const p, char* restrict const ret, char compressPacket, char suppressUserAgent, int printNewLine )
 {
 	char      result[BUFSIZE] = "\0";
 	time_t    t               = time(NULL);
@@ -342,8 +340,10 @@ printAPRSPacket (APRSPacket* restrict const p, char* restrict const ret,
 		strncat(result, "/", 1);
 		strncat(result, VERSION, strlen(VERSION));
 	}
-
-	strncat(result, "\n\0", 2);
+    
+    if( printNewLine )
+        strncat(result, "\n\0", 2);
+    
 	strncpy(ret, result, strlen(result));
 	return;
 }

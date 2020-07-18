@@ -97,7 +97,7 @@ notNull (const char* const val);
  */
 void
 printAPRSPacket (APRSPacket* restrict const p, char* restrict const ret,
-                 char compressedPacket, char suppressUserAgent);
+                 char compressedPacket, char suppressUserAgent, int printNewLine );
 
 /**
  * compressedPosition() -- return an APRS-compressed latitude or longitude value.

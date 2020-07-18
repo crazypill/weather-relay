@@ -28,13 +28,13 @@
 		FA3CB4F4245910C900C1FCC9 /* weather-relay */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "weather-relay"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FA3CB4F7245910C900C1FCC9 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		FAB4A12424C264A500F7BE22 /* TXDecoderFrame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TXDecoderFrame.h; path = "../../tx31u-receiver/TXDecoderFrame.h"; sourceTree = "<group>"; };
-		FAB4A12624C2772900F7BE22 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = main.h; sourceTree = "<group>"; };
-		FAB4A12724C2772900F7BE22 /* aprs-wx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "aprs-wx.c"; sourceTree = "<group>"; };
-		FAB4A12824C2772900F7BE22 /* aprs-is.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "aprs-is.c"; sourceTree = "<group>"; };
-		FAB4A12924C2772900F7BE22 /* getopt-windows.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "getopt-windows.h"; sourceTree = "<group>"; };
-		FAB4A12A24C2772900F7BE22 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		FAB4A12B24C2772900F7BE22 /* aprs-is.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "aprs-is.h"; sourceTree = "<group>"; };
-		FAB4A12C24C2772900F7BE22 /* aprs-wx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "aprs-wx.h"; sourceTree = "<group>"; };
+		FAB4A12624C2772900F7BE22 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = "../../weather-relay/aprs-weather-submit/src/main.h"; sourceTree = "<group>"; };
+		FAB4A12724C2772900F7BE22 /* aprs-wx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "aprs-wx.c"; path = "../../weather-relay/aprs-weather-submit/src/aprs-wx.c"; sourceTree = "<group>"; };
+		FAB4A12824C2772900F7BE22 /* aprs-is.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "aprs-is.c"; path = "../../weather-relay/aprs-weather-submit/src/aprs-is.c"; sourceTree = "<group>"; };
+		FAB4A12924C2772900F7BE22 /* getopt-windows.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "getopt-windows.h"; path = "../../weather-relay/aprs-weather-submit/src/getopt-windows.h"; sourceTree = "<group>"; };
+		FAB4A12A24C2772900F7BE22 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = "../../weather-relay/aprs-weather-submit/src/main.c"; sourceTree = "<group>"; };
+		FAB4A12B24C2772900F7BE22 /* aprs-is.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "aprs-is.h"; path = "../../weather-relay/aprs-weather-submit/src/aprs-is.h"; sourceTree = "<group>"; };
+		FAB4A12C24C2772900F7BE22 /* aprs-wx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "aprs-wx.h"; path = "../../weather-relay/aprs-weather-submit/src/aprs-wx.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
