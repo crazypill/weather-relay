@@ -32,7 +32,9 @@
 #define kLocalOffsetInHg 0.33
 #define c2f( a ) (((a) * 1.8000) + 32)
 #define ms2mph( a ) ((a) * 2.23694)
-#define kSendInterval    30   //  for debug
+
+#define kSendInterval    60 * 5   // 5 minutes
+//#define kSendInterval    30 // debug
 
 static time_t s_lastTime = 0;
 
