@@ -64,6 +64,13 @@ void printTime()
   printf("%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
+void printTimePlus5()
+{
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+  printf("%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min + 5, tm.tm_sec);
+}
+
 time_t timeGetTimeSec()
 {
     time_t rawtime = 0;
@@ -269,8 +276,9 @@ int main(int argc, const char * argv[])
                 // check the time
                 if( timeGetTimeSec() > s_lastTime + kSendInterval )
                 {
-                    printf( "Sending weather info to APRS-IS...  " );
                     printTime();
+                    printf( "Sending weather info to APRS-IS...  next send: " );
+                    printTimePlus5();
 
                     APRSPacket wx;
                     packetConstructor( &wx );
