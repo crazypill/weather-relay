@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <time.h>
+#include <math.h>
 
 #include "TXDecoderFrame.h"
 #include "aprs-wx.h"
@@ -61,6 +62,75 @@ time_t timeGetTimeSec()
 }
 
 
+uint8_t imax( uint8_t a, uint8_t b )
+{
+    return a > b ? a : b;
+}
+
+
+uint8_t imin( uint8_t a, uint8_t b )
+{
+    return a < b ? a : b;
+}
+
+
+void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
+{
+    if( data->flags & kDataFlag_temp )
+    {
+        max->tempC = fmax( data->tempC, max->tempC );
+        min->tempC = fmin( data->tempC, min->tempC );
+        ave->tempC = (data->tempC + ave->tempC) * 0.5f;
+        printf( "temperature min: %0.2f°F, max: %0.2f°F, average: %0.2f°F\n", c2f( min->tempC ), c2f( max->tempC ), c2f( ave->tempC ) );
+    }
+    
+    if( data->flags & kDataFlag_humidity )
+    {
+        max->humidity = imax( data->humidity, max->humidity );
+        min->humidity = imin( data->humidity, min->humidity );
+        ave->humidity = (data->humidity + ave->humidity) / 2;
+        printf( "humidity min: %d%%, max:%d%%, average: %d%%\n", min->humidity, max->humidity, ave->humidity );
+    }
+
+    if( data->flags & kDataFlag_wind )
+    {
+        max->windSpeedMs = fmax( data->windSpeedMs, max->windSpeedMs );
+        min->windSpeedMs = fmin( data->windSpeedMs, min->windSpeedMs );
+        ave->windSpeedMs = (data->windSpeedMs + ave->windSpeedMs) * 0.5f;
+
+        max->windDirection = fmax( data->windDirection, max->windDirection );
+        min->windDirection = fmin( data->windDirection, min->windDirection );
+        ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
+
+        printf( "wind min: %0.2f mph, max: %0.2f mph, average: %0.2f mph\n", ms2mph( min->windSpeedMs ), ms2mph( max->windSpeedMs ), ms2mph( ave->windSpeedMs ) );
+        printf( "dir  min: %0.2f deg, max: %0.2f deg, average: %0.2f deg\n", min->windDirection, max->windDirection, ave->windDirection );
+    }
+
+    if( data->flags & kDataFlag_gust )
+    {
+        max->windGustMs = fmax( data->windGustMs, max->windGustMs );
+        min->windGustMs = fmin( data->windGustMs, min->windGustMs );
+        ave->windGustMs = (data->windGustMs + ave->windGustMs) * 0.5f;
+        printf( "gust min: %0.2f mph, max: %0.2f mph, average: %0.2f mph\n", ms2mph( min->windGustMs ), ms2mph( max->windGustMs ), ms2mph( ave->windGustMs ) );
+    }
+
+
+    if( data->flags & kDataFlag_pressure )
+    {
+        max->pressure = fmax( data->pressure, max->pressure );
+        min->pressure = fmin( data->pressure, min->pressure );
+        ave->pressure = (data->pressure + ave->pressure) * 0.5f;
+        printf( "pressure min: %0.2f InHg, max: %0.2f InHg, average: %0.2f InHg\n",(min->pressure * millibar2inchHg) + kLocalOffsetInHg, (max->pressure * millibar2inchHg) + kLocalOffsetInHg, (ave->pressure * millibar2inchHg) + kLocalOffsetInHg );
+    }
+
+//    if( data.flags & kDataFlag_rain )
+//        printf( "rain:       %g\n", data.rain );
+
+//    if( data.flags & kDataFlag_intTemp )
+//        printf( "int temp:   %0.2f°F\n", c2f( data.intTempC ) );
+
+}
+
 int main(int argc, const char * argv[]) {
     
     // open the serial port
@@ -104,6 +174,11 @@ int main(int argc, const char * argv[]) {
 
     printf( "port open, reading from serial...\n\n" );
     
+    // this holds all the min/max/averages
+    Frame minFrame = {};
+    Frame maxFrame = {};
+    Frame aveFrame = {};
+
     uint8_t receivedFlags = 0;
     ssize_t result = 0;
     while( 1 )
@@ -152,6 +227,8 @@ int main(int argc, const char * argv[]) {
             if( (receivedFlags & 0x7F) == 0x7F )
             {
                 printf( "Have full weather info...  " );
+                updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
+
                 printTime();
                 receivedFlags = 0;
 
