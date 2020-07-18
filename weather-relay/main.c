@@ -23,7 +23,7 @@
 #include "aprs-wx.h"
 #include "aprs-is.h"
 
-#define DEVICE_NAME_V "folabs-wx-relay-v100"
+#define DEVICE_NAME_V "folabs-wx-relay100"
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"
 #define PORT_DEVICE "/dev/serial0"
