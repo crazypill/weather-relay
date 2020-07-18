@@ -268,7 +268,7 @@ int main(int argc, const char * argv[])
                     formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(frame.windGustMs))) );
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f( frame.tempC ))) );
+                    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(frame.tempC))) );
                     assert( formatTruncationCheck >= 0 );
 
                     unsigned short int h = frame.humidity;
@@ -288,7 +288,7 @@ int main(int argc, const char * argv[])
                     assert( formatTruncationCheck >= 0 );
 
                     printAPRSPacket( &wx, packetToSend, packetFormat, 0);
-                    sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
+//                    sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
                     
                     printf( "%s\n", packetToSend );
                     s_lastTime = timeGetTimeSec();
