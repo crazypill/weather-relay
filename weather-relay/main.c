@@ -17,6 +17,7 @@
 #include <time.h>
 
 #include "TXDecoderFrame.h"
+#include "aprs-wx.h"
 
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"
@@ -31,6 +32,9 @@
 #define kLocalOffsetInHg 0.33
 #define c2f( a ) (((a) * 1.8000) + 32)
 #define ms2mph( a ) ((a) * 2.23694)
+#define kSendInterval    30   //  for debug
+
+static time_t s_lastTime = 0;
 
 
 void buffer_input_flush()
@@ -47,6 +51,13 @@ void printTime()
   struct tm tm = *localtime(&t);
   printf("%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
+
+time_t timeGetTimeSec()
+{
+    time_t rawtime = 0;
+    return time( &rawtime );
+}
+
 
 int main(int argc, const char * argv[]) {
     
@@ -141,6 +152,19 @@ int main(int argc, const char * argv[]) {
                 printf( "Have full weather info...  " );
                 printTime();
                 receivedFlags = 0;
+
+                // check the time
+                if( timeGetTimeSec() > s_lastTime + kSendInterval )
+                {
+                    printf( "Sending weather info to APRS-IS...  " );
+                    printTime();
+
+//                // check the time, if 5 minutes has passed, send an update
+//                APRSPacket wx;
+//                packetConstructor( &wx );
+                    s_lastTime = timeGetTimeSec();
+                }
+                
             }
         }
         sleep( 1 );
