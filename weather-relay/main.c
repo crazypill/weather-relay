@@ -23,7 +23,7 @@
 #include "aprs-wx.h"
 #include "aprs-is.h"
 
-#define DEVICE_NAME_V "Far Out Labs wx-relay v1.0"
+#define DEVICE_NAME_V "folabs-wx-relay-v1.0"
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"
 #define PORT_DEVICE "/dev/serial0"
@@ -325,7 +325,7 @@ int main(int argc, const char * argv[])
                     assert( formatTruncationCheck >= 0 );
 
                     memset( packetToSend, 0, sizeof( packetToSend ) );
-                    printAPRSPacket( &wx, packetToSend, packetFormat, 0);
+                    printAPRSPacket( &wx, packetToSend, packetFormat, 0, false );
                     // add some additional info
                     strcat( packetToSend, DEVICE_NAME_V );
                     printf( "%s\n", packetToSend );
