@@ -265,7 +265,7 @@ int main(int argc, const char * argv[])
                 printf( "Have full weather info...  " );
 
                 printTime();
-                receivedFlags = 0;
+//                receivedFlags = 0;        // once we have a full set, just go with it-  we only update every five minutes anyway...
 
                 // check the time
                 if( timeGetTimeSec() > s_lastTime + kSendInterval )
