@@ -23,7 +23,7 @@
 #include "aprs-wx.h"
 #include "aprs-is.h"
 
-#define DEVICE_NAME_V "folabs-wx-relay-v1.0"
+#define DEVICE_NAME_V "folabs-wx-relay-v100"
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"
 #define PORT_DEVICE "/dev/serial0"
@@ -39,8 +39,8 @@
 #define ms2mph( a ) ((a) * 2.23694)
 #define inHg2millibars( a ) ((a) * 33.8639)
 
-//#define kSendInterval    60 * 5   // 5 minutes
-#define kSendInterval    30 // debug
+#define kSendInterval    60 * 5   // 5 minutes
+//#define kSendInterval    30 // debug
 
 
 #ifndef BUFSIZE
