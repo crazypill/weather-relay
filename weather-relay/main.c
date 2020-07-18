@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <math.h>
+#include <assert.h>
 
 #include "TXDecoderFrame.h"
 #include "aprs-wx.h"
@@ -175,9 +176,9 @@ int main(int argc, const char * argv[]) {
     printf( "port open, reading from serial...\n\n" );
     
     // this holds all the min/max/averages
-    Frame minFrame = {};
-    Frame maxFrame = {};
-    Frame aveFrame = {};
+//    Frame minFrame = {};
+//    Frame maxFrame = {};
+//    Frame aveFrame = {};
 
     uint8_t receivedFlags = 0;
     ssize_t result = 0;
@@ -238,9 +239,38 @@ int main(int argc, const char * argv[]) {
                     printf( "Sending weather info to APRS-IS...  " );
                     printTime();
 
-//                // check the time, if 5 minutes has passed, send an update
-//                APRSPacket wx;
-//                packetConstructor( &wx );
+                    APRSPacket wx;
+                    packetConstructor( &wx );
+                    uncompressedPosition( wx.latitude,    34.108,     IS_LATITUDE );
+                    uncompressedPosition( wx.longitude, -118.3349371, IS_LONGITUDE );
+
+                    int formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(frame.windDirection)) % 360 );
+                    assert( formatTruncationCheck >= 0 );
+
+                    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame.windSpeedMs))));
+                    assert( formatTruncationCheck >= 0 );
+
+                    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(frame.windGustMs))) );
+                    assert( formatTruncationCheck >= 0 );
+
+                    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f( frame.tempC ))) );
+                    assert( formatTruncationCheck >= 0 );
+
+                    unsigned short int h = (unsigned short)(round(frame.humidity));
+                    // APRS only supports values 1-100. Round 0% up to 1%.
+                    if( h == 0 )
+                        h = 1;
+                    
+                    // APRS requires us to encode 100% as "00".
+                    else if( h == 100 )
+                        h = 0;
+                    
+                    formatTruncationCheck = snprintf( wx.humidity, 3, "%.2d", h );
+                    assert( formatTruncationCheck >= 0 );
+
+                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(33.8639 * frame.pressure)) );
+                    assert( formatTruncationCheck >= 0 );
+
                     s_lastTime = timeGetTimeSec();
                 }
                 
