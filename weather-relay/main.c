@@ -324,14 +324,15 @@ int main(int argc, const char * argv[])
                     formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((wxFrame.pressure * millibar2inchHg) + kLocalOffsetInHg) * 10)) );
                     assert( formatTruncationCheck >= 0 );
 
+                    memset( packetToSend, 0, sizeof( packetToSend ) );
                     printAPRSPacket( &wx, packetToSend, packetFormat, 0);
                     // add some additional info
                     strcat( packetToSend, DEVICE_NAME_V );
+                    printf( "%s\n", packetToSend );
 
                     sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
-                    memset( packetToSend, 0, sizeof( packetToSend ) );
+                    printf( "packet sent...\n" );
 
-                    printf( "%s\n", packetToSend );
                     s_lastTime = timeGetTimeSec();
                 }
                 
