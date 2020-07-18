@@ -35,6 +35,8 @@
 #define millibar2inchHg  0.02953
 
 #define kLocalOffsetInHg 0.33
+#define kLocalTempErrorC 2.033333333333333
+
 #define c2f( a ) (((a) * 1.8000) + 32)
 #define ms2mph( a ) ((a) * 2.23694)
 #define inHg2millibars( a ) ((a) * 33.8639)
@@ -252,7 +254,7 @@ int main(int argc, const char * argv[])
 
             if( frame.flags & kDataFlag_intTemp )
             {
-                printf( "int temp:   %0.2f°F\n", c2f( frame.intTempC ) );
+                printf( "int temp:   %0.2f°F\n", c2f( frame.intTempC - kLocalTempErrorC ) );
                 wxFrame.intTempC = frame.intTempC;
             }
 
@@ -280,6 +282,8 @@ int main(int argc, const char * argv[])
                     printf( "Sending weather info to APRS-IS...  next update @ " );
                     printTimePlus5();
 
+                    // 25.666666666666669 = 78.2
+                    // 27.700000000000002 = 81.86
                     
                     APRSPacket wx;
                     packetConstructor( &wx );
