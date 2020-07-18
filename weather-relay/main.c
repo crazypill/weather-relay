@@ -37,8 +37,8 @@
 #define ms2mph( a ) ((a) * 2.23694)
 #define inHg2millibars( a ) ((a) * 33.8639)
 
-//#define kSendInterval    60 * 5   // 5 minutes
-#define kSendInterval    30 // debug
+#define kSendInterval    60 * 5   // 5 minutes
+//#define kSendInterval    30 // debug
 
 
 #ifndef BUFSIZE
