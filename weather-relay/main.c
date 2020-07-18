@@ -190,6 +190,9 @@ int main(int argc, const char * argv[])
 //    Frame minFrame = {};
 //    Frame maxFrame = {};
 //    Frame aveFrame = {};
+    
+    // master weather frame that is used to create APRS message
+    Frame wxFrame = {};
 
     uint8_t receivedFlags = 0;
     ssize_t result = 0;
@@ -209,28 +212,48 @@ int main(int argc, const char * argv[])
 
             // read flags
             if( frame.flags & kDataFlag_temp )
+            {
                 printf( "temp:       %0.2f°F\n", c2f( frame.tempC ) );
+                wxFrame.tempC = frame.tempC;
+            }
 
             if( frame.flags & kDataFlag_humidity )
+            {
                 printf( "humidity:   %d%%\n", frame.humidity );
+                wxFrame.humidity = frame.humidity;
+            }
 
             if( frame.flags & kDataFlag_wind )
             {
                 printf( "wind:       %0.2f mph\n", ms2mph( frame.windSpeedMs ) );
                 printf( "dir:        %0.2f degrees\n", frame.windDirection );
+                wxFrame.windSpeedMs = frame.windSpeedMs;
+                wxFrame.windDirection = frame.windDirection;
             }
             
             if( frame.flags & kDataFlag_gust )
+            {
                 printf( "gust:       %0.2f mph\n", ms2mph( frame.windGustMs ) );
+                wxFrame.windGustMs = frame.windGustMs;
+            }
             
             if( frame.flags & kDataFlag_rain )
+            {
                 printf( "rain:       %g\n", frame.rain );
+                wxFrame.rain = frame.rain;
+            }
 
             if( frame.flags & kDataFlag_intTemp )
+            {
                 printf( "int temp:   %0.2f°F\n", c2f( frame.intTempC ) );
+                wxFrame.intTempC = frame.intTempC;
+            }
 
             if( frame.flags & kDataFlag_pressure )
+            {
                 printf( "pressure:   %g InHg\n\n", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
+                wxFrame.pressure = frame.pressure;
+            }
 
 //            updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
 
@@ -259,19 +282,19 @@ int main(int argc, const char * argv[])
                     int formatTruncationCheck = snprintf( wx.callsign, 10, "K6LOT-13" );
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(frame.windDirection)) % 360 );
+                    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(wxFrame.windDirection)) % 360 );
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame.windSpeedMs))));
+                    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(wxFrame.windSpeedMs))));
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(frame.windGustMs))) );
+                    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(wxFrame.windGustMs))) );
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(frame.tempC))) );
+                    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(wxFrame.tempC))) );
                     assert( formatTruncationCheck >= 0 );
 
-                    unsigned short int h = frame.humidity;
+                    unsigned short int h = wxFrame.humidity;
                     // APRS only supports values 1-100. Round 0% up to 1%.
                     if( h == 0 )
                         h = 1;
@@ -284,7 +307,7 @@ int main(int argc, const char * argv[])
                     assert( formatTruncationCheck >= 0 );
                     
                     // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
-                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((frame.pressure * millibar2inchHg) + kLocalOffsetInHg) * 10)) );
+                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((wxFrame.pressure * millibar2inchHg) + kLocalOffsetInHg) * 10)) );
                     assert( formatTruncationCheck >= 0 );
 
                     printAPRSPacket( &wx, packetToSend, packetFormat, 0);
