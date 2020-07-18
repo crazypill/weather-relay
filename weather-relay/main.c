@@ -211,9 +211,6 @@ int main(int argc, const char * argv[])
         Frame frame = {};
 
         result = read( fd, &frame, sizeof( frame ) );
-//        if( result )
-//            printf( "read size: %ld\n", result );
-        
         if( result == sizeof( frame ) )
         {
             printf( "\n" );
@@ -280,7 +277,7 @@ int main(int argc, const char * argv[])
                 if( timeGetTimeSec() > s_lastTime + kSendInterval )
                 {
                     printTime();
-                    printf( "Sending weather info to APRS-IS...  next send: " );
+                    printf( "Sending weather info to APRS-IS...  next update @ " );
                     printTimePlus5();
 
                     
