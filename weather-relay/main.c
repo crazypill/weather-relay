@@ -34,6 +34,7 @@
 #define kLocalOffsetInHg 0.33
 #define c2f( a ) (((a) * 1.8000) + 32)
 #define ms2mph( a ) ((a) * 2.23694)
+#define inHg2millibars( a ) ((a) * 33.8639)
 
 //#define kSendInterval    60 * 5   // 5 minutes
 #define kSendInterval    30 // debug
@@ -267,8 +268,9 @@ int main(int argc, const char * argv[]) {
                     
                     formatTruncationCheck = snprintf( wx.humidity, 3, "%.2d", h );
                     assert( formatTruncationCheck >= 0 );
-
-                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(33.8639 * frame.pressure)) );
+                    
+                    // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
+                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((frame.pressure * millibar2inchHg) + kLocalOffsetInHg))) );
                     assert( formatTruncationCheck >= 0 );
 
                     s_lastTime = timeGetTimeSec();
