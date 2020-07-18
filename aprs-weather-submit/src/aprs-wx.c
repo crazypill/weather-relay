@@ -263,12 +263,6 @@ void printAPRSPacket (APRSPacket* restrict const p, char* restrict const ret, ch
 		assert(ret >= 0);
 	}
 
-//	if (notNull(p->gust))
-//	{
-//		strncat(result, "g", 1);
-//		strncat(result, p->gust, 3);
-//	}
-
 	if (notNull(p->rainfallLastHour))
 	{
 		strncat(result, "r", 1);
