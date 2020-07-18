@@ -262,9 +262,8 @@ int main(int argc, const char * argv[])
             receivedFlags |= frame.flags;
             if( (receivedFlags & 0x7F) == 0x7F )
             {
-                printf( "Have full weather info...  " );
-
-                printTime();
+//                printf( "Have full weather info...  " );
+//                printTime();
 //                receivedFlags = 0;        // once we have a full set, just go with it-  we only update every five minutes anyway...
 
                 // check the time
