@@ -328,6 +328,7 @@ int main(int argc, const char * argv[])
                     printAPRSPacket( &wx, packetToSend, packetFormat, 0, false );
                     // add some additional info
                     strcat( packetToSend, DEVICE_NAME_V );
+                    strcat( packetToSend, "\n\0" );
                     printf( "%s\n", packetToSend );
 
                     sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
