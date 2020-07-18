@@ -213,9 +213,9 @@ int main(int argc, const char * argv[])
         
         if( result == sizeof( frame ) )
         {
-            printf( "\nstation_id: 0x%x\n", frame.station_id );
-//            printf( "flags:      0x%x\n", frame.flags );
+            printf( "\n" );
             printTime();
+            printf( "station_id: 0x%x\n", frame.station_id );
 
             // read flags
             if( frame.flags & kDataFlag_temp )
