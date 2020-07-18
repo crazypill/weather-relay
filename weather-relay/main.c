@@ -279,7 +279,7 @@ int main(int argc, const char * argv[])
                     assert( formatTruncationCheck >= 0 );
                     
                     // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
-                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((frame.pressure * millibar2inchHg) + kLocalOffsetInHg))) );
+                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((frame.pressure * millibar2inchHg) + kLocalOffsetInHg) * 10)) );
                     assert( formatTruncationCheck >= 0 );
 
                     printAPRSPacket( &wx, packetToSend, packetFormat, 0);
