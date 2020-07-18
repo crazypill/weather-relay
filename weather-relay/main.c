@@ -22,6 +22,7 @@
 #include "aprs-wx.h"
 #include "aprs-is.h"
 
+#define DEVICE_NAME_V "Far Out Labs wx-relay v1.0"
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"
 #define PORT_DEVICE "/dev/serial0"
@@ -149,7 +150,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 
 int main(int argc, const char * argv[])
 {
-    char         packetToSend[BUFSIZE] = "";
+    char         packetToSend[BUFSIZE];
     char         packetFormat = UNCOMPRESSED_PACKET;
 
     // open the serial port
@@ -157,6 +158,7 @@ int main(int argc, const char * argv[])
 
     // Settings structure old and new
     struct termios newtio;
+    memset( packetToSend, 0, sizeof( packetToSend ) );
     
     int fd = open( PORT_DEVICE, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
     if( fd < 0 )
@@ -191,7 +193,7 @@ int main(int argc, const char * argv[])
     if( fd == -1 )
         return PORT_ERROR;
 
-    printf( "Far Out Labs wx-relay v1.0: reading from serial port: %s...\n\n", PORT_DEVICE );
+    printf( "%s: reading from serial port: %s...\n\n", DEVICE_NAME_V, PORT_DEVICE );
     
     // this holds all the min/max/averages
 //    Frame minFrame = {};
@@ -322,8 +324,12 @@ int main(int argc, const char * argv[])
                     assert( formatTruncationCheck >= 0 );
 
                     printAPRSPacket( &wx, packetToSend, packetFormat, 0);
+                    // add some additional info
+                    strcat( packetToSend, DEVICE_NAME_V );
+
                     sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
-                    
+                    memset( packetToSend, 0, sizeof( packetToSend ) );
+
                     printf( "%s\n", packetToSend );
                     s_lastTime = timeGetTimeSec();
                 }
