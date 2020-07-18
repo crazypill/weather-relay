@@ -184,7 +184,7 @@ int main(int argc, const char * argv[])
     if( fd == -1 )
         return PORT_ERROR;
 
-    printf( "port open, reading from serial...\n\n" );
+    printf( "Far Out Labs wx-relay v1.0: reading from serial port: %s...\n\n", PORT_DEVICE );
     
     // this holds all the min/max/averages
 //    Frame minFrame = {};
