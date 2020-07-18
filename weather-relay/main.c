@@ -39,8 +39,8 @@
 #define ms2mph( a ) ((a) * 2.23694)
 #define inHg2millibars( a ) ((a) * 33.8639)
 
-#define kSendInterval    60 * 5   // 5 minutes
-//#define kSendInterval    30 // debug
+//#define kSendInterval    60 * 5   // 5 minutes
+#define kSendInterval    30 // debug
 
 
 #ifndef BUFSIZE
@@ -282,9 +282,6 @@ int main(int argc, const char * argv[])
                     printTime();
                     printf( "Sending weather info to APRS-IS...  next send: " );
                     printTimePlus5();
-
-//                    printf( "Sending weather info to APRS-IS...  " );
-//                    printTime();
 
                     
                     APRSPacket wx;
