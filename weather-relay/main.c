@@ -282,10 +282,10 @@ int main(int argc, const char * argv[])
                     int formatTruncationCheck = snprintf( wx.callsign, 10, "K6LOT-13" );
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(wxFrame.windDirection)) % 360 );
+                    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(wxFrame.windDirection)) );
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(wxFrame.windSpeedMs))));
+                    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(wxFrame.windSpeedMs))) );
                     assert( formatTruncationCheck >= 0 );
 
                     formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(wxFrame.windGustMs))) );
