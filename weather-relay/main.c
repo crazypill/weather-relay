@@ -283,7 +283,7 @@ int main(int argc, const char * argv[])
                     assert( formatTruncationCheck >= 0 );
 
                     printAPRSPacket( &wx, packetToSend, packetFormat, 0);
-
+                    printf( "%s\n", packetToSend );
                     s_lastTime = timeGetTimeSec();
                 }
                 
