@@ -1304,7 +1304,7 @@ void ax25_get_addr_with_ssid (packet_t this_p, int n, char *station)
 	ssid = ax25_get_ssid (this_p, n);
 	if (ssid != 0) {
 	  snprintf (sstr, sizeof(sstr), "-%d", ssid);
-	  strlcat (station, sstr, 10);
+	  strcat( station, sstr );
 	}
 
 } /* end ax25_get_addr_with_ssid */
@@ -1963,12 +1963,12 @@ void ax25_format_via_path (packet_t this_p, char *result, size_t result_size)
 
 	for (i=(int)AX25_REPEATER_1; i<this_p->num_addr; i++) {
 	  if (i > (int)AX25_REPEATER_1) {
-	    strlcat (result, ",", result_size);
+	    strcat( result, "," );
 	  }
 	  ax25_get_addr_with_ssid (this_p, i, stemp);
-	  strlcat (result, stemp, result_size);
+	  strcat( result, stemp );
 	  if (i == heard) {
-	    strlcat (result, "*", result_size);
+	    strcat( result, "*" );
 	  }
 	}
 
@@ -2297,13 +2297,13 @@ void ax25_hex_dump (packet_t this_p)
 
 	    pid_to_text (p, pid_text);
 
-	    strlcat (cp_text, ", ", sizeof(cp_text));
-	    strlcat (cp_text, pid_text, sizeof(cp_text));
+	    strcat( cp_text, ", " );
+	    strcat( cp_text, pid_text );
 
 	  }
 
 	  snprintf (l_text, sizeof(l_text), ", length = %d", flen);
-	  strlcat (cp_text, l_text, sizeof(cp_text));
+	  strcat( cp_text, l_text );
 
 	  dw_printf ("%s\n", cp_text);
 	}
