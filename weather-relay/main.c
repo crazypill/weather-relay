@@ -50,6 +50,10 @@
 #define inHg2millibars( a ) ((a) * 33.8639)
 
 #define kSendInterval    60 * 5   // 5 minutes
+#define kWindInterval    60 * 2   // every 2 minutes we reset the average wind speed and direction
+#define kGustInterval    60 * 10  // every 10 minutes we reset the max wind gust to 0
+#define kBaroInterval    60
+
 //#define kSendInterval    30 // debug
 
 
@@ -62,8 +66,10 @@
 #define AX25_MAX_PACKET_LEN ( AX25_MAX_ADDRS * 7 + 2 + 3 + AX25_MAX_INFO_LEN)
 
 
-static time_t s_lastTime    = 0;
-//static int    s_server_sock = -1;
+static time_t s_lastSendTime = 0;
+static time_t s_lastWindTime = 0;
+static time_t s_lastGustTime = 0;
+static time_t s_lastBaroTime = 0;
 
 static int connectToDireWolf( void );
 static int sendToRadio( const char* p );
@@ -114,7 +120,7 @@ uint8_t imin( uint8_t a, uint8_t b )
 }
 
 
-void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
+void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 {
     if( data->flags & kDataFlag_temp )
     {
@@ -131,36 +137,38 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         ave->humidity = (data->humidity + ave->humidity) / 2;
         printf( "humidity min: %d%%, max:%d%%, average: %d%%\n", min->humidity, max->humidity, ave->humidity );
     }
-
+    
+    // for wind we want the max instantaneous over the interval period
     if( data->flags & kDataFlag_wind )
     {
-        max->windSpeedMs = fmax( data->windSpeedMs, max->windSpeedMs );
-        min->windSpeedMs = fmin( data->windSpeedMs, min->windSpeedMs );
-        ave->windSpeedMs = (data->windSpeedMs + ave->windSpeedMs) * 0.5f;
+        // check for no data before calculating mean
+        if( ave->windSpeedMs == 0.0 )
+            ave->windSpeedMs = data->windSpeedMs;
 
-        max->windDirection = fmax( data->windDirection, max->windDirection );
-        min->windDirection = fmin( data->windDirection, min->windDirection );
+        if( ave->windDirection == 0.0 )
+            ave->windDirection = data->windDirection;
+
+        ave->windSpeedMs = (data->windSpeedMs + ave->windSpeedMs) * 0.5f;
         ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
 
-        printf( "wind min: %0.2f mph, max: %0.2f mph, average: %0.2f mph\n", ms2mph( min->windSpeedMs ), ms2mph( max->windSpeedMs ), ms2mph( ave->windSpeedMs ) );
-        printf( "dir  min: %0.2f deg, max: %0.2f deg, average: %0.2f deg\n", min->windDirection, max->windDirection, ave->windDirection );
+        printf( "wind average[%0.2f°]: %0.2f mph, time: %ld, window: %d\n", ave->windDirection, ms2mph( ave->windSpeedMs ), timeGetTimeSec() - s_lastWindTime, kWindInterval );
     }
 
     if( data->flags & kDataFlag_gust )
     {
         max->windGustMs = fmax( data->windGustMs, max->windGustMs );
-        min->windGustMs = fmin( data->windGustMs, min->windGustMs );
-        ave->windGustMs = (data->windGustMs + ave->windGustMs) * 0.5f;
-        printf( "gust min: %0.2f mph, max: %0.2f mph, average: %0.2f mph\n", ms2mph( min->windGustMs ), ms2mph( max->windGustMs ), ms2mph( ave->windGustMs ) );
+        printf( "gust max: %0.2f mph, time: %ld, window: %d\n", ms2mph( max->windGustMs ), timeGetTimeSec() - s_lastGustTime, kGustInterval );
     }
 
 
     if( data->flags & kDataFlag_pressure )
     {
-        max->pressure = fmax( data->pressure, max->pressure );
+        // check for no data before calculating min
+        if( min->pressure == 0.0 )
+            min->pressure = data->pressure;
+
         min->pressure = fmin( data->pressure, min->pressure );
-        ave->pressure = (data->pressure + ave->pressure) * 0.5f;
-        printf( "pressure min: %0.2f InHg, max: %0.2f InHg, average: %0.2f InHg\n",(min->pressure * millibar2inchHg) + kLocalOffsetInHg, (max->pressure * millibar2inchHg) + kLocalOffsetInHg, (ave->pressure * millibar2inchHg) + kLocalOffsetInHg );
+        printf( "pressure min: %0.2f InHg, time: %ld, window: %d\n",(min->pressure * millibar2inchHg) + kLocalOffsetInHg, timeGetTimeSec() - s_lastBaroTime, kBaroInterval );
     }
 
 //    if( data.flags & kDataFlag_rain )
@@ -222,9 +230,9 @@ int main(int argc, const char * argv[])
     printf( "%s: reading from serial port: %s...\n\n", DEVICE_NAME_V, PORT_DEVICE );
 
     // this holds all the min/max/averages
-//    Frame minFrame = {};
-//    Frame maxFrame = {};
-//    Frame aveFrame = {};
+    Frame minFrame = {};
+    Frame maxFrame = {};
+    Frame aveFrame = {};
 
     // master weather frame that is used to create APRS message
     Frame wxFrame = {};
@@ -288,14 +296,35 @@ int main(int argc, const char * argv[])
 
             printf( "\n" );
             
-//            updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
+            updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
 
             // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
             // and at least 5 minutes has passed...  !!@ also need to average data over the 5 minute period...
             receivedFlags |= frame.flags;
             if( (receivedFlags & 0x7F) == 0x7F )
             {
-                if( timeGetTimeSec() > s_lastTime + kSendInterval )
+                // we create a 10 minute window of instantaneous gust measurements
+                if( timeGetTimeSec() > s_lastGustTime + kGustInterval )
+                {
+                    maxFrame.windGustMs = 0;
+                    s_lastGustTime = timeGetTimeSec();
+                }
+
+                if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
+                {
+                    aveFrame.windSpeedMs = 0;
+                    aveFrame.windDirection = 0;
+                    s_lastWindTime = timeGetTimeSec();
+                }
+
+                if( timeGetTimeSec() > s_lastBaroTime + kBaroInterval )
+                {
+                    minFrame.pressure = 0;
+                    s_lastBaroTime = timeGetTimeSec();
+                }
+
+                
+                if( timeGetTimeSec() > s_lastSendTime + kSendInterval )
                 {
                     printf( "\n" );
                     printTime( false );
@@ -354,7 +383,7 @@ int main(int argc, const char * argv[])
                     if( sendToRadio( packetToSend ) < 0 )
                         printf( "packet failed to send via Direwolf for radio path...\n" );
 #endif
-                    s_lastTime = timeGetTimeSec();
+                    s_lastSendTime = timeGetTimeSec();
                 }
             }
         }
