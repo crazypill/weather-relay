@@ -56,6 +56,7 @@
 
 //#define kSendInterval    30 // debug
 
+#define trace printf
 
 #ifndef BUFSIZE
 #define BUFSIZE 1025
@@ -248,7 +249,7 @@ int main(int argc, const char * argv[])
     if( fd == -1 )
         return PORT_ERROR;
 
-    printf( "%s: reading from serial port: %s...\n\n", DEVICE_NAME_V, PORT_DEVICE );
+    trace( "%s: reading from serial port: %s...\n\n", DEVICE_NAME_V, PORT_DEVICE );
 
     // this holds all the min/max/averages
     Frame minFrame = {};
@@ -267,55 +268,55 @@ int main(int argc, const char * argv[])
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
         {
-//            printf( "\n" );
+//            trace( "\n" );
             printTime( false );
-            printf( " station_id: 0x%x", frame.station_id );
+            trace( " station_id: 0x%x", frame.station_id );
 
             // read flags
             if( frame.flags & kDataFlag_temp )
             {
-                printf( ", temp: %0.2f°F", c2f( frame.tempC ) );
+                trace( ", temp: %0.2f°F", c2f( frame.tempC ) );
                 wxFrame.tempC = frame.tempC;
             }
 
             if( frame.flags & kDataFlag_humidity )
             {
-                printf( ", humidity: %d%%", frame.humidity );
+                trace( ", humidity: %d%%", frame.humidity );
                 wxFrame.humidity = frame.humidity;
             }
 
             if( frame.flags & kDataFlag_wind )
             {
-                printf( ", wind: %0.2f mph, dir: %0.2f degrees", ms2mph( frame.windSpeedMs ), frame.windDirection );
+                trace( ", wind: %0.2f mph, dir: %0.2f degrees", ms2mph( frame.windSpeedMs ), frame.windDirection );
                 wxFrame.windSpeedMs = frame.windSpeedMs;
                 wxFrame.windDirection = frame.windDirection;
             }
 
             if( frame.flags & kDataFlag_gust )
             {
-                printf( ", gust: %0.2f mph", ms2mph( frame.windGustMs ) );
+                trace( ", gust: %0.2f mph", ms2mph( frame.windGustMs ) );
                 wxFrame.windGustMs = frame.windGustMs;
             }
 
             if( frame.flags & kDataFlag_rain )
             {
-                printf( ", rain: %g", frame.rain );
+                trace( ", rain: %g", frame.rain );
                 wxFrame.rain = frame.rain;
             }
 
             if( frame.flags & kDataFlag_intTemp )
             {
-                printf( ", int temp: %0.2f°F", c2f( frame.intTempC - kLocalTempErrorC ) );
+                trace( ", int temp: %0.2f°F", c2f( frame.intTempC - kLocalTempErrorC ) );
                 wxFrame.intTempC = frame.intTempC;
             }
 
             if( frame.flags & kDataFlag_pressure )
             {
-                printf( ", pressure: %g InHg", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
+                trace( ", pressure: %g InHg", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
                 wxFrame.pressure = frame.pressure;
             }
 
-            printf( "\n" );
+            trace( "\n" );
             
             updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
 
@@ -326,7 +327,7 @@ int main(int argc, const char * argv[])
             {
                 if( timeGetTimeSec() > s_lastSendTime + kSendInterval )
                 {
-                    printf( "\n" );
+                    trace( "\n" );
                     printTime( false );
                     printf( " Sending weather info to APRS-IS...  next update @ " );
                     printTimePlus5();
