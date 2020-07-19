@@ -122,6 +122,27 @@ uint8_t imin( uint8_t a, uint8_t b )
 
 void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 {
+    // we create a 10 minute window of instantaneous gust measurements
+    if( timeGetTimeSec() > s_lastGustTime + kGustInterval )
+    {
+        max->windGustMs = 0;
+        s_lastGustTime = timeGetTimeSec();
+    }
+
+    if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
+    {
+        ave->windSpeedMs = 0;
+        ave->windDirection = 0;
+        s_lastWindTime = timeGetTimeSec();
+    }
+
+    if( timeGetTimeSec() > s_lastBaroTime + kBaroInterval )
+    {
+        min->pressure = 0;
+        s_lastBaroTime = timeGetTimeSec();
+    }
+    
+    
     if( data->flags & kDataFlag_temp )
     {
         max->tempC = fmax( data->tempC, max->tempC );
@@ -303,27 +324,6 @@ int main(int argc, const char * argv[])
             receivedFlags |= frame.flags;
             if( (receivedFlags & 0x7F) == 0x7F )
             {
-                // we create a 10 minute window of instantaneous gust measurements
-                if( timeGetTimeSec() > s_lastGustTime + kGustInterval )
-                {
-                    maxFrame.windGustMs = 0;
-                    s_lastGustTime = timeGetTimeSec();
-                }
-
-                if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
-                {
-                    aveFrame.windSpeedMs = 0;
-                    aveFrame.windDirection = 0;
-                    s_lastWindTime = timeGetTimeSec();
-                }
-
-                if( timeGetTimeSec() > s_lastBaroTime + kBaroInterval )
-                {
-                    minFrame.pressure = 0;
-                    s_lastBaroTime = timeGetTimeSec();
-                }
-
-                
                 if( timeGetTimeSec() > s_lastSendTime + kSendInterval )
                 {
                     printf( "\n" );
