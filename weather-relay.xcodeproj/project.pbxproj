@@ -7,13 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		FA3CB4F8245910C900C1FCC9 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = FA3CB4F7245910C900C1FCC9 /* main.c */; };
 		FAB4A12D24C2772900F7BE22 /* aprs-wx.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A12724C2772900F7BE22 /* aprs-wx.c */; };
 		FAB4A12E24C2772900F7BE22 /* aprs-is.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A12824C2772900F7BE22 /* aprs-is.c */; };
-		FAB4A13424C3FBE900F7BE22 /* kiss_frame.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A13324C3FBE800F7BE22 /* kiss_frame.c */; };
-		FAB4A13624C3FFB900F7BE22 /* ax25_pad.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A13524C3FFB900F7BE22 /* ax25_pad.c */; };
-		FAB4A13924C3FFE800F7BE22 /* fcs_calc.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A13724C3FFE800F7BE22 /* fcs_calc.c */; };
-		FAB4A14524C40A5D00F7BE22 /* stubs.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A14424C40A5D00F7BE22 /* stubs.c */; };
+		FAB4A15424C4152A00F7BE22 /* ax25_pad.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A14924C4152A00F7BE22 /* ax25_pad.c */; };
+		FAB4A15524C4152A00F7BE22 /* stubs.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A14C24C4152A00F7BE22 /* stubs.c */; };
+		FAB4A15624C4152A00F7BE22 /* fcs_calc.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A15024C4152A00F7BE22 /* fcs_calc.c */; };
+		FAB4A15724C4152A00F7BE22 /* kiss_frame.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A15324C4152A00F7BE22 /* kiss_frame.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -30,8 +29,6 @@
 
 /* Begin PBXFileReference section */
 		FA3CB4F4245910C900C1FCC9 /* weather-relay */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "weather-relay"; sourceTree = BUILT_PRODUCTS_DIR; };
-		FA3CB4F7245910C900C1FCC9 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		FAB4A12424C264A500F7BE22 /* TXDecoderFrame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TXDecoderFrame.h; path = "../../tx31u-receiver/TXDecoderFrame.h"; sourceTree = "<group>"; };
 		FAB4A12624C2772900F7BE22 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = "../../weather-relay/aprs-weather-submit/src/main.h"; sourceTree = "<group>"; };
 		FAB4A12724C2772900F7BE22 /* aprs-wx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "aprs-wx.c"; path = "../../weather-relay/aprs-weather-submit/src/aprs-wx.c"; sourceTree = "<group>"; };
 		FAB4A12824C2772900F7BE22 /* aprs-is.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "aprs-is.c"; path = "../../weather-relay/aprs-weather-submit/src/aprs-is.c"; sourceTree = "<group>"; };
@@ -39,14 +36,20 @@
 		FAB4A12A24C2772900F7BE22 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = "../../weather-relay/aprs-weather-submit/src/main.c"; sourceTree = "<group>"; };
 		FAB4A12B24C2772900F7BE22 /* aprs-is.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "aprs-is.h"; path = "../../weather-relay/aprs-weather-submit/src/aprs-is.h"; sourceTree = "<group>"; };
 		FAB4A12C24C2772900F7BE22 /* aprs-wx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "aprs-wx.h"; path = "../../weather-relay/aprs-weather-submit/src/aprs-wx.h"; sourceTree = "<group>"; };
-		FAB4A13024C3F96E00F7BE22 /* direwolf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = direwolf.h; path = ../../direwolf/direwolf.h; sourceTree = "<group>"; };
-		FAB4A13124C3F9D400F7BE22 /* ax25_pad.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ax25_pad.h; path = ../../direwolf/ax25_pad.h; sourceTree = "<group>"; };
-		FAB4A13224C3FBE200F7BE22 /* kiss_frame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = kiss_frame.h; path = ../../direwolf/kiss_frame.h; sourceTree = "<group>"; };
-		FAB4A13324C3FBE800F7BE22 /* kiss_frame.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kiss_frame.c; path = ../../direwolf/kiss_frame.c; sourceTree = "<group>"; };
-		FAB4A13524C3FFB900F7BE22 /* ax25_pad.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ax25_pad.c; path = ../../direwolf/ax25_pad.c; sourceTree = "<group>"; };
-		FAB4A13724C3FFE800F7BE22 /* fcs_calc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcs_calc.c; path = ../../direwolf/fcs_calc.c; sourceTree = "<group>"; };
-		FAB4A13824C3FFE800F7BE22 /* fcs_calc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fcs_calc.h; path = ../../direwolf/fcs_calc.h; sourceTree = "<group>"; };
-		FAB4A14424C40A5D00F7BE22 /* stubs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stubs.c; sourceTree = SOURCE_ROOT; };
+		FAB4A14624C4152A00F7BE22 /* kiss_frame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kiss_frame.h; sourceTree = SOURCE_ROOT; };
+		FAB4A14724C4152A00F7BE22 /* fcs_calc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fcs_calc.h; sourceTree = SOURCE_ROOT; };
+		FAB4A14824C4152A00F7BE22 /* audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = audio.h; sourceTree = SOURCE_ROOT; };
+		FAB4A14924C4152A00F7BE22 /* ax25_pad.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ax25_pad.c; sourceTree = SOURCE_ROOT; };
+		FAB4A14A24C4152A00F7BE22 /* latlong.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = latlong.h; sourceTree = SOURCE_ROOT; };
+		FAB4A14B24C4152A00F7BE22 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = SOURCE_ROOT; };
+		FAB4A14C24C4152A00F7BE22 /* stubs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stubs.c; sourceTree = SOURCE_ROOT; };
+		FAB4A14D24C4152A00F7BE22 /* textcolor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = textcolor.h; sourceTree = SOURCE_ROOT; };
+		FAB4A14E24C4152A00F7BE22 /* tq.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tq.h; sourceTree = SOURCE_ROOT; };
+		FAB4A14F24C4152A00F7BE22 /* direwolf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = direwolf.h; sourceTree = SOURCE_ROOT; };
+		FAB4A15024C4152A00F7BE22 /* fcs_calc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fcs_calc.c; sourceTree = SOURCE_ROOT; };
+		FAB4A15124C4152A00F7BE22 /* ax25_pad.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ax25_pad.h; sourceTree = SOURCE_ROOT; };
+		FAB4A15224C4152A00F7BE22 /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = version.h; sourceTree = SOURCE_ROOT; };
+		FAB4A15324C4152A00F7BE22 /* kiss_frame.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kiss_frame.c; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,16 +83,20 @@
 		FA3CB4F6245910C900C1FCC9 /* weather-relay */ = {
 			isa = PBXGroup;
 			children = (
-				FAB4A13024C3F96E00F7BE22 /* direwolf.h */,
-				FAB4A13124C3F9D400F7BE22 /* ax25_pad.h */,
-				FAB4A13524C3FFB900F7BE22 /* ax25_pad.c */,
-				FAB4A13224C3FBE200F7BE22 /* kiss_frame.h */,
-				FAB4A13324C3FBE800F7BE22 /* kiss_frame.c */,
-				FAB4A13724C3FFE800F7BE22 /* fcs_calc.c */,
-				FAB4A13824C3FFE800F7BE22 /* fcs_calc.h */,
-				FAB4A12424C264A500F7BE22 /* TXDecoderFrame.h */,
-				FA3CB4F7245910C900C1FCC9 /* main.c */,
-				FAB4A14424C40A5D00F7BE22 /* stubs.c */,
+				FAB4A14824C4152A00F7BE22 /* audio.h */,
+				FAB4A14924C4152A00F7BE22 /* ax25_pad.c */,
+				FAB4A15124C4152A00F7BE22 /* ax25_pad.h */,
+				FAB4A14F24C4152A00F7BE22 /* direwolf.h */,
+				FAB4A15024C4152A00F7BE22 /* fcs_calc.c */,
+				FAB4A14724C4152A00F7BE22 /* fcs_calc.h */,
+				FAB4A15324C4152A00F7BE22 /* kiss_frame.c */,
+				FAB4A14624C4152A00F7BE22 /* kiss_frame.h */,
+				FAB4A14A24C4152A00F7BE22 /* latlong.h */,
+				FAB4A14B24C4152A00F7BE22 /* README.md */,
+				FAB4A14C24C4152A00F7BE22 /* stubs.c */,
+				FAB4A14D24C4152A00F7BE22 /* textcolor.h */,
+				FAB4A14E24C4152A00F7BE22 /* tq.h */,
+				FAB4A15224C4152A00F7BE22 /* version.h */,
 			);
 			path = "weather-relay";
 			sourceTree = "<group>";
@@ -166,13 +173,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FAB4A15624C4152A00F7BE22 /* fcs_calc.c in Sources */,
+				FAB4A15724C4152A00F7BE22 /* kiss_frame.c in Sources */,
+				FAB4A15424C4152A00F7BE22 /* ax25_pad.c in Sources */,
+				FAB4A15524C4152A00F7BE22 /* stubs.c in Sources */,
 				FAB4A12D24C2772900F7BE22 /* aprs-wx.c in Sources */,
-				FAB4A13624C3FFB900F7BE22 /* ax25_pad.c in Sources */,
-				FAB4A13424C3FBE900F7BE22 /* kiss_frame.c in Sources */,
-				FAB4A13924C3FFE800F7BE22 /* fcs_calc.c in Sources */,
 				FAB4A12E24C2772900F7BE22 /* aprs-is.c in Sources */,
-				FA3CB4F8245910C900C1FCC9 /* main.c in Sources */,
-				FAB4A14524C40A5D00F7BE22 /* stubs.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
