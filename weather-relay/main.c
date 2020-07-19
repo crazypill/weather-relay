@@ -234,9 +234,9 @@ int main(int argc, const char * argv[])
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
         {
-            printf( "\n" );
+//            printf( "\n" );
             printTime( false );
-            printf( "station_id: 0x%x", frame.station_id );
+            printf( " station_id: 0x%x", frame.station_id );
 
             // read flags
             if( frame.flags & kDataFlag_temp )
@@ -291,11 +291,6 @@ int main(int argc, const char * argv[])
             receivedFlags |= frame.flags;
             if( (receivedFlags & 0x7F) == 0x7F )
             {
-//                printf( "Have full weather info...  " );
-//                printTime();
-//                receivedFlags = 0;        // once we have a full set, just go with it-  we only update every five minutes anyway...
-
-                // check the time
                 if( timeGetTimeSec() > s_lastTime + kSendInterval )
                 {
                     printTime( false );
