@@ -35,7 +35,7 @@
 #define PORT_DEVICE "/dev/serial0"
 //#define PORT_DEVICE "/dev/serial1"
 
-//#define SEND_TO_RADIO
+#define SEND_TO_RADIO
 
 #define PORT_ERROR -1
 
@@ -353,8 +353,6 @@ int main(int argc, const char * argv[])
 #ifdef SEND_TO_RADIO
                     if( sendToRadio( packetToSend ) < 0 )
                         printf( "packet failed to send via Direwolf for radio path...\n" );
-                    else
-                       printf( "Packet sent over radio path...\n" );
 #endif
                     s_lastTime = timeGetTimeSec();
                 }
