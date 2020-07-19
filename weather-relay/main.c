@@ -60,6 +60,7 @@
 
 
 static time_t s_lastTime = 0;
+static int    s_server_sock = -1;
 
 static int  connectToDireWolf( void );
 static void sendToRadio( const char* p );
@@ -432,8 +433,10 @@ void send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
     klen = kiss_encapsulate( temp, dlen + 1, kissed );
     
     // connect to direwolf and send data
-    int server_sock = connectToDireWolf();
-    if( server_sock < 0 )
+    if( s_server_sock < 0 )
+        s_server_sock = connectToDireWolf();
+    
+    if( s_server_sock < 0 )
     {
         printf("ERROR Can't connect to direwolf...\n");
         return;
