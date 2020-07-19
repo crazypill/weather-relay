@@ -18,10 +18,15 @@
 #include <math.h>
 #include <assert.h>
 #include <string.h>
+#include <netdb.h>
 
 #include "TXDecoderFrame.h"
 #include "aprs-wx.h"
 #include "aprs-is.h"
+
+#include "ax25_pad.h"
+#include "kiss_frame.h"
+
 
 #define DEVICE_NAME_V "folabs-wx-relay100"
 
@@ -49,8 +54,14 @@
 #define BUFSIZE 1025
 #endif
 
+#define AX25_MAX_ADDRS 10    /* Destination, Source, 8 digipeaters. */
+#define AX25_MAX_INFO_LEN 2048    /* Maximum size for APRS. */
+#define AX25_MAX_PACKET_LEN ( AX25_MAX_ADDRS * 7 + 2 + 3 + AX25_MAX_INFO_LEN)
+
 
 static time_t s_lastTime = 0;
+static int  connectToDireWolf();
+static void send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
 
 
 void buffer_input_flush()
@@ -341,4 +352,152 @@ int main(int argc, const char * argv[])
     }
     
     return 0;
+}
+
+
+
+
+void sendToRadio( const char* p )
+{
+    // Parse the "TNC2 monitor format" and convert to AX.25 frame.
+    unsigned char frame_data[AX25_MAX_PACKET_LEN];
+    packet_t pp = ax25_from_text( (char*)p, 1 );
+    if( pp != NULL )
+    {
+      int frame_len = ax25_pack( pp, frame_data );
+      send_to_kiss_tnc( 0, KISS_CMD_DATA_FRAME, (char*)frame_data, frame_len );
+      ax25_delete (pp);
+    }
+    else
+      printf( "ERROR! Could not convert to AX.25 frame: %s\n", p );
+}
+
+
+
+/*-------------------------------------------------------------------
+ *
+ * Name:        send_to_kiss_tnc
+ *
+ * Purpose:     Encapsulate the data/command, into a KISS frame, and send to the TNC.
+ *
+ * Inputs:    chan    - channel number.
+ *
+ *        cmd    - KISS_CMD_DATA_FRAME, KISS_CMD_SET_HARDWARE, etc.
+ *
+ *        data    - Information for KISS frame.
+ *
+ *        dlen    - Number of bytes in data.
+ *
+ * Description:    Encapsulate as KISS frame and send to TNC.
+ *
+ *--------------------------------------------------------------------*/
+
+void send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
+{
+    unsigned char temp[1000];
+    unsigned char kissed[2000];
+    int klen;
+
+    if( chan < 0 || chan > 15 ) {
+      printf( "ERROR - Invalid channel %d - must be in range 0 to 15.\n", chan );
+      chan = 0;
+    }
+    if( cmd < 0 || cmd > 15 ) {
+      printf( "ERROR - Invalid command %d - must be in range 0 to 15.\n", cmd );
+      cmd = 0;
+    }
+    if( dlen < 0 || dlen > (int)(sizeof( temp ) - 1) ) {
+      printf( "ERROR - Invalid data length %d - must be in range 0 to %d.\n", dlen, (int)(sizeof( temp ) - 1) );
+      dlen = sizeof( temp ) - 1;
+    }
+
+    temp[0] = (chan << 4) | cmd;
+    memcpy( temp + 1, data, dlen );
+
+    klen = kiss_encapsulate( temp, dlen + 1, kissed );
+    
+    // connect to direwolf and send data
+    int server_sock = connectToDireWolf();
+    if( server_sock < 0 )
+    {
+        printf("ERROR Can't connect to direwolf...\n");
+        return;
+    }
+    
+    ssize_t rc = send( server_sock, (char*)kissed, klen, 0 );
+    if( rc != klen )
+        printf("ERROR writing KISS frame to socket.\n");
+}
+
+
+// returns fd to use to communicate with
+int connectToDireWolf()
+{
+    int              err                = 0;
+    const char*      server             = "localhost";
+    uint16_t         port               = 8000;
+    int              error              = 0;
+    char             foundValidServerIP = 0;
+    struct addrinfo* result             = NULL;
+    struct addrinfo* results;
+    int              socket_desc        = -1;
+
+    error = getaddrinfo( server, NULL, NULL, &results );
+    if( error != 0 )
+    {
+        if( error == EAI_SYSTEM )
+        {
+            perror( "getaddrinfo" );
+        }
+        else
+        {
+            fprintf( stderr, "error in getaddrinfo: %s\n", server );
+        }
+        return -1;
+//        exit(EXIT_FAILURE);
+    }
+
+    for( result = results; result != NULL; result = result->ai_next )
+    {
+        /* For readability later: */
+        struct sockaddr* const addressinfo = result->ai_addr;
+
+        socket_desc = socket( addressinfo->sa_family, SOCK_STREAM, IPPROTO_TCP );
+        if (socket_desc < 0)
+        {
+            perror("error in socket()");
+            continue; /* for loop */
+        }
+
+        /* Assign the port number. */
+        switch (addressinfo->sa_family)
+        {
+            case AF_INET:
+                ((struct sockaddr_in*)addressinfo)->sin_port   = htons(port);
+                break;
+            case AF_INET6:
+                ((struct sockaddr_in6*)addressinfo)->sin6_port = htons(port);
+                break;
+        }
+
+        if( connect( socket_desc, addressinfo, result->ai_addrlen ) >= 0 )
+        {
+            foundValidServerIP = 1;
+            break; /* for loop */
+        }
+        else
+        {
+            perror( "error in connect()" );
+            shutdown( socket_desc, 2 );
+        }
+    }
+    freeaddrinfo( results );
+    if( foundValidServerIP == 0 )
+    {
+        fputs( "Could not connect to the server.\n", stderr );
+        err = -1;
+    }
+
+    shutdown( socket_desc, 2 );
+    return err;
 }
