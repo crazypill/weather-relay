@@ -58,8 +58,9 @@
 #define kHumiInterval    60
 
 //#define kSendInterval    30 // debug
-
-#define trace printf
+#define trace
+//#define trace printf
+#define stats printf
 
 #ifndef BUFSIZE
 #define BUFSIZE 1025
@@ -169,7 +170,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 
         ave->tempC = (data->tempC + ave->tempC) * 0.5f;
         printTime( false );
-        printf( " temp average: %0.2f°F, time left: %ld\n", c2f( ave->tempC ), kTempInterval - (timeGetTimeSec() - s_lastTempTime) );
+        stats( " temp average: %0.2f°F, time left: %ld\n", c2f( ave->tempC ), kTempInterval - (timeGetTimeSec() - s_lastTempTime) );
     }
     
     if( data->flags & kDataFlag_humidity )
@@ -179,7 +180,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
             ave->humidity = data->humidity;
         ave->humidity = (data->humidity + ave->humidity) / 2;
         printTime( false );
-        printf( " humidity average: %d%%, time left: %ld\n", ave->humidity, kHumiInterval - (timeGetTimeSec() - s_lastHumiTime) );
+        stats( " humidity average: %d%%, time left: %ld\n", ave->humidity, kHumiInterval - (timeGetTimeSec() - s_lastHumiTime) );
     }
     
     // for wind we want the max instantaneous over the interval period
@@ -195,14 +196,14 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
         ave->windSpeedMs = (data->windSpeedMs + ave->windSpeedMs) * 0.5f;
         ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
         printTime( false );
-        printf( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
+        stats( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
     }
 
     if( data->flags & kDataFlag_gust )
     {
         max->windGustMs = fmax( data->windGustMs, max->windGustMs );
         printTime( false );
-        printf( " gust max: %0.2f mph, time left: %ld\n", ms2mph( max->windGustMs ), kGustInterval- (timeGetTimeSec() - s_lastGustTime) );
+        stats( " gust max: %0.2f mph, time left: %ld\n", ms2mph( max->windGustMs ), kGustInterval- (timeGetTimeSec() - s_lastGustTime) );
     }
 
 
@@ -214,7 +215,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 
         min->pressure = fmin( data->pressure, min->pressure );
         printTime( false );
-        printf( " pressure min: %0.2f InHg, time left: %ld\n",(min->pressure * millibar2inchHg) + kLocalOffsetInHg, kBaroInterval - (timeGetTimeSec() - s_lastBaroTime) );
+        stats( " pressure min: %0.2f InHg, time left: %ld\n",(min->pressure * millibar2inchHg) + kLocalOffsetInHg, kBaroInterval - (timeGetTimeSec() - s_lastBaroTime) );
     }
 
 //    if( data.flags & kDataFlag_rain )
