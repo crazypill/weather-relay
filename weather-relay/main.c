@@ -7,6 +7,7 @@
 //
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <strings.h>
 #include <errno.h>
@@ -62,7 +63,7 @@
 
 
 static time_t s_lastTime    = 0;
-static int    s_server_sock = -1;
+//static int    s_server_sock = -1;
 
 static int connectToDireWolf( void );
 static int sendToRadio( const char* p );
@@ -346,9 +347,8 @@ int main(int argc, const char * argv[])
                     printf( "%s\n", packetToSend );
 
                     // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
-                    sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
-                    printf( "Packet sent to APRS-IS...\n" );
-
+                    if( sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend ) < 0 )
+                        printf( "packet failed to send to APRS-IS...\n" );
 
 #ifdef SEND_TO_RADIO
                     if( sendToRadio( packetToSend ) < 0 )
@@ -421,7 +421,7 @@ int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
     unsigned char temp[1000];
     unsigned char kissed[2000];
     int klen;
-    int err = 1;
+    int err = 0;
 
     if( chan < 0 || chan > 15 ) {
       printf( "ERROR - Invalid channel %d - must be in range 0 to 15.\n", chan );
@@ -442,17 +442,18 @@ int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
     klen = kiss_encapsulate( temp, dlen + 1, kissed );
     
     // connect to direwolf and send data
-    if( s_server_sock < 0 )
-        s_server_sock = connectToDireWolf();
+//    if( s_server_sock < 0 )
+//        s_server_sock = connectToDireWolf();
     
-    if( s_server_sock < 0 )
+    int server_sock = connectToDireWolf();
+    if( server_sock < 0 )
     {
         printf("ERROR Can't connect to direwolf...\n");
         err = -1;
         goto exit_gracefully;
     }
     
-    ssize_t rc = send( s_server_sock, (char*)kissed, klen, 0 );
+    ssize_t rc = send( server_sock, (char*)kissed, klen, 0 );
     if( rc != klen )
     {
         printf("ERROR writing KISS frame to socket.\n");
@@ -460,7 +461,7 @@ int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
     }
 
 exit_gracefully:
-//    shutdown( server_sock, 2 );
+    shutdown( server_sock, 2 );
     return err;
 }
 
@@ -468,7 +469,6 @@ exit_gracefully:
 // returns fd to use to communicate with
 int connectToDireWolf( void )
 {
-    int              err                = 0;
 //    const char*      server             = "localhost";
     const char*      server             = "10.0.1.208";
     uint16_t         port               = 8001;
@@ -489,8 +489,7 @@ int connectToDireWolf( void )
         {
             fprintf( stderr, "error in getaddrinfo: %s\n", server );
         }
-        return -1;
-//        exit(EXIT_FAILURE);
+        return error;
     }
 
     for( result = results; result != NULL; result = result->ai_next )
@@ -531,12 +530,12 @@ int connectToDireWolf( void )
     if( foundValidServerIP == 0 )
     {
         fputs( "Could not connect to the server.\n", stderr );
-        err = -1;
+        error = -1;
     }
     else
     {
         // do not close down the connection if we connected!
         return socket_desc;
     }
-    return err;
+    return error;
 }

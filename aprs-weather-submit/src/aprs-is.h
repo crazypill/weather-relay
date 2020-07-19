@@ -35,7 +35,7 @@ with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.html>.
  * @param toSend   The APRS-IS packet, as a string.
  * @since 0.3
  */
-void
+int
 sendPacket (const char* const restrict server, const unsigned short port,
             const char* const restrict username,
             const char* const restrict password,

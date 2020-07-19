@@ -19,23 +19,30 @@ You should have received a copy of the GNU Affero General Public License along
 with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.html>.
  */
 
-#include <stdio.h>      /* fprintf(), printf(), fputs() */
-#include <stdlib.h>     /* malloc(), free(), exit() and constants */
-#include <string.h>     /* str?cat() */
-#include "main.h"       /* PROGRAM_NAME, VERSION */
-#include "aprs-is.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <strings.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/termios.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <time.h>
+#include <math.h>
+#include <assert.h>
+#include <string.h>
+#include <netdb.h>
 
-#ifndef _WIN32
-#include <sys/types.h>  /* size_t */
-#include <sys/socket.h> /* socket(), connect(), shutdown(), recv(), send() */
-#include <netinet/in.h> /* sockaddr, sockaddr_in, sockaddr_in6 */
-#include <arpa/inet.h>  /* inet_pton() */
-#include <netdb.h>      /* getaddrinfo(), gai_strerror() */
-#include <unistd.h>     /* EAI_SYSTEM */
-#else  /* _WIN32 */
-#include <WinSock2.h>   /* all that socket stuff on Windows */
-#include <WS2tcpip.h>   /* inet_pton(), only available on Windows Vista and up */
-#endif /* _WIN32 */
+
+#ifndef BUFSIZE
+#define BUFSIZE 1025
+#endif
+
+#define PROGRAM_NAME "folabs-wx-relay"
+#define VERSION      "100"
+
+
 
 /**
  * sendPacket() -- sends a packet to an APRS-IS IGate server.
@@ -48,14 +55,10 @@ with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.html>.
  * @param toSend   The APRS-IS packet, as a string.
  * @since 0.3
  */
-void
-sendPacket (const char* const restrict server, const unsigned short port,
-            const char* const restrict username,
-            const char* const restrict password,
-            const char* const restrict toSend)
+int sendPacket (const char* const restrict server, const unsigned short port, const char* const restrict username, const char* const restrict password, const char* const restrict toSend)
 {
 	int              error = 0;
-	int              bytesRead = 0;
+	ssize_t          bytesRead = 0;
 	char             authenticated = 0;
 	char             foundValidServerIP = 0;
 	struct addrinfo* result = NULL;
@@ -90,7 +93,7 @@ sendPacket (const char* const restrict server, const unsigned short port,
 			fprintf(stderr, "error in getaddrinfo: %s: %s\n", server,
 			        gai_strerror(error));
 		}
-		exit(EXIT_FAILURE);
+        return error;
 	}
 
 	for (result = results; result != NULL; result = result->ai_next)
@@ -116,6 +119,7 @@ sendPacket (const char* const restrict server, const unsigned short port,
 				break;
 		}
 
+#ifdef DEBUG_PRINT_CONNECTION_INFO
 		/* Connect */
 		switch (addressinfo->sa_family)
 		{
@@ -125,10 +129,8 @@ sendPacket (const char* const restrict server, const unsigned short port,
 					&((struct sockaddr_in*)addressinfo)->sin_addr,
 					buffer,
 					INET_ADDRSTRLEN);
-#ifdef DEBUG
 				printf("Connecting to %s:%d...\n", buffer,
 				       ntohs(((struct sockaddr_in*)addressinfo)->sin_port));
-#endif
 				break;
 			case AF_INET6:
 				inet_ntop(
@@ -136,14 +138,14 @@ sendPacket (const char* const restrict server, const unsigned short port,
 					&((struct sockaddr_in6*)addressinfo)->sin6_addr,
 					buffer,
 					INET6_ADDRSTRLEN);
-#ifdef DEBUG
 				printf("Connecting to [%s]:%d...\n", buffer,
 				       ntohs(((struct sockaddr_in6*)addressinfo)->sin6_port));
-#endif
 				break;
 		}
+#endif
 
-		if (connect(socket_desc, addressinfo, (size_t)(result->ai_addrlen)) >= 0)
+        error = connect(socket_desc, addressinfo, result->ai_addrlen);
+		if (error >= 0)
 		{
 			foundValidServerIP = 1;
 			break; /* for loop */
@@ -158,12 +160,11 @@ sendPacket (const char* const restrict server, const unsigned short port,
 	if (foundValidServerIP == 0)
 	{
 		fputs("Could not connect to the server.\n", stderr);
-		exit(EXIT_FAILURE);
+        return error;
 	}
 
 	/* Authenticate */
-	sprintf(buffer, "user %s pass %s vers %s/%s\n",
-	        username, password, PROGRAM_NAME, VERSION);
+	sprintf(buffer, "user %s pass %s vers %s/%s\n", username, password, PROGRAM_NAME, VERSION);
 #ifdef DEBUG
 	printf("> %s", buffer);
 #endif
@@ -192,7 +193,7 @@ sendPacket (const char* const restrict server, const unsigned short port,
 	if (!authenticated)
 	{
 		fputs("Authentication failed!", stderr);
-		exit(EXIT_FAILURE);
+        return -2;
 	}
 
 	/* Send packet */
@@ -203,5 +204,5 @@ sendPacket (const char* const restrict server, const unsigned short port,
 	
 	/* Done! */
 	shutdown(socket_desc, 2);
-	return;
+	return 0;
 }
