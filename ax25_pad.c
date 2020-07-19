@@ -399,7 +399,7 @@ packet_t ax25_from_text (char *monitor, int strict)
 	/* It is possible that will convert <0x00> to a nul character later. */
 	/* There we need to maintain a separate length and not use normal C string functions. */
 
-	strlcpy (stuff, monitor, sizeof(stuff));
+	strcpy(stuff, monitor);
 
 
 /*
@@ -1271,7 +1271,7 @@ void ax25_get_addr_with_ssid (packet_t this_p, int n, char *station)
 	  text_color_set(DW_COLOR_ERROR);
 	  dw_printf ("Internal error detected in ax25_get_addr_with_ssid, %s, line %d.\n", __FILE__, __LINE__);
 	  dw_printf ("Address index, %d, is less than zero.\n", n);
-	  strlcpy (station, "??????", 10);
+	  strcpy(station, "??????");
 	  return;
 	}
 
@@ -1279,7 +1279,7 @@ void ax25_get_addr_with_ssid (packet_t this_p, int n, char *station)
 	  text_color_set(DW_COLOR_ERROR);
 	  dw_printf ("Internal error detected in ax25_get_addr_with_ssid, %s, line %d.\n", __FILE__, __LINE__);
 	  dw_printf ("Address index, %d, is too large for number of addresses, %d.\n", n, this_p->num_addr);
-	  strlcpy (station, "??????", 10);
+	  strcpy(station, "??????");
 	  return;
 	}
 
@@ -1345,7 +1345,7 @@ void ax25_get_addr_no_ssid (packet_t this_p, int n, char *station)
 	  text_color_set(DW_COLOR_ERROR);
 	  dw_printf ("Internal error detected in ax25_get_addr_no_ssid, %s, line %d.\n", __FILE__, __LINE__);
 	  dw_printf ("Address index, %d, is less than zero.\n", n);
-	  strlcpy (station, "??????", 7);
+	  strcpy(station, "??????");
 	  return;
 	}
 
@@ -1353,7 +1353,7 @@ void ax25_get_addr_no_ssid (packet_t this_p, int n, char *station)
 	  text_color_set(DW_COLOR_ERROR);
 	  dw_printf ("Internal error detected in ax25_get_no_with_ssid, %s, line %d.\n", __FILE__, __LINE__);
 	  dw_printf ("Address index, %d, is too large for number of addresses, %d.\n", n, this_p->num_addr);
-	  strlcpy (station, "??????", 7);
+	  strcpy(station, "??????");
 	  return;
 	}
 
@@ -2048,7 +2048,7 @@ ax25_frame_type_t ax25_frame_type (packet_t this_p, cmdres_t *cr, char *desc, in
 	assert (this_p->magic1 == MAGIC);
 	assert (this_p->magic2 == MAGIC);
 
-	strlcpy (desc, "????", DESC_SIZ);
+	strcpy(desc, "????");
 	*cr = cr_11;
 	*pf = -1;
 	*nr = -1;
@@ -2056,7 +2056,7 @@ ax25_frame_type_t ax25_frame_type (packet_t this_p, cmdres_t *cr, char *desc, in
 
 	c = ax25_get_control(this_p);
 	if (c < 0) {
-	  strlcpy (desc, "Not AX.25", DESC_SIZ);
+	  strcpy (desc, "Not AX.25");
 	  return (frame_not_AX25);
 	}
 
@@ -2788,7 +2788,7 @@ void ax25_safe_print (char *pstr, int len, int ascii_only)
 int ax25_alevel_to_text (alevel_t alevel, char text[AX25_ALEVEL_TO_TEXT_SIZE])
 {
 	if (alevel.rec < 0) {
-	  strlcpy (text, "", AX25_ALEVEL_TO_TEXT_SIZE);
+	  strcpy(text, "");
 	  return (0);
 	}
 
