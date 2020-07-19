@@ -278,6 +278,11 @@ char *strcasestr(const char *S, const char *FIND);
 
 // strlcpy and strlcat should be in string.h and the C library.
 
+else if defined( __insecure_redirect__ )
+
+#define strlcpy(dst,src,siz) strcpy(dst,src)
+#define strlcat(dst,src,siz) strcat(dst,src)
+
 #else   // Use our own copy
 
 
