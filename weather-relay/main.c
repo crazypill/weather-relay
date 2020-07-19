@@ -293,6 +293,7 @@ int main(int argc, const char * argv[])
             {
                 if( timeGetTimeSec() > s_lastTime + kSendInterval )
                 {
+                    printf( "\n" );
                     printTime( false );
                     printf( " Sending weather info to APRS-IS...  next update @ " );
                     printTimePlus5();
