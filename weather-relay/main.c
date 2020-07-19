@@ -49,10 +49,13 @@
 #define ms2mph( a ) ((a) * 2.23694)
 #define inHg2millibars( a ) ((a) * 33.8639)
 
+// https://www.daculaweather.com/stuff/CWOP_Guide.pdf has all the intervals, etc...
 #define kSendInterval    60 * 5   // 5 minutes
+#define kTempInterval    60 * 5   // 5 minute average
 #define kWindInterval    60 * 2   // every 2 minutes we reset the average wind speed and direction
 #define kGustInterval    60 * 10  // every 10 minutes we reset the max wind gust to 0
 #define kBaroInterval    60
+#define kHumiInterval    60
 
 //#define kSendInterval    30 // debug
 
@@ -71,6 +74,8 @@ static time_t s_lastSendTime = 0;
 static time_t s_lastWindTime = 0;
 static time_t s_lastGustTime = 0;
 static time_t s_lastBaroTime = 0;
+static time_t s_lastTempTime = 0;
+static time_t s_lastHumiTime = 0;
 
 static int connectToDireWolf( void );
 static int sendToRadio( const char* p );
@@ -144,22 +149,37 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
         min->pressure = 0;
         s_lastBaroTime = timeGetTimeSec();
     }
-    
+
+    if( timeGetTimeSec() > s_lastTempTime + kTempInterval )
+    {
+        min->tempC = 0;
+        s_lastTempTime = timeGetTimeSec();
+    }
+
+    if( timeGetTimeSec() > s_lastHumiTime + kHumiInterval )
+    {
+        min->humidity = 0;
+        s_lastHumiTime = timeGetTimeSec();
+    }
+
     
     if( data->flags & kDataFlag_temp )
     {
-        max->tempC = fmax( data->tempC, max->tempC );
-        min->tempC = fmin( data->tempC, min->tempC );
+        // check for no data before calculating mean
+        if( ave->tempC == 0.0 )
+            ave->tempC = data->tempC;
+
         ave->tempC = (data->tempC + ave->tempC) * 0.5f;
-        printf( " temperature min: %0.2f°F, max: %0.2f°F, average: %0.2f°F\n", c2f( min->tempC ), c2f( max->tempC ), c2f( ave->tempC ) );
+        printf( " temp average: %0.2f°F, time: %ld, window: %d\n", c2f( ave->tempC ), timeGetTimeSec() - s_lastTempTime, kTempInterval );
     }
     
     if( data->flags & kDataFlag_humidity )
     {
-        max->humidity = imax( data->humidity, max->humidity );
-        min->humidity = imin( data->humidity, min->humidity );
+        // check for no data before calculating mean
+        if( ave->humidity == 0 )
+            ave->humidity = data->humidity;
         ave->humidity = (data->humidity + ave->humidity) / 2;
-        printf( " humidity min: %d%%, max:%d%%, average: %d%%\n", min->humidity, max->humidity, ave->humidity );
+        printf( " humidity average: %d%%, time: %ld, window: %d\n", ave->humidity, timeGetTimeSec() - s_lastHumiTime, kHumiInterval );
     }
     
     // for wind we want the max instantaneous over the interval period
