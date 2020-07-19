@@ -35,7 +35,11 @@
 #define PORT_DEVICE "/dev/serial0"
 //#define PORT_DEVICE "/dev/serial1"
 
-#define SEND_TO_RADIO
+// define this to see incoming weather data from weather sensors...
+//#define TRACE_INCOMING_WX
+
+
+
 
 #define PORT_ERROR -1
 
@@ -57,8 +61,13 @@
 #define kBaroInterval    60
 #define kHumiInterval    60
 
+
+
+#ifdef TRACE_INCOMING_WX
+#define trace printf
+#else
 #define trace nullprint
-//#define trace printf
+#endif
 
 #define stats nullprint
 //#define stats printf
@@ -236,7 +245,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
 {
     printTime( false );
-    printf( " station_id: 0x%x, temp: %0.2f°F (avg: %0.2f°F), humidity: %d%% (avg: %d%%), wind[%0.2f°]: %0.2f mph (avg: wind[%0.2f°]: %0.2f mph), gust: %0.2f mph (max: %0.2f mph), int temp: %0.2f°F, pressure: %g InHg (min: %g InHg), rain: %g\n", inst->station_id, c2f( inst->tempC ), c2f( ave->tempC ), inst->humidity, ave->humidity, inst->windDirection, ms2mph( inst->windSpeedMs ), ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( inst->windGustMs ), ms2mph( ave->windGustMs ), c2f( inst->intTempC - kLocalTempErrorC ), (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, 0.0 );
+    printf( " temp: %0.2f°F (avg: %0.2f°F), humidity: %d%% (avg: %d%%), wind[%0.2f°]: %0.2f mph (avg: wind[%0.2f°]: %0.2f mph), gust: %0.2f mph (max: %0.2f mph), int temp: %0.2f°F, pressure: %g InHg (min: %g InHg), rain: %g\n", c2f( inst->tempC ), c2f( ave->tempC ), inst->humidity, ave->humidity, inst->windDirection, ms2mph( inst->windSpeedMs ), ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( inst->windGustMs ), ms2mph( ave->windGustMs ), c2f( inst->intTempC - kLocalTempErrorC ), (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, 0.0 );
 }
 
 
@@ -306,8 +315,9 @@ int main(int argc, const char * argv[])
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
         {
-//            trace( "\n" );
+#ifdef TRACE_INCOMING_WX
             printTime( false );
+#endif
             trace( " station_id: 0x%x", frame.station_id );
 
             // read flags
@@ -413,16 +423,14 @@ int main(int argc, const char * argv[])
                     strcat( packetToSend, DEVICE_NAME_V );
                     strcat( packetToSend, "\n\0" );
                     printf( "%s\n", packetToSend );
-                    printFullWeather( &wxFrame, &minFrame, &maxFrame, &aveFrame );
                     
                     // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
                     if( sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend ) < 0 )
                         printf( "packet failed to send to APRS-IS...\n" );
 
-#ifdef SEND_TO_RADIO
                     if( sendToRadio( packetToSend ) < 0 )
                         printf( "packet failed to send via Direwolf for radio path...\n" );
-#endif
+
                     s_lastSendTime = timeGetTimeSec();
                 }
             }
