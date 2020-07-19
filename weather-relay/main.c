@@ -453,7 +453,7 @@ int connectToDireWolf( void )
 {
     int              err                = 0;
 //    const char*      server             = "localhost";
-    const char*      server             = "aprs.local";
+    const char*      server             = "10.0.1.208";
     uint16_t         port               = 8001;
     int              error              = 0;
     char             foundValidServerIP = 0;
