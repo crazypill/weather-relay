@@ -60,11 +60,10 @@
 
 
 static time_t s_lastTime = 0;
-static int    s_server_sock = -1;
 
-static int  connectToDireWolf( void );
-static void sendToRadio( const char* p );
-static void send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
+static int connectToDireWolf( void );
+static int sendToRadio( const char* p );
+static int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
 
 
 void buffer_input_flush()
@@ -75,11 +74,14 @@ void buffer_input_flush()
         ;
 }
 
-void printTime()
+void printTime( int printNewline )
 {
-  time_t t = time(NULL);
-  struct tm tm = *localtime(&t);
-  printf("%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    if( printNewline )
+        printf("%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    else
+        printf("%d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
 void printTimePlus5()
@@ -233,54 +235,55 @@ int main(int argc, const char * argv[])
         if( result == sizeof( frame ) )
         {
             printf( "\n" );
-            printTime();
-            printf( "station_id: 0x%x\n", frame.station_id );
+            printTime( false );
+            printf( "station_id: 0x%x", frame.station_id );
 
             // read flags
             if( frame.flags & kDataFlag_temp )
             {
-                printf( "temp:       %0.2f°F\n", c2f( frame.tempC ) );
+                printf( ", temp: %0.2f°F", c2f( frame.tempC ) );
                 wxFrame.tempC = frame.tempC;
             }
 
             if( frame.flags & kDataFlag_humidity )
             {
-                printf( "humidity:   %d%%\n", frame.humidity );
+                printf( ", humidity: %d%%", frame.humidity );
                 wxFrame.humidity = frame.humidity;
             }
 
             if( frame.flags & kDataFlag_wind )
             {
-                printf( "wind:       %0.2f mph\n", ms2mph( frame.windSpeedMs ) );
-                printf( "dir:        %0.2f degrees\n", frame.windDirection );
+                printf( ", wind: %0.2f mph, dir: %0.2f degrees", ms2mph( frame.windSpeedMs ), frame.windDirection );
                 wxFrame.windSpeedMs = frame.windSpeedMs;
                 wxFrame.windDirection = frame.windDirection;
             }
 
             if( frame.flags & kDataFlag_gust )
             {
-                printf( "gust:       %0.2f mph\n", ms2mph( frame.windGustMs ) );
+                printf( ", gust: %0.2f mph", ms2mph( frame.windGustMs ) );
                 wxFrame.windGustMs = frame.windGustMs;
             }
 
             if( frame.flags & kDataFlag_rain )
             {
-                printf( "rain:       %g\n", frame.rain );
+                printf( ", rain: %g", frame.rain );
                 wxFrame.rain = frame.rain;
             }
 
             if( frame.flags & kDataFlag_intTemp )
             {
-                printf( "int temp:   %0.2f°F\n", c2f( frame.intTempC - kLocalTempErrorC ) );
+                printf( ", int temp: %0.2f°F", c2f( frame.intTempC - kLocalTempErrorC ) );
                 wxFrame.intTempC = frame.intTempC;
             }
 
             if( frame.flags & kDataFlag_pressure )
             {
-                printf( "pressure:   %g InHg\n\n", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
+                printf( ", pressure: %g InHg", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
                 wxFrame.pressure = frame.pressure;
             }
 
+            printf( "\n" );
+            
 //            updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
 
             // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
@@ -295,12 +298,9 @@ int main(int argc, const char * argv[])
                 // check the time
                 if( timeGetTimeSec() > s_lastTime + kSendInterval )
                 {
-                    printTime();
-                    printf( "Sending weather info to APRS-IS...  next update @ " );
+                    printTime( false );
+                    printf( " Sending weather info to APRS-IS...  next update @ " );
                     printTimePlus5();
-
-                    // 25.666666666666669 = 78.2
-                    // 27.700000000000002 = 81.86
 
                     APRSPacket wx;
                     packetConstructor( &wx );
@@ -348,9 +348,10 @@ int main(int argc, const char * argv[])
 
                     // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
                     sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
-                    sendToRadio( packetToSend );
 
-                    printf( "packet sent...\n" );
+                    if( sendToRadio( packetToSend ) < 0 )
+                        printf( "packet failed to send via Direwolf for radio path...\n" );
+
 
                     s_lastTime = timeGetTimeSec();
                 }
@@ -373,19 +374,24 @@ int main(int argc, const char * argv[])
 //}
 
 
-void sendToRadio( const char* p )
+int sendToRadio( const char* p )
 {
+    int result = 0;
     // Parse the "TNC2 monitor format" and convert to AX.25 frame.
     unsigned char frame_data[AX25_MAX_PACKET_LEN];
     packet_t pp = ax25_from_text( (char*)p, 1 );
     if( pp != NULL )
     {
-      int frame_len = ax25_pack( pp, frame_data );
-      send_to_kiss_tnc( 0, KISS_CMD_DATA_FRAME, (char*)frame_data, frame_len );
-      ax25_delete (pp);
+        int frame_len = ax25_pack( pp, frame_data );
+        result = send_to_kiss_tnc( 0, KISS_CMD_DATA_FRAME, (char*)frame_data, frame_len );
+        ax25_delete (pp);
     }
     else
-      printf( "ERROR! Could not convert to AX.25 frame: %s\n", p );
+    {
+        printf( "ERROR! Could not convert to AX.25 frame: %s\n", p );
+        return -1;
+    }
+    return result;
 }
 
 
@@ -408,11 +414,12 @@ void sendToRadio( const char* p )
  *
  *--------------------------------------------------------------------*/
 
-void send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
+int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
 {
     unsigned char temp[1000];
     unsigned char kissed[2000];
     int klen;
+    int err = 1;
 
     if( chan < 0 || chan > 15 ) {
       printf( "ERROR - Invalid channel %d - must be in range 0 to 15.\n", chan );
@@ -433,18 +440,24 @@ void send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
     klen = kiss_encapsulate( temp, dlen + 1, kissed );
     
     // connect to direwolf and send data
-    if( s_server_sock < 0 )
-        s_server_sock = connectToDireWolf();
-    
-    if( s_server_sock < 0 )
+    int server_sock = connectToDireWolf();
+    if( server_sock < 0 )
     {
         printf("ERROR Can't connect to direwolf...\n");
-        return;
+        err = -1;
+        goto exit_gracefully;
     }
     
-    ssize_t rc = send( s_server_sock, (char*)kissed, klen, 0 );
+    ssize_t rc = send( server_sock, (char*)kissed, klen, 0 );
     if( rc != klen )
+    {
         printf("ERROR writing KISS frame to socket.\n");
+        err = -1;
+    }
+
+exit_gracefully:
+    shutdown( server_sock, 2 );
+    return err;
 }
 
 
@@ -521,8 +534,5 @@ int connectToDireWolf( void )
         // do not close down the connection if we connected!
         return socket_desc;
     }
-
-    fputs( "Shutting down socket to server.\n", stderr );
-    shutdown( socket_desc, 2 );
     return err;
 }
