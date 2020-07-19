@@ -123,6 +123,8 @@ uint8_t imin( uint8_t a, uint8_t b )
 
 void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 {
+    printTime( false );
+    
     // we create a 10 minute window of instantaneous gust measurements
     if( timeGetTimeSec() > s_lastGustTime + kGustInterval )
     {
@@ -149,7 +151,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
         max->tempC = fmax( data->tempC, max->tempC );
         min->tempC = fmin( data->tempC, min->tempC );
         ave->tempC = (data->tempC + ave->tempC) * 0.5f;
-        printf( "temperature min: %0.2f°F, max: %0.2f°F, average: %0.2f°F\n", c2f( min->tempC ), c2f( max->tempC ), c2f( ave->tempC ) );
+        printf( " temperature min: %0.2f°F, max: %0.2f°F, average: %0.2f°F\n", c2f( min->tempC ), c2f( max->tempC ), c2f( ave->tempC ) );
     }
     
     if( data->flags & kDataFlag_humidity )
@@ -157,7 +159,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
         max->humidity = imax( data->humidity, max->humidity );
         min->humidity = imin( data->humidity, min->humidity );
         ave->humidity = (data->humidity + ave->humidity) / 2;
-        printf( "humidity min: %d%%, max:%d%%, average: %d%%\n", min->humidity, max->humidity, ave->humidity );
+        printf( " humidity min: %d%%, max:%d%%, average: %d%%\n", min->humidity, max->humidity, ave->humidity );
     }
     
     // for wind we want the max instantaneous over the interval period
@@ -173,13 +175,13 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
         ave->windSpeedMs = (data->windSpeedMs + ave->windSpeedMs) * 0.5f;
         ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
 
-        printf( "wind average[%0.2f°]: %0.2f mph, time: %ld, window: %d\n", ave->windDirection, ms2mph( ave->windSpeedMs ), timeGetTimeSec() - s_lastWindTime, kWindInterval );
+        printf( " wind average[%0.2f°]: %0.2f mph, time: %ld, window: %d\n", ave->windDirection, ms2mph( ave->windSpeedMs ), timeGetTimeSec() - s_lastWindTime, kWindInterval );
     }
 
     if( data->flags & kDataFlag_gust )
     {
         max->windGustMs = fmax( data->windGustMs, max->windGustMs );
-        printf( "gust max: %0.2f mph, time: %ld, window: %d\n", ms2mph( max->windGustMs ), timeGetTimeSec() - s_lastGustTime, kGustInterval );
+        printf( " gust max: %0.2f mph, time: %ld, window: %d\n", ms2mph( max->windGustMs ), timeGetTimeSec() - s_lastGustTime, kGustInterval );
     }
 
 
@@ -190,7 +192,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
             min->pressure = data->pressure;
 
         min->pressure = fmin( data->pressure, min->pressure );
-        printf( "pressure min: %0.2f InHg, time: %ld, window: %d\n",(min->pressure * millibar2inchHg) + kLocalOffsetInHg, timeGetTimeSec() - s_lastBaroTime, kBaroInterval );
+        printf( " pressure min: %0.2f InHg, time: %ld, window: %d\n",(min->pressure * millibar2inchHg) + kLocalOffsetInHg, timeGetTimeSec() - s_lastBaroTime, kBaroInterval );
     }
 
 //    if( data.flags & kDataFlag_rain )
