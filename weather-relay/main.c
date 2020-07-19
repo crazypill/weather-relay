@@ -245,7 +245,8 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
 {
     printTime( false );
-    printf( " temp: %0.2f°F (avg: %0.2f°F), humidity: %d%% (avg: %d%%), wind[%0.2f°]: %0.2f mph (avg: wind[%0.2f°]: %0.2f mph), gust: %0.2f mph (max: %0.2f mph), int temp: %0.2f°F, pressure: %g InHg (min: %g InHg), rain: %g\n", c2f( inst->tempC ), c2f( ave->tempC ), inst->humidity, ave->humidity, inst->windDirection, ms2mph( inst->windSpeedMs ), ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( inst->windGustMs ), ms2mph( ave->windGustMs ), c2f( inst->intTempC - kLocalTempErrorC ), (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, 0.0 );
+//    printf( " temp: %0.2f°F (avg: %0.2f°F), humidity: %d%% (avg: %d%%), wind[%0.2f°]: %0.2f mph (avg: wind[%0.2f°]: %0.2f mph), gust: %0.2f mph (max: %0.2f mph), int temp: %0.2f°F, pressure: %g InHg (min: %g InHg), rain: %g\n", c2f( inst->tempC ), c2f( ave->tempC ), inst->humidity, ave->humidity, inst->windDirection, ms2mph( inst->windSpeedMs ), ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( inst->windGustMs ), ms2mph( ave->windGustMs ), c2f( inst->intTempC - kLocalTempErrorC ), (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, 0.0 );
+    printf( " wind[%0.2f°]: %0.2f mph (avg: wind[%0.2f°]: %0.2f mph), gust: %0.2f mph (max: %0.2f mph), temp: %0.2f°F (avg: %0.2f°F), humidity: %d%% (avg: %d%%), pressure: %g InHg (min: %g InHg), int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( inst->windGustMs ), ms2mph( ave->windGustMs ), c2f( inst->tempC ), c2f( ave->tempC ), inst->humidity, ave->humidity, (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( inst->intTempC - kLocalTempErrorC ), 0.0 );
 }
 
 
@@ -434,6 +435,8 @@ int main(int argc, const char * argv[])
                     s_lastSendTime = timeGetTimeSec();
                 }
             }
+            else
+                printFullWeather( &wxFrame, &minFrame, &maxFrame, &aveFrame );
         }
         sleep( 1 );
     }
