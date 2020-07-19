@@ -34,6 +34,8 @@
 #define PORT_DEVICE "/dev/serial0"
 //#define PORT_DEVICE "/dev/serial1"
 
+//#define SEND_TO_RADIO
+
 #define PORT_ERROR -1
 
 #define pascal2inchHg    0.0002953
@@ -345,14 +347,17 @@ int main(int argc, const char * argv[])
 
                     // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
                     sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
+                    printf( "Packet sent to APRS-IS...\n" );
 
+
+#ifdef SEND_TO_RADIO
                     if( sendToRadio( packetToSend ) < 0 )
                         printf( "packet failed to send via Direwolf for radio path...\n" );
-
-
+                    else
+                       printf( "Packet sent over radio path...\n" );
+#endif
                     s_lastTime = timeGetTimeSec();
                 }
-
             }
         }
         sleep( 1 );
