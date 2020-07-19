@@ -345,11 +345,11 @@ int main(int argc, const char * argv[])
                     strcat( packetToSend, DEVICE_NAME_V );
                     strcat( packetToSend, "\n\0" );
                     printf( "%s\n", packetToSend );
-                        
+
                     // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
                     sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
                     sendToRadio( packetToSend );
-                    
+
                     printf( "packet sent...\n" );
 
                     s_lastTime = timeGetTimeSec();
@@ -364,7 +364,7 @@ int main(int argc, const char * argv[])
 }
 
 
-//// test just sending to the radio...
+// test just sending to the radio...
 //int main(int argc, const char * argv[])
 //{
 //    // form fake packet to test...

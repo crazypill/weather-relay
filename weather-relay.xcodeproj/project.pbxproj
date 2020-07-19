@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FA38C40A24C41C6B00EC7882 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = FA38C40924C41C6B00EC7882 /* main.c */; };
 		FAB4A12D24C2772900F7BE22 /* aprs-wx.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A12724C2772900F7BE22 /* aprs-wx.c */; };
 		FAB4A12E24C2772900F7BE22 /* aprs-is.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A12824C2772900F7BE22 /* aprs-is.c */; };
 		FAB4A15424C4152A00F7BE22 /* ax25_pad.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A14924C4152A00F7BE22 /* ax25_pad.c */; };
@@ -28,14 +29,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		FA38C40924C41C6B00EC7882 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		FA38C40B24C41C8200EC7882 /* TXDecoderFrame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TXDecoderFrame.h; path = "../tx31u-receiver/TXDecoderFrame.h"; sourceTree = "<group>"; };
 		FA3CB4F4245910C900C1FCC9 /* weather-relay */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "weather-relay"; sourceTree = BUILT_PRODUCTS_DIR; };
-		FAB4A12624C2772900F7BE22 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = "../../weather-relay/aprs-weather-submit/src/main.h"; sourceTree = "<group>"; };
-		FAB4A12724C2772900F7BE22 /* aprs-wx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "aprs-wx.c"; path = "../../weather-relay/aprs-weather-submit/src/aprs-wx.c"; sourceTree = "<group>"; };
-		FAB4A12824C2772900F7BE22 /* aprs-is.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "aprs-is.c"; path = "../../weather-relay/aprs-weather-submit/src/aprs-is.c"; sourceTree = "<group>"; };
-		FAB4A12924C2772900F7BE22 /* getopt-windows.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "getopt-windows.h"; path = "../../weather-relay/aprs-weather-submit/src/getopt-windows.h"; sourceTree = "<group>"; };
-		FAB4A12A24C2772900F7BE22 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = "../../weather-relay/aprs-weather-submit/src/main.c"; sourceTree = "<group>"; };
-		FAB4A12B24C2772900F7BE22 /* aprs-is.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "aprs-is.h"; path = "../../weather-relay/aprs-weather-submit/src/aprs-is.h"; sourceTree = "<group>"; };
-		FAB4A12C24C2772900F7BE22 /* aprs-wx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "aprs-wx.h"; path = "../../weather-relay/aprs-weather-submit/src/aprs-wx.h"; sourceTree = "<group>"; };
+		FAB4A12724C2772900F7BE22 /* aprs-wx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "aprs-wx.c"; path = "aprs-weather-submit/src/aprs-wx.c"; sourceTree = SOURCE_ROOT; };
+		FAB4A12824C2772900F7BE22 /* aprs-is.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "aprs-is.c"; path = "aprs-weather-submit/src/aprs-is.c"; sourceTree = SOURCE_ROOT; };
+		FAB4A12924C2772900F7BE22 /* getopt-windows.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "getopt-windows.h"; path = "aprs-weather-submit/src/getopt-windows.h"; sourceTree = SOURCE_ROOT; };
+		FAB4A12B24C2772900F7BE22 /* aprs-is.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "aprs-is.h"; path = "aprs-weather-submit/src/aprs-is.h"; sourceTree = SOURCE_ROOT; };
+		FAB4A12C24C2772900F7BE22 /* aprs-wx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "aprs-wx.h"; path = "aprs-weather-submit/src/aprs-wx.h"; sourceTree = SOURCE_ROOT; };
 		FAB4A14624C4152A00F7BE22 /* kiss_frame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kiss_frame.h; sourceTree = SOURCE_ROOT; };
 		FAB4A14724C4152A00F7BE22 /* fcs_calc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fcs_calc.h; sourceTree = SOURCE_ROOT; };
 		FAB4A14824C4152A00F7BE22 /* audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = audio.h; sourceTree = SOURCE_ROOT; };
@@ -66,6 +67,7 @@
 		FA3CB4EB245910C900C1FCC9 = {
 			isa = PBXGroup;
 			children = (
+				FA38C40B24C41C8200EC7882 /* TXDecoderFrame.h */,
 				FA3CB4F6245910C900C1FCC9 /* weather-relay */,
 				FAB4A12524C2772900F7BE22 /* src */,
 				FA3CB4F5245910C900C1FCC9 /* Products */,
@@ -83,6 +85,7 @@
 		FA3CB4F6245910C900C1FCC9 /* weather-relay */ = {
 			isa = PBXGroup;
 			children = (
+				FA38C40924C41C6B00EC7882 /* main.c */,
 				FAB4A14824C4152A00F7BE22 /* audio.h */,
 				FAB4A14924C4152A00F7BE22 /* ax25_pad.c */,
 				FAB4A15124C4152A00F7BE22 /* ax25_pad.h */,
@@ -104,8 +107,6 @@
 		FAB4A12524C2772900F7BE22 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				FAB4A12A24C2772900F7BE22 /* main.c */,
-				FAB4A12624C2772900F7BE22 /* main.h */,
 				FAB4A12B24C2772900F7BE22 /* aprs-is.h */,
 				FAB4A12824C2772900F7BE22 /* aprs-is.c */,
 				FAB4A12C24C2772900F7BE22 /* aprs-wx.h */,
@@ -179,6 +180,7 @@
 				FAB4A15524C4152A00F7BE22 /* stubs.c in Sources */,
 				FAB4A12D24C2772900F7BE22 /* aprs-wx.c in Sources */,
 				FAB4A12E24C2772900F7BE22 /* aprs-is.c in Sources */,
+				FA38C40A24C41C6B00EC7882 /* main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
