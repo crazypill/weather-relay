@@ -59,7 +59,8 @@
 #define AX25_MAX_PACKET_LEN ( AX25_MAX_ADDRS * 7 + 2 + 3 + AX25_MAX_INFO_LEN)
 
 
-static time_t s_lastTime = 0;
+static time_t s_lastTime    = 0;
+static int    s_server_sock = -1;
 
 static int connectToDireWolf( void );
 static int sendToRadio( const char* p );
@@ -436,15 +437,17 @@ int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
     klen = kiss_encapsulate( temp, dlen + 1, kissed );
     
     // connect to direwolf and send data
-    int server_sock = connectToDireWolf();
-    if( server_sock < 0 )
+    if( s_server_sock < 0 )
+        s_server_sock = connectToDireWolf();
+    
+    if( s_server_sock < 0 )
     {
         printf("ERROR Can't connect to direwolf...\n");
         err = -1;
         goto exit_gracefully;
     }
     
-    ssize_t rc = send( server_sock, (char*)kissed, klen, 0 );
+    ssize_t rc = send( s_server_sock, (char*)kissed, klen, 0 );
     if( rc != klen )
     {
         printf("ERROR writing KISS frame to socket.\n");
@@ -452,7 +455,7 @@ int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
     }
 
 exit_gracefully:
-    shutdown( server_sock, 2 );
+//    shutdown( server_sock, 2 );
     return err;
 }
 
