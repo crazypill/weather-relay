@@ -13,7 +13,7 @@
 		FAB4A13424C3FBE900F7BE22 /* kiss_frame.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A13324C3FBE800F7BE22 /* kiss_frame.c */; };
 		FAB4A13624C3FFB900F7BE22 /* ax25_pad.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A13524C3FFB900F7BE22 /* ax25_pad.c */; };
 		FAB4A13924C3FFE800F7BE22 /* fcs_calc.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A13724C3FFE800F7BE22 /* fcs_calc.c */; };
-		FAB4A14324C4005600F7BE22 /* stubs.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A14224C4005600F7BE22 /* stubs.c */; };
+		FAB4A14524C40A5D00F7BE22 /* stubs.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A14424C40A5D00F7BE22 /* stubs.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -46,14 +46,7 @@
 		FAB4A13524C3FFB900F7BE22 /* ax25_pad.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ax25_pad.c; path = ../../direwolf/ax25_pad.c; sourceTree = "<group>"; };
 		FAB4A13724C3FFE800F7BE22 /* fcs_calc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcs_calc.c; path = ../../direwolf/fcs_calc.c; sourceTree = "<group>"; };
 		FAB4A13824C3FFE800F7BE22 /* fcs_calc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fcs_calc.h; path = ../../direwolf/fcs_calc.h; sourceTree = "<group>"; };
-		FAB4A13B24C3FFF400F7BE22 /* fcs_calc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fcs_calc.h; sourceTree = "<group>"; };
-		FAB4A13C24C3FFF400F7BE22 /* kiss_frame.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = kiss_frame.c; sourceTree = "<group>"; };
-		FAB4A13D24C3FFF400F7BE22 /* direwolf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = direwolf.h; sourceTree = "<group>"; };
-		FAB4A13E24C3FFF400F7BE22 /* ax25_pad.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ax25_pad.c; sourceTree = "<group>"; };
-		FAB4A13F24C3FFF400F7BE22 /* kiss_frame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = kiss_frame.h; sourceTree = "<group>"; };
-		FAB4A14024C3FFF400F7BE22 /* fcs_calc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = fcs_calc.c; sourceTree = "<group>"; };
-		FAB4A14124C3FFF400F7BE22 /* ax25_pad.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ax25_pad.h; sourceTree = "<group>"; };
-		FAB4A14224C4005600F7BE22 /* stubs.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = stubs.c; sourceTree = "<group>"; };
+		FAB4A14424C40A5D00F7BE22 /* stubs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stubs.c; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,7 +63,6 @@
 		FA3CB4EB245910C900C1FCC9 = {
 			isa = PBXGroup;
 			children = (
-				FAB4A13A24C3FFEB00F7BE22 /* direwolf */,
 				FA3CB4F6245910C900C1FCC9 /* weather-relay */,
 				FAB4A12524C2772900F7BE22 /* src */,
 				FA3CB4F5245910C900C1FCC9 /* Products */,
@@ -97,6 +89,7 @@
 				FAB4A13824C3FFE800F7BE22 /* fcs_calc.h */,
 				FAB4A12424C264A500F7BE22 /* TXDecoderFrame.h */,
 				FA3CB4F7245910C900C1FCC9 /* main.c */,
+				FAB4A14424C40A5D00F7BE22 /* stubs.c */,
 			);
 			path = "weather-relay";
 			sourceTree = "<group>";
@@ -114,21 +107,6 @@
 			);
 			name = src;
 			path = "../aprs-weather-submit/src";
-			sourceTree = "<group>";
-		};
-		FAB4A13A24C3FFEB00F7BE22 /* direwolf */ = {
-			isa = PBXGroup;
-			children = (
-				FAB4A13D24C3FFF400F7BE22 /* direwolf.h */,
-				FAB4A14124C3FFF400F7BE22 /* ax25_pad.h */,
-				FAB4A13E24C3FFF400F7BE22 /* ax25_pad.c */,
-				FAB4A13F24C3FFF400F7BE22 /* kiss_frame.h */,
-				FAB4A13C24C3FFF400F7BE22 /* kiss_frame.c */,
-				FAB4A14024C3FFF400F7BE22 /* fcs_calc.c */,
-				FAB4A13B24C3FFF400F7BE22 /* fcs_calc.h */,
-				FAB4A14224C4005600F7BE22 /* stubs.c */,
-			);
-			name = direwolf;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -194,7 +172,7 @@
 				FAB4A13924C3FFE800F7BE22 /* fcs_calc.c in Sources */,
 				FAB4A12E24C2772900F7BE22 /* aprs-is.c in Sources */,
 				FA3CB4F8245910C900C1FCC9 /* main.c in Sources */,
-				FAB4A14324C4005600F7BE22 /* stubs.c in Sources */,
+				FAB4A14524C40A5D00F7BE22 /* stubs.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

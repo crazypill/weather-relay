@@ -59,8 +59,10 @@
 #define AX25_MAX_PACKET_LEN ( AX25_MAX_ADDRS * 7 + 2 + 3 + AX25_MAX_INFO_LEN)
 
 
-static time_t s_lastTime = 0;
-static int  connectToDireWolf();
+//static time_t s_lastTime = 0;
+
+static int  connectToDireWolf( void );
+static void sendToRadio( const char* p );
 static void send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
 
 
@@ -162,199 +164,211 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 
 }
 
+
+#pragma mark -
+//
+//int main(int argc, const char * argv[])
+//{
+//    char         packetToSend[BUFSIZE];
+//    char         packetFormat = UNCOMPRESSED_PACKET;
+//
+//    // open the serial port
+//    bool blocking = false;
+//
+//    // Settings structure old and new
+//    struct termios newtio;
+//    memset( packetToSend, 0, sizeof( packetToSend ) );
+//
+//    int fd = open( PORT_DEVICE, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
+//    if( fd < 0 )
+//    {
+//        printf( "Failed to open serial port: %s\n", PORT_DEVICE );
+//        return PORT_ERROR;
+//    }
+//
+//    bzero( &newtio, sizeof( newtio ) );
+//
+//    if( cfsetispeed( &newtio, B9600 ) != 0 )
+//        return PORT_ERROR;
+//    if( cfsetospeed( &newtio, B9600 ) != 0 )
+//        return PORT_ERROR;
+//
+//    newtio.c_cflag &= ~PARENB;
+//    newtio.c_cflag &= ~CSTOPB;
+//    newtio.c_cflag &= ~CSIZE;
+//    newtio.c_cflag |= CS8 | CLOCAL | CREAD;
+//    newtio.c_cflag &= ~CRTSCTS;
+//
+//    // Hardware control of port
+//    newtio.c_cc[VTIME] = blocking ? 1 : 0; // Read-timout 100ms when blocking
+//    newtio.c_cc[VMIN] = 0;
+//
+//    tcflush( fd, TCIFLUSH );
+//
+//    // Acquire new port settings
+//    if( tcsetattr( fd, TCSANOW, &newtio ) != 0 )
+//        puts( strerror( errno ) );
+//
+//    if( fd == -1 )
+//        return PORT_ERROR;
+//
+//    printf( "%s: reading from serial port: %s...\n\n", DEVICE_NAME_V, PORT_DEVICE );
+//
+//    // this holds all the min/max/averages
+////    Frame minFrame = {};
+////    Frame maxFrame = {};
+////    Frame aveFrame = {};
+//
+//    // master weather frame that is used to create APRS message
+//    Frame wxFrame = {};
+//
+//    uint8_t receivedFlags = 0;
+//    ssize_t result = 0;
+//    while( 1 )
+//    {
+//        Frame frame = {};
+//
+//        result = read( fd, &frame, sizeof( frame ) );
+//        if( result == sizeof( frame ) )
+//        {
+//            printf( "\n" );
+//            printTime();
+//            printf( "station_id: 0x%x\n", frame.station_id );
+//
+//            // read flags
+//            if( frame.flags & kDataFlag_temp )
+//            {
+//                printf( "temp:       %0.2f°F\n", c2f( frame.tempC ) );
+//                wxFrame.tempC = frame.tempC;
+//            }
+//
+//            if( frame.flags & kDataFlag_humidity )
+//            {
+//                printf( "humidity:   %d%%\n", frame.humidity );
+//                wxFrame.humidity = frame.humidity;
+//            }
+//
+//            if( frame.flags & kDataFlag_wind )
+//            {
+//                printf( "wind:       %0.2f mph\n", ms2mph( frame.windSpeedMs ) );
+//                printf( "dir:        %0.2f degrees\n", frame.windDirection );
+//                wxFrame.windSpeedMs = frame.windSpeedMs;
+//                wxFrame.windDirection = frame.windDirection;
+//            }
+//
+//            if( frame.flags & kDataFlag_gust )
+//            {
+//                printf( "gust:       %0.2f mph\n", ms2mph( frame.windGustMs ) );
+//                wxFrame.windGustMs = frame.windGustMs;
+//            }
+//
+//            if( frame.flags & kDataFlag_rain )
+//            {
+//                printf( "rain:       %g\n", frame.rain );
+//                wxFrame.rain = frame.rain;
+//            }
+//
+//            if( frame.flags & kDataFlag_intTemp )
+//            {
+//                printf( "int temp:   %0.2f°F\n", c2f( frame.intTempC - kLocalTempErrorC ) );
+//                wxFrame.intTempC = frame.intTempC;
+//            }
+//
+//            if( frame.flags & kDataFlag_pressure )
+//            {
+//                printf( "pressure:   %g InHg\n\n", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
+//                wxFrame.pressure = frame.pressure;
+//            }
+//
+////            updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
+//
+//            // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
+//            // and at least 5 minutes has passed...  !!@ also need to average data over the 5 minute period...
+//            receivedFlags |= frame.flags;
+//            if( (receivedFlags & 0x7F) == 0x7F )
+//            {
+////                printf( "Have full weather info...  " );
+////                printTime();
+////                receivedFlags = 0;        // once we have a full set, just go with it-  we only update every five minutes anyway...
+//
+//                // check the time
+//                if( timeGetTimeSec() > s_lastTime + kSendInterval )
+//                {
+//                    printTime();
+//                    printf( "Sending weather info to APRS-IS...  next update @ " );
+//                    printTimePlus5();
+//
+//                    // 25.666666666666669 = 78.2
+//                    // 27.700000000000002 = 81.86
+//
+//                    APRSPacket wx;
+//                    packetConstructor( &wx );
+//
+//                    uncompressedPosition( wx.latitude,    34.108,     IS_LATITUDE );
+//                    uncompressedPosition( wx.longitude, -118.3349371, IS_LONGITUDE );
+//
+//                    int formatTruncationCheck = snprintf( wx.callsign, 10, "K6LOT-13" );
+//                    assert( formatTruncationCheck >= 0 );
+//
+//                    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(wxFrame.windDirection)) );
+//                    assert( formatTruncationCheck >= 0 );
+//
+//                    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(wxFrame.windSpeedMs))) );
+//                    assert( formatTruncationCheck >= 0 );
+//
+//                    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(wxFrame.windGustMs))) );
+//                    assert( formatTruncationCheck >= 0 );
+//
+//                    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(wxFrame.tempC))) );
+//                    assert( formatTruncationCheck >= 0 );
+//
+//                    unsigned short int h = wxFrame.humidity;
+//                    // APRS only supports values 1-100. Round 0% up to 1%.
+//                    if( h == 0 )
+//                        h = 1;
+//
+//                    // APRS requires us to encode 100% as "00".
+//                    else if( h >= 100 )
+//                        h = 0;
+//
+//                    formatTruncationCheck = snprintf( wx.humidity, 3, "%.2d", h );
+//                    assert( formatTruncationCheck >= 0 );
+//
+//                    // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
+//                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((wxFrame.pressure * millibar2inchHg) + kLocalOffsetInHg) * 10)) );
+//                    assert( formatTruncationCheck >= 0 );
+//
+//                    memset( packetToSend, 0, sizeof( packetToSend ) );
+//                    printAPRSPacket( &wx, packetToSend, packetFormat, 0, false );
+//                    // add some additional info
+//                    strcat( packetToSend, DEVICE_NAME_V );
+//                    strcat( packetToSend, "\n\0" );
+//                    printf( "%s\n", packetToSend );
+//
+//                    sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
+//                    printf( "packet sent...\n" );
+//
+//                    s_lastTime = timeGetTimeSec();
+//                }
+//
+//            }
+//        }
+//        sleep( 1 );
+//    }
+//
+//    return 0;
+//}
+//
+
+
+
+// test just sending to the radio...
 int main(int argc, const char * argv[])
 {
-    char         packetToSend[BUFSIZE];
-    char         packetFormat = UNCOMPRESSED_PACKET;
+    // form fake packet to test...
+    sendToRadio( "K6LOT-13>APRS,TCPIP*:@190340z3406.48N/11820.10W_113/000g000t073h63b10134folabs-wx-relay100" );
 
-    // open the serial port
-    bool blocking = false;
-
-    // Settings structure old and new
-    struct termios newtio;
-    memset( packetToSend, 0, sizeof( packetToSend ) );
-    
-    int fd = open( PORT_DEVICE, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
-    if( fd < 0 )
-    {
-        printf( "Failed to open serial port: %s\n", PORT_DEVICE );
-        return PORT_ERROR;
-    }
-
-    bzero( &newtio, sizeof( newtio ) );
-    
-    if( cfsetispeed( &newtio, B9600 ) != 0 )
-        return PORT_ERROR;
-    if( cfsetospeed( &newtio, B9600 ) != 0 )
-        return PORT_ERROR;
-    
-    newtio.c_cflag &= ~PARENB;
-    newtio.c_cflag &= ~CSTOPB;
-    newtio.c_cflag &= ~CSIZE;
-    newtio.c_cflag |= CS8 | CLOCAL | CREAD;
-    newtio.c_cflag &= ~CRTSCTS;
-    
-    // Hardware control of port
-    newtio.c_cc[VTIME] = blocking ? 1 : 0; // Read-timout 100ms when blocking
-    newtio.c_cc[VMIN] = 0;
-    
-    tcflush( fd, TCIFLUSH );
-    
-    // Acquire new port settings
-    if( tcsetattr( fd, TCSANOW, &newtio ) != 0 )
-        puts( strerror( errno ) );
-
-    if( fd == -1 )
-        return PORT_ERROR;
-
-    printf( "%s: reading from serial port: %s...\n\n", DEVICE_NAME_V, PORT_DEVICE );
-    
-    // this holds all the min/max/averages
-//    Frame minFrame = {};
-//    Frame maxFrame = {};
-//    Frame aveFrame = {};
-    
-    // master weather frame that is used to create APRS message
-    Frame wxFrame = {};
-
-    uint8_t receivedFlags = 0;
-    ssize_t result = 0;
-    while( 1 )
-    {
-        Frame frame = {};
-
-        result = read( fd, &frame, sizeof( frame ) );
-        if( result == sizeof( frame ) )
-        {
-            printf( "\n" );
-            printTime();
-            printf( "station_id: 0x%x\n", frame.station_id );
-
-            // read flags
-            if( frame.flags & kDataFlag_temp )
-            {
-                printf( "temp:       %0.2f°F\n", c2f( frame.tempC ) );
-                wxFrame.tempC = frame.tempC;
-            }
-
-            if( frame.flags & kDataFlag_humidity )
-            {
-                printf( "humidity:   %d%%\n", frame.humidity );
-                wxFrame.humidity = frame.humidity;
-            }
-
-            if( frame.flags & kDataFlag_wind )
-            {
-                printf( "wind:       %0.2f mph\n", ms2mph( frame.windSpeedMs ) );
-                printf( "dir:        %0.2f degrees\n", frame.windDirection );
-                wxFrame.windSpeedMs = frame.windSpeedMs;
-                wxFrame.windDirection = frame.windDirection;
-            }
-            
-            if( frame.flags & kDataFlag_gust )
-            {
-                printf( "gust:       %0.2f mph\n", ms2mph( frame.windGustMs ) );
-                wxFrame.windGustMs = frame.windGustMs;
-            }
-            
-            if( frame.flags & kDataFlag_rain )
-            {
-                printf( "rain:       %g\n", frame.rain );
-                wxFrame.rain = frame.rain;
-            }
-
-            if( frame.flags & kDataFlag_intTemp )
-            {
-                printf( "int temp:   %0.2f°F\n", c2f( frame.intTempC - kLocalTempErrorC ) );
-                wxFrame.intTempC = frame.intTempC;
-            }
-
-            if( frame.flags & kDataFlag_pressure )
-            {
-                printf( "pressure:   %g InHg\n\n", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
-                wxFrame.pressure = frame.pressure;
-            }
-
-//            updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
-
-            // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
-            // and at least 5 minutes has passed...  !!@ also need to average data over the 5 minute period...
-            receivedFlags |= frame.flags;
-            if( (receivedFlags & 0x7F) == 0x7F )
-            {
-//                printf( "Have full weather info...  " );
-//                printTime();
-//                receivedFlags = 0;        // once we have a full set, just go with it-  we only update every five minutes anyway...
-
-                // check the time
-                if( timeGetTimeSec() > s_lastTime + kSendInterval )
-                {
-                    printTime();
-                    printf( "Sending weather info to APRS-IS...  next update @ " );
-                    printTimePlus5();
-
-                    // 25.666666666666669 = 78.2
-                    // 27.700000000000002 = 81.86
-                    
-                    APRSPacket wx;
-                    packetConstructor( &wx );
-
-                    uncompressedPosition( wx.latitude,    34.108,     IS_LATITUDE );
-                    uncompressedPosition( wx.longitude, -118.3349371, IS_LONGITUDE );
-
-                    int formatTruncationCheck = snprintf( wx.callsign, 10, "K6LOT-13" );
-                    assert( formatTruncationCheck >= 0 );
-
-                    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(wxFrame.windDirection)) );
-                    assert( formatTruncationCheck >= 0 );
-
-                    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(wxFrame.windSpeedMs))) );
-                    assert( formatTruncationCheck >= 0 );
-
-                    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(wxFrame.windGustMs))) );
-                    assert( formatTruncationCheck >= 0 );
-
-                    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(wxFrame.tempC))) );
-                    assert( formatTruncationCheck >= 0 );
-
-                    unsigned short int h = wxFrame.humidity;
-                    // APRS only supports values 1-100. Round 0% up to 1%.
-                    if( h == 0 )
-                        h = 1;
-                    
-                    // APRS requires us to encode 100% as "00".
-                    else if( h >= 100 )
-                        h = 0;
-                    
-                    formatTruncationCheck = snprintf( wx.humidity, 3, "%.2d", h );
-                    assert( formatTruncationCheck >= 0 );
-                    
-                    // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
-                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((wxFrame.pressure * millibar2inchHg) + kLocalOffsetInHg) * 10)) );
-                    assert( formatTruncationCheck >= 0 );
-
-                    memset( packetToSend, 0, sizeof( packetToSend ) );
-                    printAPRSPacket( &wx, packetToSend, packetFormat, 0, false );
-                    // add some additional info
-                    strcat( packetToSend, DEVICE_NAME_V );
-                    strcat( packetToSend, "\n\0" );
-                    printf( "%s\n", packetToSend );
-
-                    sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
-                    printf( "packet sent...\n" );
-
-                    s_lastTime = timeGetTimeSec();
-                }
-                
-            }
-        }
-        sleep( 1 );
-    }
-    
-    return 0;
 }
-
-
 
 
 void sendToRadio( const char* p )
@@ -431,11 +445,12 @@ void send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
 
 
 // returns fd to use to communicate with
-int connectToDireWolf()
+int connectToDireWolf( void )
 {
     int              err                = 0;
-    const char*      server             = "localhost";
-    uint16_t         port               = 8000;
+//    const char*      server             = "localhost";
+    const char*      server             = "aprs.local";
+    uint16_t         port               = 8001;
     int              error              = 0;
     char             foundValidServerIP = 0;
     struct addrinfo* result             = NULL;
@@ -497,7 +512,13 @@ int connectToDireWolf()
         fputs( "Could not connect to the server.\n", stderr );
         err = -1;
     }
+    else
+    {
+        // do not close down the connection if we connected!
+        return socket_desc;
+    }
 
+    fputs( "Shutting down socket to server.\n", stderr );
     shutdown( socket_desc, 2 );
     return err;
 }
