@@ -46,8 +46,8 @@
             filePath = "weather-relay/main.c"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "500"
-            endingLineNumber = "500"
+            startingLineNumber = "502"
+            endingLineNumber = "502"
             landmarkName = "send_to_kiss_tnc(chan, cmd, data, dlen)"
             landmarkType = "9">
          </BreakpointContent>

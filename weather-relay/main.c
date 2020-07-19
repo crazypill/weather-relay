@@ -128,8 +128,6 @@ uint8_t imin( uint8_t a, uint8_t b )
 
 void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 {
-    printTime( false );
-    
     // we create a 10 minute window of instantaneous gust measurements
     if( timeGetTimeSec() > s_lastGustTime + kGustInterval )
     {
@@ -170,6 +168,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
             ave->tempC = data->tempC;
 
         ave->tempC = (data->tempC + ave->tempC) * 0.5f;
+        printTime( false );
         printf( " temp average: %0.2f°F, time: %ld, window: %d\n", c2f( ave->tempC ), timeGetTimeSec() - s_lastTempTime, kTempInterval );
     }
     
@@ -179,6 +178,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
         if( ave->humidity == 0 )
             ave->humidity = data->humidity;
         ave->humidity = (data->humidity + ave->humidity) / 2;
+        printTime( false );
         printf( " humidity average: %d%%, time: %ld, window: %d\n", ave->humidity, timeGetTimeSec() - s_lastHumiTime, kHumiInterval );
     }
     
@@ -194,13 +194,14 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 
         ave->windSpeedMs = (data->windSpeedMs + ave->windSpeedMs) * 0.5f;
         ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
-
+        printTime( false );
         printf( " wind average[%0.2f°]: %0.2f mph, time: %ld, window: %d\n", ave->windDirection, ms2mph( ave->windSpeedMs ), timeGetTimeSec() - s_lastWindTime, kWindInterval );
     }
 
     if( data->flags & kDataFlag_gust )
     {
         max->windGustMs = fmax( data->windGustMs, max->windGustMs );
+        printTime( false );
         printf( " gust max: %0.2f mph, time: %ld, window: %d\n", ms2mph( max->windGustMs ), timeGetTimeSec() - s_lastGustTime, kGustInterval );
     }
 
@@ -212,6 +213,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
             min->pressure = data->pressure;
 
         min->pressure = fmin( data->pressure, min->pressure );
+        printTime( false );
         printf( " pressure min: %0.2f InHg, time: %ld, window: %d\n",(min->pressure * millibar2inchHg) + kLocalOffsetInHg, timeGetTimeSec() - s_lastBaroTime, kBaroInterval );
     }
 
