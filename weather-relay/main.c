@@ -57,10 +57,11 @@
 #define kBaroInterval    60
 #define kHumiInterval    60
 
-//#define kSendInterval    30 // debug
-#define trace
+#define trace nullprint
 //#define trace printf
-#define stats printf
+
+#define stats nullprint
+//#define stats printf
 
 #ifndef BUFSIZE
 #define BUFSIZE 1025
@@ -82,6 +83,11 @@ static int connectToDireWolf( void );
 static int sendToRadio( const char* p );
 static int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
 
+
+void nullprint( const char* format, ... )
+{
+    
+}
 
 void buffer_input_flush()
 {
@@ -157,7 +163,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 
     if( timeGetTimeSec() > s_lastHumiTime + kHumiInterval )
     {
-        min->humidity = 0;
+        ave->humidity = 0;
         s_lastHumiTime = timeGetTimeSec();
     }
 
@@ -224,6 +230,13 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 //    if( data.flags & kDataFlag_intTemp )
 //        printf( "int temp:   %0.2f°F\n", c2f( data.intTempC ) );
 
+}
+
+
+void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
+{
+    printTime( false );
+    printf( " station_id: 0x%x, temp: %0.2f°F (avg: %0.2f°F), humidity: %d%% (avg: %d%%), wind[%0.2f°]: %0.2f mph (avg: wind[%0.2f°]: %0.2f mph), gust: %0.2f mph (max: %0.2f mph), int temp: %0.2f°F, pressure: %g InHg (min: %g InHg), rain: %g\n", inst->station_id, c2f( inst->tempC ), c2f( ave->tempC ), inst->humidity, ave->humidity, inst->windDirection, ms2mph( inst->windSpeedMs ), ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( inst->windGustMs ), ms2mph( ave->windGustMs ), c2f( inst->intTempC - kLocalTempErrorC ), (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, 0.0 );
 }
 
 
@@ -352,11 +365,11 @@ int main(int argc, const char * argv[])
             {
                 if( timeGetTimeSec() > s_lastSendTime + kSendInterval )
                 {
-                    trace( "\n" );
+                    printf( "\n" );
                     printTime( false );
                     printf( " Sending weather info to APRS-IS...  next update @ " );
-                    printTimePlus5();
-
+                    printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
+                    
                     APRSPacket wx;
                     packetConstructor( &wx );
 
@@ -366,19 +379,19 @@ int main(int argc, const char * argv[])
                     int formatTruncationCheck = snprintf( wx.callsign, 10, "K6LOT-13" );
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(wxFrame.windDirection)) );
+                    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(aveFrame.windDirection)) );
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(wxFrame.windSpeedMs))) );
+                    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(aveFrame.windSpeedMs))) );
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(wxFrame.windGustMs))) );
+                    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(maxFrame.windGustMs))) );
                     assert( formatTruncationCheck >= 0 );
 
-                    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(wxFrame.tempC))) );
+                    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(aveFrame.tempC))) );
                     assert( formatTruncationCheck >= 0 );
 
-                    unsigned short int h = wxFrame.humidity;
+                    unsigned short int h = aveFrame.humidity;
                     // APRS only supports values 1-100. Round 0% up to 1%.
                     if( h == 0 )
                         h = 1;
@@ -391,7 +404,7 @@ int main(int argc, const char * argv[])
                     assert( formatTruncationCheck >= 0 );
 
                     // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
-                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((wxFrame.pressure * millibar2inchHg) + kLocalOffsetInHg) * 10)) );
+                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((minFrame.pressure * millibar2inchHg) + kLocalOffsetInHg) * 10)) );
                     assert( formatTruncationCheck >= 0 );
 
                     memset( packetToSend, 0, sizeof( packetToSend ) );
@@ -400,7 +413,8 @@ int main(int argc, const char * argv[])
                     strcat( packetToSend, DEVICE_NAME_V );
                     strcat( packetToSend, "\n\0" );
                     printf( "%s\n", packetToSend );
-
+                    printFullWeather( &wxFrame, &minFrame, &maxFrame, &aveFrame );
+                    
                     // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
                     if( sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend ) < 0 )
                         printf( "packet failed to send to APRS-IS...\n" );
