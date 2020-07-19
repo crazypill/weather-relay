@@ -442,7 +442,7 @@ void send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
         return;
     }
     
-    ssize_t rc = send( server_sock, (char*)kissed, klen, 0 );
+    ssize_t rc = send( s_server_sock, (char*)kissed, klen, 0 );
     if( rc != klen )
         printf("ERROR writing KISS frame to socket.\n");
 }
