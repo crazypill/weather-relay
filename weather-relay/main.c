@@ -297,7 +297,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 
 void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
 {
-    if( ms2mph( inst->windSpeedMs ) >= 58 && ms2mph( inst->windSpeedMs ) < 59 )
+    if( ms2mph( inst->windSpeedMs ) >= 56 && ms2mph( inst->windSpeedMs ) < 57 )
         printf( "WEIRD WIND SPEED DETECTED: %0.2f m/s, %0.2f mph\n", inst->windSpeedMs, ms2mph( inst->windSpeedMs ) );
     
     printTime( false );
