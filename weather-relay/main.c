@@ -279,7 +279,9 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
 {
     printTime( false );
-    printf( " wind[%0.2f°]: %0.2f mph (avg: wind[%0.2f°]: %0.2f mph), gust: %0.2f mph (max: %0.2f mph)\n     temp: %0.2f°F (avg: %0.2f°F), humidity: %d%% (avg: %d%%), pressure: %g InHg (min: %g InHg), int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( inst->windGustMs ), ms2mph( ave->windGustMs ), c2f( inst->tempC ), c2f( ave->tempC ), inst->humidity, ave->humidity, (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( inst->intTempC - kLocalTempErrorC ), 0.0 );
+//    printf( " wind[%0.2f°]: %0.2f mph (avg: wind[%0.2f°]: %0.2f mph), gust: %0.2f mph (max: %0.2f mph)\n                    temp: %0.2f°F (avg: %0.2f°F), humidity: %d%% (avg: %d%%), pressure: %g InHg (min: %g InHg), int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( inst->windGustMs ), ms2mph( ave->windGustMs ), c2f( inst->tempC ), c2f( ave->tempC ), inst->humidity, ave->humidity, (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( inst->intTempC - kLocalTempErrorC ), 0.0 );
+    printf( "     wind[%0.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %d%%,     pressure: %g InHg, int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( inst->intTempC - kLocalTempErrorC ), 0.0 );
+    printf( " avg wind[%0.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %d%%, min pressure: %g InHg\n",                              ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( ave->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + kLocalOffsetInHg );
 }
 
 
