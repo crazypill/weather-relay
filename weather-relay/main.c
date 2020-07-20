@@ -168,7 +168,7 @@ uint8_t imin( uint8_t a, uint8_t b )
 }
 
 
-void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
+void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 {
     if( data->flags & kDataFlag_temp )
     {
@@ -230,6 +230,18 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
     // for wind we want the max instantaneous over the interval period
     if( data->flags & kDataFlag_wind )
     {
+        // detect wind sensor calibration messages???  I don't know what they are but they screw up the data...
+        if( (data->windDirection == 45 || data->windDirection == 135 || data->windDirection == 225 || data->windDirection == 315) && (ms2mph( data->windSpeedMs ) == 57.82) )
+        {
+#ifdef TRACE_STATS
+            printTime( false );
+            stats( " throwing away wind [%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
+#endif
+            // throw away this measurement
+            data->flags &= ~kDataFlag_wind;
+            goto exitWind;
+        }
+        
         if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
         {
             ave->windSpeedMs = 0;
@@ -251,6 +263,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
         stats( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
 #endif
     }
+    exitWind:
 
     if( data->flags & kDataFlag_gust )
     {
@@ -379,6 +392,9 @@ int main(int argc, const char * argv[])
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
         {
+            // doing this first allows us to turn off flags for bad measurements so this code skips them too-
+            updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
+            
 #ifdef TRACE_INCOMING_WX
             printTime( false );
 #endif
@@ -430,8 +446,6 @@ int main(int argc, const char * argv[])
 
             trace( "\n" );
             
-            updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
-
             // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
             // and at least 5 minutes has passed...  !!@ also need to average data over the 5 minute period...
             receivedFlags |= frame.flags;
