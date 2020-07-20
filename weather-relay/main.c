@@ -470,8 +470,7 @@ int main(int argc, const char * argv[])
                     s_lastSendTime = timeGetTimeSec();
                 }
             }
-            else
-                printFullWeather( &wxFrame, &minFrame, &maxFrame, &aveFrame );
+            printFullWeather( &wxFrame, &minFrame, &maxFrame, &aveFrame );
         }
         sleep( 1 );
     }
