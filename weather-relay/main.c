@@ -306,7 +306,7 @@ void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
 
 void printCurrentWeather( Frame* min, Frame* max, Frame* ave )
 {
-    printf( "Wind[%0.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %d%%, pressure: %g InHg, int temp: %0.2f°F, rain: %g\n", ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( ave->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( ave->intTempC - kLocalTempErrorC ), 0.0 );
+    printf( "Wind[%0.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %d%%, pressure: %g InHg, int temp: %0.2f°F, rain: %g\n", ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( ave->intTempC - kLocalTempErrorC ), 0.0 );
 }
 
 
