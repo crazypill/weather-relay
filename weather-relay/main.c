@@ -57,6 +57,7 @@
 // https://www.daculaweather.com/stuff/CWOP_Guide.pdf has all the intervals, etc...
 #define kSendInterval    60 * 5   // 5 minutes
 #define kTempInterval    60 * 5   // 5 minute average
+#define kIntTempInterval 60 * 5   // 5 minute average
 #define kWindInterval    60 * 2   // every 2 minutes we reset the average wind speed and direction
 #define kGustInterval    60 * 10  // every 10 minutes we reset the max wind gust to 0
 #define kBaroInterval    60
@@ -85,12 +86,13 @@
 #define AX25_MAX_PACKET_LEN ( AX25_MAX_ADDRS * 7 + 2 + 3 + AX25_MAX_INFO_LEN)
 
 
-static time_t s_lastSendTime = 0;
-static time_t s_lastWindTime = 0;
-static time_t s_lastGustTime = 0;
-static time_t s_lastBaroTime = 0;
-static time_t s_lastTempTime = 0;
-static time_t s_lastHumiTime = 0;
+static time_t s_lastSendTime    = 0;
+static time_t s_lastWindTime    = 0;
+static time_t s_lastGustTime    = 0;
+static time_t s_lastBaroTime    = 0;
+static time_t s_lastTempTime    = 0;
+static time_t s_lastIntTempTime = 0;
+static time_t s_lastHumiTime    = 0;
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
@@ -172,7 +174,7 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
     {
         if( timeGetTimeSec() > s_lastTempTime + kTempInterval )
         {
-            min->tempC = 0;
+            ave->tempC = 0;
             s_lastTempTime = timeGetTimeSec();
         }
 
@@ -186,6 +188,26 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
         stats( " temp average: %0.2f°F, time left: %ld\n", c2f( ave->tempC ), kTempInterval - (timeGetTimeSec() - s_lastTempTime) );
 #endif
     }
+
+    if( data->flags & kDataFlag_intTemp )
+    {
+        if( timeGetTimeSec() > s_lastIntTempTime + kIntTempInterval )
+        {
+            ave->intTempC = 0;
+            s_lastIntTempTime = timeGetTimeSec();
+        }
+
+        // check for no data before calculating mean
+        if( ave->intTempC == 0.0 )
+            ave->intTempC = data->intTempC;
+
+        ave->intTempC = (data->intTempC + ave->intTempC) * 0.5f;
+#ifdef TRACE_STATS
+        printTime( false );
+        stats( " int temp average: %0.2f°F, time left: %ld\n", c2f( ave->intTempC ), kIntTempInterval - (timeGetTimeSec() - s_lastIntTempTime) );
+#endif
+    }
+
     
     if( data->flags & kDataFlag_humidity )
     {
@@ -269,8 +291,6 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 //    if( data.flags & kDataFlag_rain )
 //        printf( "rain:       %g\n", data.rain );
 
-//    if( data.flags & kDataFlag_intTemp )
-//        printf( "int temp:   %0.2f°F\n", c2f( data.intTempC ) );
 
 }
 
@@ -278,9 +298,15 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
 {
     printTime( false );
-    printf( "     wind[%0.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %d%%,     pressure: %g InHg, int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( inst->intTempC - kLocalTempErrorC ), 0.0 );
+    printf( "     wind[%0.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %d%%,     pressure: %g InHg,     int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( inst->intTempC - kLocalTempErrorC ), 0.0 );
     printTime( false );
-    printf( " avg wind[%0.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %d%%, min pressure: %g InHg\n",                              ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + kLocalOffsetInHg );
+    printf( " avg wind[%0.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %d%%, min pressure: %g InHg  ave int temp: %0.2f°F\n",            ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( ave->intTempC - kLocalTempErrorC ) );
+}
+
+
+void printCurrentWeather( Frame* min, Frame* max, Frame* ave )
+{
+    printf( "Wind[%0.2f°]: %0.2f mph, gust: %0.2f mph\t\ttemp: %0.2f°F, humidity: %d%%, pressure: %g InHg, int temp: %0.2f°F, rain: %g\n", ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( ave->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( ave->intTempC - kLocalTempErrorC ), 0.0 );
 }
 
 
@@ -414,6 +440,7 @@ int main(int argc, const char * argv[])
                     printTime( false );
                     printf( " Sending weather info to APRS-IS...  next update @ " );
                     printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
+                    printCurrentWeather( &minFrame, &maxFrame, &aveFrame );
                     
                     APRSPacket wx;
                     packetConstructor( &wx );
