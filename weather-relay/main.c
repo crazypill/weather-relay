@@ -21,6 +21,7 @@
 #include <string.h>
 #include <netdb.h>
 
+#include "wx_thread.h"
 #include "TXDecoderFrame.h"
 #include "aprs-wx.h"
 #include "aprs-is.h"
@@ -88,6 +89,9 @@ static time_t s_lastBaroTime = 0;
 static time_t s_lastTempTime = 0;
 static time_t s_lastHumiTime = 0;
 
+static wx_thread_return_t sendToRadio_thread_entry( void* args );
+static wx_thread_return_t sendPacket_thread_entry( void* args );
+
 static int connectToDireWolf( void );
 static int sendToRadio( const char* p );
 static int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
@@ -97,6 +101,23 @@ void nullprint( const char* format, ... )
 {
     
 }
+
+
+char* copy_string( const char* stringToCopy )
+{
+    if( !stringToCopy )
+        return NULL;
+    
+    size_t bufSize = strlen( stringToCopy ) + 1;
+    char* newString = (char*)malloc( bufSize );
+    if( newString )
+    {
+        strcpy( newString, stringToCopy );
+        newString[bufSize - 1] = '\0';
+    }
+    return newString;
+}
+
 
 void buffer_input_flush()
 {
@@ -425,9 +446,9 @@ int main(int argc, const char * argv[])
                     strcat( packetToSend, "\n\0" );
                     printf( "%s\n", packetToSend );
                     
-                    // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
-                    if( sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend ) < 0 )
-                        printf( "packet failed to send to APRS-IS...\n" );
+                    // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
+                    wx_create_thread( sendPacket_thread_entry, copy_string( packetToSend ) );
+                    wx_create_thread( sendToRadio_thread_entry, copy_string( packetToSend ) );
 
                     if( sendToRadio( packetToSend ) < 0 )
                         printf( "packet failed to send via Direwolf for radio path...\n" );
@@ -445,13 +466,34 @@ int main(int argc, const char * argv[])
 }
 
 
-// test just sending to the radio...
-//int main(int argc, const char * argv[])
-//{
-//    // form fake packet to test...
-//    sendToRadio( "K6LOT-13>APRS,TCPIP*:@190340z3406.48N/11820.10W_113/000g000t073h63b10134folabs-wx-relay100" );
-//
-//}
+wx_thread_return_t sendPacket_thread_entry( void* args )
+{
+    char* packetToSend = (char*)args;
+    if( !packetToSend )
+        wx_thread_return();
+
+    // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
+    if( sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend ) < 0 )
+        printf( "packet failed to send to APRS-IS...\n" );
+    
+    free( packetToSend );
+    wx_thread_return();
+}
+
+
+wx_thread_return_t sendToRadio_thread_entry( void* args )
+{
+    char* packetToSend = (char*)args;
+    if( !packetToSend )
+        wx_thread_return();
+
+    if( sendToRadio( packetToSend ) < 0 )
+        printf( "packet failed to send via Direwolf for radio path...\n" );
+    
+    free( packetToSend );
+    wx_thread_return();
+}
+
 
 
 int sendToRadio( const char* p )
