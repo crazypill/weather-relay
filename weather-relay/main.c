@@ -36,7 +36,7 @@
 //#define PORT_DEVICE "/dev/serial1"
 
 // define this to see incoming weather data from weather sensors...
-//#define TRACE_INCOMING_WX
+#define TRACE_INCOMING_WX
 
 
 
@@ -520,9 +520,6 @@ int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
     klen = kiss_encapsulate( temp, dlen + 1, kissed );
     
     // connect to direwolf and send data
-//    if( s_server_sock < 0 )
-//        s_server_sock = connectToDireWolf();
-    
     int server_sock = connectToDireWolf();
     if( server_sock < 0 )
     {
