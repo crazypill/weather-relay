@@ -86,11 +86,11 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 	{
 		if (error == EAI_SYSTEM)
 		{
-			perror("getaddrinfo");
+			perror("sendPacket:getaddrinfo");
 		}
 		else
 		{
-			fprintf(stderr, "error in getaddrinfo: %s: %s\n", server,
+			fprintf(stderr, "error in sendPacket:getaddrinfo: %s: %s\n", server,
 			        gai_strerror(error));
 		}
         return error;
@@ -104,7 +104,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 		socket_desc = socket(addressinfo->sa_family, SOCK_STREAM, IPPROTO_TCP);
 		if (socket_desc < 0)
 		{
-			perror("error in socket()");
+			perror("sendPacket:socket");
 			continue; /* for loop */
 		}
 
@@ -152,7 +152,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 		}
 		else
 		{
-			perror("error in connect()");
+			perror("sendPacket:connect");
 			shutdown(socket_desc, 2);
 		}
 	}

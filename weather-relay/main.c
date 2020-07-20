@@ -639,7 +639,7 @@ int connectToDireWolf( void )
     {
         if( error == EAI_SYSTEM )
         {
-            perror( "getaddrinfo" );
+            perror( "connectToDireWolf:getaddrinfo" );
         }
         else
         {
@@ -656,7 +656,7 @@ int connectToDireWolf( void )
         socket_desc = socket( addressinfo->sa_family, SOCK_STREAM, IPPROTO_TCP );
         if (socket_desc < 0)
         {
-            perror("error in socket()");
+            perror("connectToDireWolf:socket");
             continue; /* for loop */
         }
 
@@ -678,7 +678,7 @@ int connectToDireWolf( void )
         }
         else
         {
-            perror( "error in connect()" );
+            perror( "connectToDireWolf:connect" );
             shutdown( socket_desc, 2 );
         }
     }
