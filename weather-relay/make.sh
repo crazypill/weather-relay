@@ -1,2 +1,2 @@
-gcc -g main.c wx_thread.c ../stubs.c ../ax25_pad.c ../kiss_frame.c ../fcs_calc.c ../aprs-weather-submit/src/aprs-is.c ../aprs-weather-submit/src/aprs-wx.c -D__insecure_redirect__ -DKISSUTIL -I.. -I../../tx31u-receiver/ -I../aprs-weather-submit/src/ -lm -o wxrelay
+gcc -g main.c wx_thread.c ../stubs.c ../ax25_pad.c ../kiss_frame.c ../fcs_calc.c ../aprs-weather-submit/src/aprs-is.c ../aprs-weather-submit/src/aprs-wx.c -D__insecure_redirect__ -DKISSUTIL -I.. -I../../tx31u-receiver/ -I../aprs-weather-submit/src/ -lm -o wxrelay -pthread
 
