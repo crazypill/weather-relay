@@ -168,41 +168,14 @@ uint8_t imin( uint8_t a, uint8_t b )
 
 void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 {
-    // we create a 10 minute window of instantaneous gust measurements
-    if( timeGetTimeSec() > s_lastGustTime + kGustInterval )
-    {
-        max->windGustMs = 0;
-        s_lastGustTime = timeGetTimeSec();
-    }
-
-    if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
-    {
-        ave->windSpeedMs = 0;
-        ave->windDirection = 0;
-        s_lastWindTime = timeGetTimeSec();
-    }
-
-    if( timeGetTimeSec() > s_lastBaroTime + kBaroInterval )
-    {
-        min->pressure = 0;
-        s_lastBaroTime = timeGetTimeSec();
-    }
-
-    if( timeGetTimeSec() > s_lastTempTime + kTempInterval )
-    {
-        min->tempC = 0;
-        s_lastTempTime = timeGetTimeSec();
-    }
-
-    if( timeGetTimeSec() > s_lastHumiTime + kHumiInterval )
-    {
-        ave->humidity = 0;
-        s_lastHumiTime = timeGetTimeSec();
-    }
-
-    
     if( data->flags & kDataFlag_temp )
     {
+        if( timeGetTimeSec() > s_lastTempTime + kTempInterval )
+        {
+            min->tempC = 0;
+            s_lastTempTime = timeGetTimeSec();
+        }
+
         // check for no data before calculating mean
         if( ave->tempC == 0.0 )
             ave->tempC = data->tempC;
@@ -216,6 +189,12 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
     
     if( data->flags & kDataFlag_humidity )
     {
+        if( timeGetTimeSec() > s_lastHumiTime + kHumiInterval )
+        {
+            ave->humidity = 0;
+            s_lastHumiTime = timeGetTimeSec();
+        }
+
         // check for no data before calculating mean
         if( ave->humidity == 0 )
             ave->humidity = data->humidity;
@@ -229,6 +208,13 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
     // for wind we want the max instantaneous over the interval period
     if( data->flags & kDataFlag_wind )
     {
+        if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
+        {
+            ave->windSpeedMs = 0;
+            ave->windDirection = 0;
+            s_lastWindTime = timeGetTimeSec();
+        }
+
         // check for no data before calculating mean
         if( ave->windSpeedMs == 0.0 )
             ave->windSpeedMs = data->windSpeedMs;
@@ -246,6 +232,13 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 
     if( data->flags & kDataFlag_gust )
     {
+        // we create a 10 minute window of instantaneous gust measurements
+        if( timeGetTimeSec() > s_lastGustTime + kGustInterval )
+        {
+            max->windGustMs = 0;
+            s_lastGustTime = timeGetTimeSec();
+        }
+
         max->windGustMs = fmax( data->windGustMs, max->windGustMs );
 #ifdef TRACE_STATS
         printTime( false );
@@ -256,6 +249,12 @@ void updateStats( const Frame* data, Frame* min, Frame* max, Frame* ave )
 
     if( data->flags & kDataFlag_pressure )
     {
+        if( timeGetTimeSec() > s_lastBaroTime + kBaroInterval )
+        {
+            min->pressure = 0;
+            s_lastBaroTime = timeGetTimeSec();
+        }
+
         // check for no data before calculating min
         if( min->pressure == 0.0 )
             min->pressure = data->pressure;
