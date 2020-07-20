@@ -230,18 +230,6 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     // for wind we want the max instantaneous over the interval period
     if( data->flags & kDataFlag_wind )
     {
-        // detect wind sensor calibration messages???  I don't know what they are but they screw up the data...
-        if( (data->windDirection == 45 || data->windDirection == 135 || data->windDirection == 225 || data->windDirection == 315) && (ms2mph( data->windSpeedMs ) == 57.82) )
-        {
-#ifdef TRACE_STATS
-            printTime( false );
-            stats( " throwing away wind [%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
-#endif
-            // throw away this measurement
-            data->flags &= ~kDataFlag_wind;
-            goto exitWind;
-        }
-        
         if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
         {
             ave->windSpeedMs = 0;
@@ -263,7 +251,6 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         stats( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
 #endif
     }
-    exitWind:
 
     if( data->flags & kDataFlag_gust )
     {
@@ -310,9 +297,6 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 
 void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
 {
-    if( ms2mph( inst->windSpeedMs ) >= 56 && ms2mph( inst->windSpeedMs ) < 57 )
-        printf( "WEIRD WIND SPEED DETECTED: %0.2f m/s, %0.2f mph\n", inst->windSpeedMs, ms2mph( inst->windSpeedMs ) );
-    
     printTime( false );
     printf( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( inst->intTempC - kLocalTempErrorC ), 0.0 );
     printTime( false );
