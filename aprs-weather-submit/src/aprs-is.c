@@ -201,6 +201,9 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
     if( rc != klen )
         log_error( "ERROR writing frame to socket.\n" );
     
+    // send newline as a test...
+    send( socket_desc, "\n", 1, 0 );
+
 	/* Done! */
 	shutdown( socket_desc, 2 );
     close( socket_desc );
