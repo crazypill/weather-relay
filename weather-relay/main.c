@@ -199,6 +199,25 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     // for wind we want the ave over the interval period
     if( data->flags & kDataFlag_wind )
     {
+        if( ms2mph( data->windSpeedMs ) > 100 )
+        {
+            // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
+            printTime( false );
+            printf( " wind speed too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
+            data->flags &= ~kDataFlag_wind;
+            return;
+        }
+
+        if( data->windDirection < 0 || data->windDirection > 360 )
+        {
+            // blow off this entire frame of data- it's probably all wrong
+            printTime( false );
+            printf( " wind direction out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
+            data->flags &= ~kDataFlag_wind;
+            return;
+        }
+
+        
         if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
         {
             ave->windSpeedMs = 0;
