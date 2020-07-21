@@ -350,7 +350,10 @@ void log_error( const char* format, ... )
     struct tm tm = *localtime(&t);
     
     if( s_logFile )
+    {
         fprintf( s_logFile, "%d-%02d-%02d %02d:%02d:%02d: %s\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, buf );
+        fflush( s_logFile );
+    }
     
     // print to debug as well...
     if( s_debug )
