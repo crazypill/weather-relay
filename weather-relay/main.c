@@ -379,7 +379,7 @@ int main( int argc, const char * argv[] )
             {0, 0, 0, 0}
             };
 
-        while( (c = (char)getopt_long( argc, (char* const*)argv, "Hvt:b:l:", long_options, &option_index)) != -1 )
+        while( (c = (char)getopt_long( argc, (char* const*)argv, "Hvt:b:l:d:", long_options, &option_index)) != -1 )
         {
             switch( c )
             {
