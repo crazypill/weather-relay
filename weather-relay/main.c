@@ -406,11 +406,6 @@ int main( int argc, const char * argv[] )
                     break;
 
                 case 'l':
-                    if( s_logFilePath )
-                    {
-                        free( (void*)s_logFilePath );
-                        s_logFilePath = NULL;
-                    }
                     s_logFilePath = copy_string( optarg );
                     break;
             }
