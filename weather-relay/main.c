@@ -365,8 +365,8 @@ int main( int argc, const char * argv[] )
     // do some command processing...
     if( argc >= 2 )
     {
-        char         c = '\0';          /* for getopt_long() */
-        int          option_index = 0;  /* for getopt_long() */
+        int c = '\0';          /* for getopt_long() */
+        int option_index = 0;  /* for getopt_long() */
 
         const static struct option long_options[] = {
             {"help",                    no_argument,       0, 'H'},
@@ -379,7 +379,7 @@ int main( int argc, const char * argv[] )
             {0, 0, 0, 0}
             };
 
-        while( (c = (char)getopt_long( argc, (char* const*)argv, "Hvdt:b:l:", long_options, &option_index)) != -1 )
+        while( (c = getopt_long( argc, (char* const*)argv, "Hvdt:b:l:", long_options, &option_index)) != -1 )
         {
             switch( c )
             {
