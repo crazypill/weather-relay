@@ -420,6 +420,8 @@ int main( int argc, const char * argv[] )
         s_logFile = fopen( s_logFilePath, "w+" );
         if( !s_logFile )
             log_error( "  failed to open log file: %s\n", s_logFilePath );
+        if( s_debug )
+            printf( "logging errors to: %s\n", s_logFilePath );
     }
     
     char packetToSend[BUFSIZE];
