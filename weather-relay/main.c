@@ -447,7 +447,7 @@ int main( int argc, const char * argv[] )
     }
     
     if( s_debug )
-        printf( "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C (%0.2f °F)\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC, c2f( s_localTempErrorC ) );
+        printf( "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC );
 
     if( s_logFilePath && !s_logFile )
     {
