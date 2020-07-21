@@ -231,7 +231,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 #endif
     }
     
-    // for wind we want the max instantaneous over the interval period
+    // for wind we want the ave over the interval period
     if( data->flags & kDataFlag_wind )
     {
         if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
@@ -256,8 +256,19 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 #endif
     }
 
+    // for gusts we want the max instantaneous over the interval period
     if( data->flags & kDataFlag_gust )
     {
+        // I saw a 700 MPH wind gust go by which seems nuts... so trap that error
+        if( ms2mph( data->windGustMs ) > 100 )
+        {
+            // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
+            printTime( false );
+            printf( " wind gust too high[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windGustMs ), kGustInterval - (timeGetTimeSec() - s_lastGustTime) );
+            data->flags &= ~kDataFlag_gust;
+            return;
+        }
+        
         // we create a 10 minute window of instantaneous gust measurements
         if( timeGetTimeSec() > s_lastGustTime + kGustInterval )
         {
