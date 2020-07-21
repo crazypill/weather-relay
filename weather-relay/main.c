@@ -51,6 +51,9 @@ static bool s_debug = false;
 static const char* s_logFilePath = NULL;
 static FILE*       s_logFile     = NULL;
 
+static const char*  s_kiss_server = "localhost";
+static uint16_t     s_kiss_port   = 8001;
+
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
 
@@ -331,7 +334,7 @@ void version( int argc, const char* argv[] )
 
 void usage( int argc, const char* argv[] )
 {
-    printf( "Typical usage: %s --baro [pressure offset in InHg] --temp [temp offset in C]\n", PROGRAM_NAME );
+    printf( "Typical usage: %s --kiss \"10.0.1.208\"\n", PROGRAM_NAME );
     return;
 }
 
@@ -351,6 +354,9 @@ void help( int argc, const char* argv[] )
         Tuning parameters:\n\
             -b, --baro                 Set the barometric pressure offset in InHg.\n\
             -t, --temp                 Set the interior temperature offset in °C.\n\
+        Override parameters:\n\
+            -k, --kiss                 Set the server we want to use, defaults to localhost.\n\
+            -p, --port                 Set the port we want to use, defaults to 8001.\n\
         " );
 }
 
@@ -409,11 +415,13 @@ int main( int argc, const char * argv[] )
             {"temp",                    required_argument, 0, 't'},
             {"baro",                    required_argument, 0, 'b'},
             {"log",                     required_argument, 0, 'l'},
+            {"kiss",                    required_argument, 0, 'k'},
+            {"port",                    required_argument, 0, 'p'},
 
             {0, 0, 0, 0}
             };
 
-        while( (c = getopt_long( argc, (char* const*)argv, "Hvdt:b:l:", long_options, &option_index)) != -1 )
+        while( (c = getopt_long( argc, (char* const*)argv, "Hvdt:b:l:k:p:", long_options, &option_index)) != -1 )
         {
             switch( c )
             {
@@ -440,14 +448,22 @@ int main( int argc, const char * argv[] )
                     break;
 
                 case 'l':
-                    s_logFilePath = copy_string( optarg );
+                    s_logFilePath = optarg;
+                    break;
+
+                case 'k':
+                    s_kiss_server = optarg;
+                    break;
+
+                case 'p':
+                    s_kiss_port = atoi( optarg );
                     break;
             }
         }
     }
     
     if( s_debug )
-        printf( "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC );
+        printf( "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C, kiss: %s:%d\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC, s_kiss_server, s_kiss_port );
 
     if( s_logFilePath && !s_logFile )
     {
@@ -457,7 +473,7 @@ int main( int argc, const char * argv[] )
         if( s_debug )
         {
             printf( "logging errors to: %s\n", s_logFilePath );
-            fprintf( s_logFile, "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC );
+            fprintf( s_logFile, "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C, kiss: %s:%d\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC, s_kiss_server, s_kiss_port );
         }
     }
     
@@ -787,16 +803,13 @@ exit_gracefully:
 // returns fd to use to communicate with
 int connectToDireWolf( void )
 {
-//    const char*      server             = "localhost";
-    const char*      server             = "10.0.1.208";
-    uint16_t         port               = 8001;
     int              error              = 0;
     char             foundValidServerIP = 0;
     struct addrinfo* result             = NULL;
     struct addrinfo* results;
     int              socket_desc        = -1;
 
-    error = getaddrinfo( server, NULL, NULL, &results );
+    error = getaddrinfo( s_kiss_server, NULL, NULL, &results );
     if( error != 0 )
     {
         if( error == EAI_SYSTEM )
@@ -805,7 +818,7 @@ int connectToDireWolf( void )
         }
         else
         {
-            log_error( "error in getaddrinfo: %s\n", server );
+            log_error( "error in getaddrinfo: %s\n", s_kiss_server );
         }
         return error;
     }
@@ -826,10 +839,10 @@ int connectToDireWolf( void )
         switch (addressinfo->sa_family)
         {
             case AF_INET:
-                ((struct sockaddr_in*)addressinfo)->sin_port   = htons(port);
+                ((struct sockaddr_in*)addressinfo)->sin_port   = htons( s_kiss_port );
                 break;
             case AF_INET6:
-                ((struct sockaddr_in6*)addressinfo)->sin6_port = htons(port);
+                ((struct sockaddr_in6*)addressinfo)->sin6_port = htons( s_kiss_port );
                 break;
         }
 
