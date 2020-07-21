@@ -196,8 +196,11 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 #ifdef DEBUG
 	printf( "> %s", toSend );
 #endif
-	send( socket_desc, toSend, (size_t)strlen(toSend), 0 );
-
+    ssize_t klen = strlen( toSend );
+	ssize_t rc = send( socket_desc, toSend, klen, 0 );
+    if( rc != klen )
+        log_error( "ERROR writing frame to socket.\n" );
+    
 	/* Done! */
 	shutdown( socket_desc, 2 );
     close( socket_desc );
