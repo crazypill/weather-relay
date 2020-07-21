@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <string.h>
 #include <netdb.h>
+#include <getopt.h>
 
 #include "wx_thread.h"
 #include "TXDecoderFrame.h"
@@ -29,7 +30,7 @@
 #include "ax25_pad.h"
 #include "kiss_frame.h"
 
-
+#define PROGRAM_NAME  "folabs-wx-relay"
 #define DEVICE_NAME_V "folabs-wx-relay100"
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"
@@ -47,7 +48,6 @@
 #define pascal2inchHg    0.0002953
 #define millibar2inchHg  0.02953
 
-#define kLocalOffsetInHg 0.33
 #define kLocalTempErrorC 2.033333333333333
 
 #define c2f( a ) (((a) * 1.8000) + 32)
@@ -93,6 +93,10 @@ static time_t s_lastBaroTime    = 0;
 static time_t s_lastTempTime    = 0;
 static time_t s_lastIntTempTime = 0;
 static time_t s_lastHumiTime    = 0;
+
+static float s_localOffsetInHg = 0.33f;
+static float s_localTempErrorC = 2.033333333333333;
+
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
@@ -298,15 +302,52 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
 {
     printTime( false );
-    printf( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( inst->intTempC - kLocalTempErrorC ), 0.0 );
+    printf( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( inst->intTempC - s_localTempErrorC ), 0.0 );
     printTime( false );
-    printf( " avg wind[%06.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %2d%%, min pressure: %0.3f InHg  ave int temp: %0.2f°F\n",            ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( ave->intTempC - kLocalTempErrorC ) );
+    printf( " avg wind[%06.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %2d%%, min pressure: %0.3f InHg  ave int temp: %0.2f°F\n",            ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( ave->intTempC - s_localTempErrorC ) );
 }
 
 
 void printCurrentWeather( Frame* min, Frame* max, Frame* ave )
 {
-    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %g\n", ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + kLocalOffsetInHg, c2f( ave->intTempC - kLocalTempErrorC ), 0.0 );
+    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %g\n", ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( ave->intTempC - s_localTempErrorC ), 0.0 );
+}
+
+
+void version( int argc, const char* argv[] )
+{
+    printf( "%s, version %s", PROGRAM_NAME, "1.0.0" );
+#ifdef DEBUG
+    fputs(", compiled with debugging output", stdout);
+#endif
+    puts(".\n\
+        Copyright (c) 2020 Far Out Labs, LLC.\n\
+        This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you\n\
+        are welcome to redistribute it under certain conditions.  See the GNU General\n\
+        Public License (version 3.0) for more details.");
+    return;
+}
+
+void usage( int argc, const char* argv[] )
+{
+    printf( "Usage: %s --baro [pressure offset in InHg] --temp [temp offset in C]\n", PROGRAM_NAME );
+    return;
+}
+
+
+
+void help( int argc, const char* argv[] )
+{
+    version( argc, argv );
+    puts("");
+    usage( argc, argv );
+    puts( "\n\
+        Special parameters:\n\
+            -H, --help                 Show this help and exit.\n\
+            -v, --version              Show version and licensing information, and exit.\n\
+            -b, --baro                 Set the barometric pressure offset in InHg.\n\
+            -t, --temp                 Set the interior temperature offset in °C.\n\
+        " );
 }
 
 
@@ -314,8 +355,50 @@ void printCurrentWeather( Frame* min, Frame* max, Frame* ave )
 
 int main(int argc, const char * argv[])
 {
-    char         packetToSend[BUFSIZE];
-    char         packetFormat = UNCOMPRESSED_PACKET;
+    // do some command processing...
+    if( argc >= 2 )
+    {
+        char         c = '\0';          /* for getopt_long() */
+        int          option_index = 0;  /* for getopt_long() */
+
+        const static struct option long_options[] = {
+            {"help",                    no_argument,       0, 'H'},
+            {"version",                 no_argument,       0, 'v'},
+            {"temp",                    required_argument, 0, 't'},
+            {"baro",                    required_argument, 0, 'b'},
+
+            {0, 0, 0, 0}
+            };
+
+        while( (c = (char)getopt_long( argc, (char* const*)argv, "Hvt:b:", long_options, &option_index)) != -1 )
+        {
+            switch( c )
+            {
+                /* Complete help (-H | --help) */
+                case 'H':
+                    help( argc, argv );
+                    return EXIT_SUCCESS;
+
+                /* Version information (-v | --version) */
+                case 'v':
+                    version( argc, argv );
+                    return EXIT_SUCCESS;
+                    
+                case 'b':
+                    s_localOffsetInHg = atof( optarg );
+                    break;
+
+                case 't':
+                    s_localTempErrorC = atof( optarg );
+                    break;
+            }
+        }
+    }
+    
+    printf( "%s, version %s -- baro offset: %0.2f InHg, interior temp offset: %0.2f °C\n", PROGRAM_NAME, "1.0.0", s_localOffsetInHg, s_localTempErrorC );
+
+    char packetToSend[BUFSIZE];
+    char packetFormat = UNCOMPRESSED_PACKET;
 
     // open the serial port
     bool blocking = false;
@@ -424,7 +507,7 @@ int main(int argc, const char * argv[])
 
             if( frame.flags & kDataFlag_pressure )
             {
-                trace( ", pressure: %g InHg", (frame.pressure * millibar2inchHg) + kLocalOffsetInHg );
+                trace( ", pressure: %g InHg", (frame.pressure * millibar2inchHg) + s_localOffsetInHg );
                 wxFrame.pressure = frame.pressure;
             }
 
@@ -477,7 +560,7 @@ int main(int argc, const char * argv[])
                     assert( formatTruncationCheck >= 0 );
 
                     // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
-                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((minFrame.pressure * millibar2inchHg) + kLocalOffsetInHg) * 10)) );
+                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((minFrame.pressure * millibar2inchHg) + s_localOffsetInHg) * 10)) );
                     assert( formatTruncationCheck >= 0 );
 
                     memset( packetToSend, 0, sizeof( packetToSend ) );
@@ -502,7 +585,7 @@ int main(int argc, const char * argv[])
         sleep( 1 );
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 
