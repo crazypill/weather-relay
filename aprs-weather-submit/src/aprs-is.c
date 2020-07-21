@@ -151,8 +151,11 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 	freeaddrinfo(results);
 	if( foundValidServerIP == 0 )
 	{
-		log_error( "sendPacket: Could not connect to the server.\n", stderr );
-        return error;
+		log_error( "sendPacket: could not connect to the server.\n" );
+        if( error )
+           return error;
+        else
+            return -1;
 	}
 
 	/* Authenticate */

@@ -845,8 +845,11 @@ int connectToDireWolf( void )
     freeaddrinfo( results );
     if( foundValidServerIP == 0 )
     {
-        log_error( "Could not connect to the server.\n" );
-        error = -1;
+        log_error( "connectToDireWolf: could not connect to the server.\n" );
+        if( error )
+            return error;
+        else
+            return -1;
     }
     else
     {
