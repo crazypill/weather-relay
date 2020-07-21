@@ -65,7 +65,7 @@
 #define AX25_MAX_PACKET_LEN ( AX25_MAX_ADDRS * 7 + 2 + 3 + AX25_MAX_INFO_LEN)
 
 
-bool debug_mode();
+bool debug_mode( void );
 void log_error( const char* format, ... );
 void log_unix_error( const char* prefix );
 
