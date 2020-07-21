@@ -328,7 +328,7 @@ void help( int argc, const char* argv[] )
             -H, --help                 Show this help and exit.\n\
             -v, --version              Show version and licensing information, and exit.\n\
             -d, --debug                Show the incoming radio data and packet sends.\n\
-            -l, --log                  Log errors to this file (debug data does not go here).\n\
+            -l, --log                  Log errors and debug info to this file.\n\
         Tuning parameters:\n\
             -b, --baro                 Set the barometric pressure offset in InHg.\n\
             -t, --temp                 Set the interior temperature offset in °C.\n\
