@@ -349,14 +349,27 @@ void log_error( const char* format, ... )
     
     if( s_logFile )
     {
-        fprintf( s_logFile, "%d-%02d-%02d %02d:%02d:%02d: %s\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, buf );
+        fprintf( s_logFile, "%d-%02d-%02d %02d:%02d:%02d: %s", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, buf );
         fflush( s_logFile );
     }
     
     // print to debug as well...
     if( s_debug )
-        printf( "%d-%02d-%02d %02d:%02d:%02d: %s\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, buf );
+        printf( "%d-%02d-%02d %02d:%02d:%02d: %s", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, buf );
 }
+
+
+void log_unix_error( const char* prefix )
+{
+    char buffer[512] = {0};
+    strerror_r( errno, buffer, sizeof( buffer ) );
+    
+    char finalBuffer[1024] = {0};
+    strcat( finalBuffer, prefix );
+    strcat( finalBuffer, buffer );
+    log_error( finalBuffer );
+}
+
 
 
 #pragma mark -
@@ -743,18 +756,6 @@ int send_to_kiss_tnc( int chan, int cmd, char* data, int dlen )
 exit_gracefully:
     shutdown( server_sock, 2 );
     return err;
-}
-
-
-void log_unix_error( const char* prefix )
-{
-    char buffer[512] = {0};
-    strerror_r( errno, buffer, sizeof( buffer ) );
-    
-    char finalBuffer[1024] = {0};
-    strcat( finalBuffer, prefix );
-    strcat( finalBuffer, buffer );
-    log_error( finalBuffer );
 }
 
 
