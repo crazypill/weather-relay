@@ -432,11 +432,14 @@ int main( int argc, const char * argv[] )
 
     if( s_logFilePath && !s_logFile )
     {
-        s_logFile = fopen( s_logFilePath, "w+" );
+        s_logFile = fopen( s_logFilePath, "a" );
         if( !s_logFile )
             log_error( "  failed to open log file: %s\n", s_logFilePath );
         if( s_debug )
-            printf( "logging errors to: %s\n", s_logFilePath );
+        {
+            log_error( "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC );
+            log_error( "logging errors to: %s\n", s_logFilePath );
+        }
     }
     
     char packetToSend[BUFSIZE];
