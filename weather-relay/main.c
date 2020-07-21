@@ -437,8 +437,8 @@ int main( int argc, const char * argv[] )
             log_error( "  failed to open log file: %s\n", s_logFilePath );
         if( s_debug )
         {
-            log_error( "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC );
-            log_error( "logging errors to: %s\n", s_logFilePath );
+            printf( "logging errors to: %s\n", s_logFilePath );
+            fprintf( s_logFile, "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC );
         }
     }
     
