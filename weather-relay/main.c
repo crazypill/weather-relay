@@ -539,7 +539,8 @@ int main( int argc, const char * argv[] )
             }
 
             trace( "\n" );
-            
+            printFullWeather( &wxFrame, &minFrame, &maxFrame, &aveFrame );
+
             // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
             // and at least 5 minutes has passed...  !!@ also need to average data over the 5 minute period...
             receivedFlags |= frame.flags;
@@ -608,7 +609,6 @@ int main( int argc, const char * argv[] )
                     s_lastSendTime = timeGetTimeSec();
                 }
             }
-            printFullWeather( &wxFrame, &minFrame, &maxFrame, &aveFrame );
         }
         sleep( 1 );
     }
