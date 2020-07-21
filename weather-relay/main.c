@@ -687,6 +687,8 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     int err = sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
     if( err != 0 )
         log_error( "packet failed to send to APRS-IS, error: %d...\n", err );
+    else
+        log_error( "sendPacket: %s\n", packetToSend );
     
     free( packetToSend );
     wx_thread_return();
