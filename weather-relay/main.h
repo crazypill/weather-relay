@@ -13,7 +13,6 @@
 #include <stdint.h>
 
 #define PROGRAM_NAME  "folabs-wx-relay"
-#define DEVICE_NAME_V "folabs-wx-relay100"
 #define VERSION       "100"
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"

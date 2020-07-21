@@ -467,7 +467,7 @@ int main( int argc, const char * argv[] )
     if( fd == -1 )
         return PORT_ERROR;
 
-    trace( "%s: reading from serial port: %s...\n\n", DEVICE_NAME_V, PORT_DEVICE );
+    trace( "%s: reading from serial port: %s...\n\n", PROGRAM_NAME, PORT_DEVICE );
 
     // this holds all the min/max/averages
     Frame minFrame = {};
@@ -596,7 +596,8 @@ int main( int argc, const char * argv[] )
                     memset( packetToSend, 0, sizeof( packetToSend ) );
                     printAPRSPacket( &wx, packetToSend, packetFormat, 0, false );
                     // add some additional info
-                    strcat( packetToSend, DEVICE_NAME_V );
+                    strcat( packetToSend, PROGRAM_NAME );
+                    strcat( packetToSend, VERSION );
                     strcat( packetToSend, "\n\0" );
                     printf( "%s\n", packetToSend );
                     
