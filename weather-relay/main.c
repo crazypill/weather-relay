@@ -585,9 +585,6 @@ int main(int argc, const char * argv[])
                     wx_create_thread( sendPacket_thread_entry, copy_string( packetToSend ) );
                     wx_create_thread( sendToRadio_thread_entry, copy_string( packetToSend ) );
 
-                    if( sendToRadio( packetToSend ) < 0 )
-                        printf( "packet failed to send via Direwolf for radio path...\n" );
-
                     s_lastSendTime = timeGetTimeSec();
                 }
             }
@@ -607,8 +604,9 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
         wx_thread_return();
 
     // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
-    if( sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend ) < 0 )
-        printf( "packet failed to send to APRS-IS...\n" );
+    int err = sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
+    if( err != 0 )
+        printf( "packet failed to send to APRS-IS, error: %d...\n", err );
     
     free( packetToSend );
     wx_thread_return();
@@ -621,8 +619,9 @@ wx_thread_return_t sendToRadio_thread_entry( void* args )
     if( !packetToSend )
         wx_thread_return();
 
-    if( sendToRadio( packetToSend ) < 0 )
-        printf( "packet failed to send via Direwolf for radio path...\n" );
+    int err = sendToRadio( packetToSend );
+    if( err != 0 )
+        printf( "packet failed to send via Direwolf for radio path, error: %d...\n", err );
     
     free( packetToSend );
     wx_thread_return();
@@ -670,7 +669,7 @@ int sendToRadio( const char* p )
  *
  *--------------------------------------------------------------------*/
 
-int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen )
+int send_to_kiss_tnc( int chan, int cmd, char* data, int dlen )
 {
     unsigned char temp[1000];
     unsigned char kissed[2000];
@@ -773,6 +772,8 @@ int connectToDireWolf( void )
         }
         else
         {
+            printTime( false );
+            printf( " " );
             perror( "connectToDireWolf:connect" );
             shutdown( socket_desc, 2 );
         }
