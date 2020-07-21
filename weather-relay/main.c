@@ -412,7 +412,8 @@ int main( int argc, const char * argv[] )
         }
     }
     
-    printf( "%s, version %s -- baro offset: %0.2f InHg, interior temp offset: %0.2f °C\n", PROGRAM_NAME, "1.0.0", s_localOffsetInHg, s_localTempErrorC );
+    if( s_debug )
+        printf( "%s, version %s -- baro offset: %0.2f InHg, interior temp offset: %0.2f °C\n", PROGRAM_NAME, "1.0.0", s_localOffsetInHg, s_localTempErrorC );
 
     if( s_logFilePath && !s_logFile )
     {
@@ -434,7 +435,7 @@ int main( int argc, const char * argv[] )
     int fd = open( PORT_DEVICE, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
     if( fd < 0 )
     {
-        printf( "Failed to open serial port: %s\n", PORT_DEVICE );
+        log_error( "Failed to open serial port: %s\n", PORT_DEVICE );
         return PORT_ERROR;
     }
 
@@ -666,7 +667,7 @@ int sendToRadio( const char* p )
     }
     else
     {
-        printf( "ERROR! Could not convert to AX.25 frame: %s\n", p );
+        log_error( "ERROR! Could not convert to AX.25 frame: %s\n", p );
         return -1;
     }
     return result;
@@ -700,15 +701,15 @@ int send_to_kiss_tnc( int chan, int cmd, char* data, int dlen )
     int err = 0;
 
     if( chan < 0 || chan > 15 ) {
-      printf( "ERROR - Invalid channel %d - must be in range 0 to 15.\n", chan );
+      log_error( "ERROR - Invalid channel %d - must be in range 0 to 15.\n", chan );
       chan = 0;
     }
     if( cmd < 0 || cmd > 15 ) {
-      printf( "ERROR - Invalid command %d - must be in range 0 to 15.\n", cmd );
+      log_error( "ERROR - Invalid command %d - must be in range 0 to 15.\n", cmd );
       cmd = 0;
     }
     if( dlen < 0 || dlen > (int)(sizeof( temp ) - 1) ) {
-      printf( "ERROR - Invalid data length %d - must be in range 0 to %d.\n", dlen, (int)(sizeof( temp ) - 1) );
+      log_error( "ERROR - Invalid data length %d - must be in range 0 to %d.\n", dlen, (int)(sizeof( temp ) - 1) );
       dlen = sizeof( temp ) - 1;
     }
 
