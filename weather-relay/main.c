@@ -614,7 +614,7 @@ int main( int argc, const char * argv[] )
                     // add some additional info
                     strcat( packetToSend, PROGRAM_NAME );
                     strcat( packetToSend, VERSION );
-                    strcat( packetToSend, "\n\0" );
+                    strcat( packetToSend, "\0" );       //  !!@ why ?
                     if( s_debug )
                         printf( "%s\n", packetToSend );
                     
