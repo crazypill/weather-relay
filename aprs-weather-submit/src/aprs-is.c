@@ -196,11 +196,14 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 #ifdef DEBUG
 	printf( "> %s", toSend );
 #endif
-    ssize_t klen = strlen( toSend ) + 1;
+    ssize_t klen = strlen( toSend );
 	ssize_t rc = send( socket_desc, toSend, klen, 0 );
     if( rc != klen )
         log_error( "ERROR writing frame to socket.\n" );
     
+    // for some reason the APRS-IS wants a newline in there... without it, we get no error and no packet sent...
+    send( socket_desc, "\n\0", 2, 0 );
+
 	/* Done! */
 	shutdown( socket_desc, 2 );
     close( socket_desc );
