@@ -614,7 +614,8 @@ int main( int argc, const char * argv[] )
                     strcat( packetToSend, PROGRAM_NAME );
                     strcat( packetToSend, VERSION );
                     strcat( packetToSend, "\n\0" );
-                    printf( "%s\n", packetToSend );
+                    if( s_debug )
+                        printf( "%s\n", packetToSend );
                     
                     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
                     wx_create_thread( sendPacket_thread_entry, copy_string( packetToSend ) );
