@@ -367,6 +367,7 @@ void log_unix_error( const char* prefix )
     char finalBuffer[1024] = {0};
     strcat( finalBuffer, prefix );
     strcat( finalBuffer, buffer );
+    strcat( finalBuffer, "\n" );
     log_error( finalBuffer );
 }
 
