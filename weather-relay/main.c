@@ -9,18 +9,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdarg.h>
+
 #include <strings.h>
+#include <string.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/termios.h>
 #include <unistd.h>
-#include <stdint.h>
 #include <time.h>
 #include <math.h>
 #include <assert.h>
-#include <string.h>
 #include <netdb.h>
 #include <getopt.h>
+
+#include "main.h"
 
 #include "wx_thread.h"
 #include "TXDecoderFrame.h"
@@ -29,61 +33,6 @@
 
 #include "ax25_pad.h"
 #include "kiss_frame.h"
-
-#define PROGRAM_NAME  "folabs-wx-relay"
-#define DEVICE_NAME_V "folabs-wx-relay100"
-
-//#define PORT_DEVICE "/dev/cu.usbserial-0001"
-#define PORT_DEVICE "/dev/serial0"
-//#define PORT_DEVICE "/dev/serial1"
-
-// define this to see incoming weather data from weather sensors...
-//#define TRACE_INCOMING_WX
-//#define TRACE_STATS
-
-
-
-#define PORT_ERROR -1
-
-#define pascal2inchHg    0.0002953
-#define millibar2inchHg  0.02953
-
-#define kLocalTempErrorC 2.033333333333333
-
-#define c2f( a ) (((a) * 1.8000) + 32)
-#define ms2mph( a ) ((a) * 2.23694)
-#define inHg2millibars( a ) ((a) * 33.8639)
-
-// https://www.daculaweather.com/stuff/CWOP_Guide.pdf has all the intervals, etc...
-#define kSendInterval    60 * 5   // 5 minutes
-#define kTempInterval    60 * 5   // 5 minute average
-#define kIntTempInterval 60 * 5   // 5 minute average
-#define kWindInterval    60 * 2   // every 2 minutes we reset the average wind speed and direction
-#define kGustInterval    60 * 10  // every 10 minutes we reset the max wind gust to 0
-#define kBaroInterval    60
-#define kHumiInterval    60
-
-
-
-#ifdef TRACE_INCOMING_WX
-#define trace printf
-#else
-#define trace nullprint
-#endif
-
-#ifdef TRACE_STATS
-#define stats printf
-#else
-#define stats nullprint
-#endif
-
-#ifndef BUFSIZE
-#define BUFSIZE 1025
-#endif
-
-#define AX25_MAX_ADDRS 10    /* Destination, Source, 8 digipeaters. */
-#define AX25_MAX_INFO_LEN 2048    /* Maximum size for APRS. */
-#define AX25_MAX_PACKET_LEN ( AX25_MAX_ADDRS * 7 + 2 + 3 + AX25_MAX_INFO_LEN)
 
 
 static time_t s_lastSendTime    = 0;
@@ -97,6 +46,10 @@ static time_t s_lastHumiTime    = 0;
 static float s_localOffsetInHg = 0.33f;
 static float s_localTempErrorC = 2.033333333333333;
 
+static bool s_debug = false;
+
+static const char* s_logFilePath = NULL;
+static FILE*       s_logFile     = NULL;
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
@@ -104,6 +57,10 @@ static wx_thread_return_t sendPacket_thread_entry( void* args );
 static int connectToDireWolf( void );
 static int sendToRadio( const char* p );
 static int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
+
+
+
+#pragma mark -
 
 
 void nullprint( const char* format, ... )
@@ -136,6 +93,7 @@ void buffer_input_flush()
         ;
 }
 
+
 void printTime( int printNewline )
 {
     time_t t = time(NULL);
@@ -146,12 +104,14 @@ void printTime( int printNewline )
         printf("%d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
+
 void printTimePlus5()
 {
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
   printf("%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min + 5, tm.tm_sec);
 }
+
 
 time_t timeGetTimeSec()
 {
@@ -170,6 +130,11 @@ uint8_t imin( uint8_t a, uint8_t b )
 {
     return a < b ? a : b;
 }
+
+
+
+
+#pragma mark -
 
 
 void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
@@ -312,6 +277,10 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 
 void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
 {
+    // only show this stuff if in debug mode
+    if( !s_debug )
+        return;
+    
     printTime( false );
     printf( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( inst->intTempC - s_localTempErrorC ), 0.0 );
     printTime( false );
@@ -321,6 +290,10 @@ void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
 
 void printCurrentWeather( Frame* min, Frame* max, Frame* ave )
 {
+    // only show this stuff if in debug mode
+    if( !s_debug )
+        return;
+
     printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %g\n", ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( ave->intTempC - s_localTempErrorC ), 0.0 );
 }
 
@@ -341,7 +314,7 @@ void version( int argc, const char* argv[] )
 
 void usage( int argc, const char* argv[] )
 {
-    printf( "Usage: %s --baro [pressure offset in InHg] --temp [temp offset in C]\n", PROGRAM_NAME );
+    printf( "Typical usage: %s --baro [pressure offset in InHg] --temp [temp offset in C]\n", PROGRAM_NAME );
     return;
 }
 
@@ -356,15 +329,38 @@ void help( int argc, const char* argv[] )
         Special parameters:\n\
             -H, --help                 Show this help and exit.\n\
             -v, --version              Show version and licensing information, and exit.\n\
+            -d, --debug                Show the incoming radio data and packet sends.\n\
+            -l, --log                  Log errors to this file (debug data does not go here).\n\
+        Tuning parameters:\n\
             -b, --baro                 Set the barometric pressure offset in InHg.\n\
             -t, --temp                 Set the interior temperature offset in °C.\n\
         " );
 }
 
 
+void log_error( const char* format, ... )
+{
+    char buf[2048] = {0};
+    va_list vaList;
+    va_start( vaList, format );
+    vsprintf( buf, format, vaList );
+    va_end( vaList );
+    
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    
+    if( s_logFile )
+        fprintf( s_logFile, "%d-%02d-%02d %02d:%02d:%02d: %s\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, buf );
+    
+    // print to debug as well...
+    if( s_debug )
+        printf( "%d-%02d-%02d %02d:%02d:%02d: %s\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, buf );
+}
+
+
 #pragma mark -
 
-int main(int argc, const char * argv[])
+int main( int argc, const char * argv[] )
 {
     // do some command processing...
     if( argc >= 2 )
@@ -375,13 +371,15 @@ int main(int argc, const char * argv[])
         const static struct option long_options[] = {
             {"help",                    no_argument,       0, 'H'},
             {"version",                 no_argument,       0, 'v'},
+            {"debug",                   no_argument,       0, 'd'},
             {"temp",                    required_argument, 0, 't'},
             {"baro",                    required_argument, 0, 'b'},
+            {"log",                     required_argument, 0, 'l'},
 
             {0, 0, 0, 0}
             };
 
-        while( (c = (char)getopt_long( argc, (char* const*)argv, "Hvt:b:", long_options, &option_index)) != -1 )
+        while( (c = (char)getopt_long( argc, (char* const*)argv, "Hvt:b:l:", long_options, &option_index)) != -1 )
         {
             switch( c )
             {
@@ -402,12 +400,32 @@ int main(int argc, const char * argv[])
                 case 't':
                     s_localTempErrorC = atof( optarg );
                     break;
+
+                case 'd':
+                    s_debug = true;
+                    break;
+
+                case 'l':
+                    if( s_logFilePath )
+                    {
+                        free( (void*)s_logFilePath );
+                        s_logFilePath = NULL;
+                    }
+                    s_logFilePath = copy_string( optarg );
+                    break;
             }
         }
     }
     
     printf( "%s, version %s -- baro offset: %0.2f InHg, interior temp offset: %0.2f °C\n", PROGRAM_NAME, "1.0.0", s_localOffsetInHg, s_localTempErrorC );
 
+    if( s_logFilePath && !s_logFile )
+    {
+        s_logFile = fopen( s_logFilePath, "w+" );
+        if( !s_logFile )
+            log_error( "  failed to open log file: %s\n", s_logFilePath );
+    }
+    
     char packetToSend[BUFSIZE];
     char packetFormat = UNCOMPRESSED_PACKET;
 
@@ -531,12 +549,15 @@ int main(int argc, const char * argv[])
             {
                 if( timeGetTimeSec() > s_lastSendTime + kSendInterval )
                 {
-                    printf( "\n" );
-                    printTime( false );
-                    printf( " Sending weather info to APRS-IS...  next update @ " );
-                    printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
-                    printCurrentWeather( &minFrame, &maxFrame, &aveFrame );
-                    
+                    if( s_debug )
+                    {
+                        printf( "\n" );
+                        printTime( false );
+                        printf( " Sending weather info to APRS-IS...  next update @ " );
+                        printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
+                        printCurrentWeather( &minFrame, &maxFrame, &aveFrame );
+                    }
+    
                     APRSPacket wx;
                     packetConstructor( &wx );
 
@@ -597,6 +618,10 @@ int main(int argc, const char * argv[])
 }
 
 
+
+#pragma mark -
+
+
 wx_thread_return_t sendPacket_thread_entry( void* args )
 {
     char* packetToSend = (char*)args;
@@ -606,7 +631,7 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
     int err = sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
     if( err != 0 )
-        printf( "packet failed to send to APRS-IS, error: %d...\n", err );
+        log_error( "packet failed to send to APRS-IS, error: %d...\n", err );
     
     free( packetToSend );
     wx_thread_return();
@@ -621,12 +646,15 @@ wx_thread_return_t sendToRadio_thread_entry( void* args )
 
     int err = sendToRadio( packetToSend );
     if( err != 0 )
-        printf( "packet failed to send via Direwolf for radio path, error: %d...\n", err );
+        log_error( "packet failed to send via Direwolf for radio path, error: %d...\n", err );
     
     free( packetToSend );
     wx_thread_return();
 }
 
+
+
+#pragma mark -
 
 
 int sendToRadio( const char* p )
@@ -698,7 +726,7 @@ int send_to_kiss_tnc( int chan, int cmd, char* data, int dlen )
     int server_sock = connectToDireWolf();
     if( server_sock < 0 )
     {
-        printf("ERROR Can't connect to direwolf...\n");
+        log_error( "ERROR Can't connect to direwolf...\n" );
         err = -1;
         goto exit_gracefully;
     }
@@ -706,13 +734,25 @@ int send_to_kiss_tnc( int chan, int cmd, char* data, int dlen )
     ssize_t rc = send( server_sock, (char*)kissed, klen, 0 );
     if( rc != klen )
     {
-        printf("ERROR writing KISS frame to socket.\n");
+        log_error( "ERROR writing KISS frame to socket.\n" );
         err = -1;
     }
 
 exit_gracefully:
     shutdown( server_sock, 2 );
     return err;
+}
+
+
+void log_unix_error( const char* prefix )
+{
+    char buffer[512] = {0};
+    strerror_r( errno, buffer, sizeof( buffer ) );
+    
+    char finalBuffer[1024] = {0};
+    strcat( finalBuffer, prefix );
+    strcat( finalBuffer, buffer );
+    log_error( finalBuffer );
 }
 
 
@@ -733,11 +773,11 @@ int connectToDireWolf( void )
     {
         if( error == EAI_SYSTEM )
         {
-            perror( "connectToDireWolf:getaddrinfo" );
+            log_unix_error( "connectToDireWolf:getaddrinfo: " );
         }
         else
         {
-            fprintf( stderr, "error in getaddrinfo: %s\n", server );
+            log_error( "error in getaddrinfo: %s\n", server );
         }
         return error;
     }
@@ -748,9 +788,9 @@ int connectToDireWolf( void )
         struct sockaddr* const addressinfo = result->ai_addr;
 
         socket_desc = socket( addressinfo->sa_family, SOCK_STREAM, IPPROTO_TCP );
-        if (socket_desc < 0)
+        if( socket_desc < 0 )
         {
-            perror("connectToDireWolf:socket");
+            log_unix_error( "connectToDireWolf:socket: " );
             continue; /* for loop */
         }
 
@@ -772,16 +812,14 @@ int connectToDireWolf( void )
         }
         else
         {
-            printTime( false );
-            printf( " " );
-            perror( "connectToDireWolf:connect" );
+            log_unix_error( "connectToDireWolf:connect: " );
             shutdown( socket_desc, 2 );
         }
     }
     freeaddrinfo( results );
     if( foundValidServerIP == 0 )
     {
-        fputs( "Could not connect to the server.\n", stderr );
+        log_error( "Could not connect to the server.\n" );
         error = -1;
     }
     else

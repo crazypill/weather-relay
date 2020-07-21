@@ -34,14 +34,7 @@ with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.html>.
 #include <string.h>
 #include <netdb.h>
 
-
-#ifndef BUFSIZE
-#define BUFSIZE 1025
-#endif
-
-#define PROGRAM_NAME "folabs-wx-relay"
-#define VERSION      "100"
-
+#include "main.h"
 
 
 /**
@@ -86,12 +79,11 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 	{
 		if (error == EAI_SYSTEM)
 		{
-			perror("sendPacket:getaddrinfo");
+            log_unix_error( "sendPacket:getaddrinfo: " );
 		}
 		else
 		{
-			fprintf(stderr, "error in sendPacket:getaddrinfo: %s: %s\n", server,
-			        gai_strerror(error));
+            log_error( "error in sendPacket:getaddrinfo: %s %s\n", server, gai_strerror(error) );
 		}
         return error;
 	}
@@ -101,10 +93,10 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 		/* For readability later: */
 		struct sockaddr* const addressinfo = result->ai_addr;
 
-		socket_desc = socket(addressinfo->sa_family, SOCK_STREAM, IPPROTO_TCP);
-		if (socket_desc < 0)
+		socket_desc = socket( addressinfo->sa_family, SOCK_STREAM, IPPROTO_TCP );
+		if( socket_desc < 0 )
 		{
-			perror("sendPacket:socket");
+            log_unix_error( "sendPacket:socket: " );
 			continue; /* for loop */
 		}
 
@@ -152,14 +144,14 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 		}
 		else
 		{
-			perror("sendPacket:connect");
+            log_unix_error( "sendPacket:connect: " );
 			shutdown(socket_desc, 2);
 		}
 	}
 	freeaddrinfo(results);
-	if (foundValidServerIP == 0)
+	if( foundValidServerIP == 0 )
 	{
-		fputs("Could not connect to the server.\n", stderr);
+		log_error( "sendPacket: Could not connect to the server.\n", stderr );
         return error;
 	}
 
@@ -179,28 +171,28 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 #ifdef DEBUG
 		printf("< %s", buffer);
 #endif
-		if (strstr(buffer, verificationMessage) != NULL)
+		if( strstr(buffer, verificationMessage) != NULL )
 		{
 			authenticated = 1;
 			break;
 		}
 		else
 		{
-			bytesRead = recv(socket_desc, buffer, BUFSIZE, 0);
+			bytesRead = recv( socket_desc, buffer, BUFSIZE, 0 );
 		}
 	}
-	free(buffer);
-	if (!authenticated)
+	free( buffer );
+	if( !authenticated )
 	{
-		fputs("Authentication failed!", stderr);
+		log_error( "Authentication failed!" );
         return -2;
 	}
 
 	/* Send packet */
 #ifdef DEBUG
-	printf("> %s", toSend);
+	printf( "> %s", toSend );
 #endif
-	send(socket_desc, toSend, (size_t)strlen(toSend), 0);
+	send( socket_desc, toSend, (size_t)strlen(toSend), 0 );
 	
 	/* Done! */
 	shutdown(socket_desc, 2);

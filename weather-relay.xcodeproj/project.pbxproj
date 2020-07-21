@@ -35,6 +35,7 @@
 		FA38C40C24C5174500EC7882 /* wx_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wx_thread.c; sourceTree = "<group>"; };
 		FA38C40D24C5174500EC7882 /* wx_thread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wx_thread.h; sourceTree = "<group>"; };
 		FA38C40F24C5181700EC7882 /* make.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = make.sh; path = "weather-relay/make.sh"; sourceTree = "<group>"; };
+		FA38C41024C6BAD900EC7882 /* main.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = main.h; sourceTree = "<group>"; };
 		FA3CB4F4245910C900C1FCC9 /* weather-relay */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "weather-relay"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAB4A12724C2772900F7BE22 /* aprs-wx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "aprs-wx.c"; path = "aprs-weather-submit/src/aprs-wx.c"; sourceTree = SOURCE_ROOT; };
 		FAB4A12824C2772900F7BE22 /* aprs-is.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "aprs-is.c"; path = "aprs-weather-submit/src/aprs-is.c"; sourceTree = SOURCE_ROOT; };
@@ -90,6 +91,7 @@
 		FA3CB4F6245910C900C1FCC9 /* weather-relay */ = {
 			isa = PBXGroup;
 			children = (
+				FA38C41024C6BAD900EC7882 /* main.h */,
 				FA38C40924C41C6B00EC7882 /* main.c */,
 				FA38C40C24C5174500EC7882 /* wx_thread.c */,
 				FA38C40D24C5174500EC7882 /* wx_thread.h */,
