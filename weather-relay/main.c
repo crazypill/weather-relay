@@ -650,6 +650,7 @@ int main( int argc, const char * argv[] )
         sleep( 1 );
     }
     
+    // loop never finishes so this code never executes...
     if( s_logFile )
         fclose( s_logFile );
     return EXIT_SUCCESS;
@@ -778,6 +779,7 @@ int send_to_kiss_tnc( int chan, int cmd, char* data, int dlen )
 
 exit_gracefully:
     shutdown( server_sock, 2 );
+    close( server_sock );
     return err;
 }
 
@@ -840,6 +842,7 @@ int connectToDireWolf( void )
         {
             log_unix_error( "connectToDireWolf:connect: " );
             shutdown( socket_desc, 2 );
+            close( socket_desc );
         }
     }
     freeaddrinfo( results );
@@ -851,10 +854,6 @@ int connectToDireWolf( void )
         else
             return -1;
     }
-    else
-    {
-        // do not close down the connection if we connected!
-        return socket_desc;
-    }
-    return error;
+
+    return socket_desc;
 }

@@ -146,6 +146,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 		{
             log_unix_error( "sendPacket:connect: " );
 			shutdown(socket_desc, 2);
+            close( socket_desc );
 		}
 	}
 	freeaddrinfo(results);
@@ -196,8 +197,9 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 	printf( "> %s", toSend );
 #endif
 	send( socket_desc, toSend, (size_t)strlen(toSend), 0 );
-	
+
 	/* Done! */
-	shutdown(socket_desc, 2);
+	shutdown( socket_desc, 2 );
+    close( socket_desc );
 	return 0;
 }
