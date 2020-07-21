@@ -611,7 +611,9 @@ int main( int argc, const char * argv[] )
         }
         sleep( 1 );
     }
-
+    
+    if( s_logFile )
+        fclose( s_logFile );
     return EXIT_SUCCESS;
 }
 
