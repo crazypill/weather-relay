@@ -762,15 +762,15 @@ int send_to_kiss_tnc( int chan, int cmd, char* data, int dlen )
     int err = 0;
 
     if( chan < 0 || chan > 15 ) {
-      log_error( "ERROR - Invalid channel %d - must be in range 0 to 15.\n", chan );
+      log_error( "invalid channel %d - must be in range 0 to 15.\n", chan );
       chan = 0;
     }
     if( cmd < 0 || cmd > 15 ) {
-      log_error( "ERROR - Invalid command %d - must be in range 0 to 15.\n", cmd );
+      log_error( "invalid command %d - must be in range 0 to 15.\n", cmd );
       cmd = 0;
     }
     if( dlen < 0 || dlen > (int)(sizeof( temp ) - 1) ) {
-      log_error( "ERROR - Invalid data length %d - must be in range 0 to %d.\n", dlen, (int)(sizeof( temp ) - 1) );
+      log_error( "invalid data length %d - must be in range 0 to %d.\n", dlen, (int)(sizeof( temp ) - 1) );
       dlen = sizeof( temp ) - 1;
     }
 
@@ -783,7 +783,7 @@ int send_to_kiss_tnc( int chan, int cmd, char* data, int dlen )
     int server_sock = connectToDireWolf();
     if( server_sock < 0 )
     {
-        log_error( "ERROR Can't connect to direwolf...\n" );
+        log_error( "can't connect to direwolf...\n" );
         err = -1;
         goto exit_gracefully;
     }
@@ -791,7 +791,7 @@ int send_to_kiss_tnc( int chan, int cmd, char* data, int dlen )
     ssize_t rc = send( server_sock, (char*)kissed, klen, 0 );
     if( rc != klen )
     {
-        log_error( "ERROR writing KISS frame to socket.\n" );
+        log_error( "error writing KISS frame to socket.\n" );
         err = -1;
     }
 
