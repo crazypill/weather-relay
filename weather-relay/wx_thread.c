@@ -8,6 +8,7 @@
 
 
 #include "wx_thread.h"
+#include "main.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,7 +21,7 @@ wx_thread_t wx_create_thread( wx_thread_entry routine, void* args )
 {
     wx_thread_t thd = _beginthread(routine, 0, args);
     if( thd == -1L )
-        printf("%s, _beginthread failed with %d\n", __FUNCTION__, errno);
+        log_error("%s, _beginthread failed with %d\n", __FUNCTION__, errno);
 
     return thd;
 }
@@ -83,7 +84,7 @@ wx_thread_t wx_create_thread( wx_thread_entry routine, void* args )
 
     int ret = pthread_create(&id, &attributes, routine, args);
     if( ret != 0 )
-        printf("%s, pthread_create failed with %d\n", __FUNCTION__, ret);
+        log_error("%s, pthread_create failed with %d\n", __FUNCTION__, ret);
 
     return id;
 }
@@ -93,7 +94,7 @@ void wx_thread_join( wx_thread_t thread )
 {
     int ret = pthread_join(thread, NULL);
     if( ret != 0 )
-        printf("%s, pthread_join failed with %d\n", __FUNCTION__, ret);
+        log_error("%s, pthread_join failed with %d\n", __FUNCTION__, ret);
 }
 
 
@@ -128,7 +129,7 @@ void wx_lock_mutex( wx_mutex_t mutex )
 {
     int ret = pthread_mutex_lock( mutex );
     if( ret != 0 )
-        printf("%s failed with %d\n", __FUNCTION__, ret);
+        log_error("%s failed with %d\n", __FUNCTION__, ret);
 }
 
 
@@ -136,7 +137,7 @@ void wx_unlock_mutex( wx_mutex_t mutex )
 {
     int ret = pthread_mutex_unlock( mutex );
     if( ret != 0 )
-        printf("%s failed with %d\n", __FUNCTION__, ret);
+        log_error("%s failed with %d\n", __FUNCTION__, ret);
 }
 
 #endif
