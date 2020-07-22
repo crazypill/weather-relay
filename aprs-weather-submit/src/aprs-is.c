@@ -33,6 +33,7 @@ with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.html>.
 #include <assert.h>
 #include <string.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
 
 #include "main.h"
 
@@ -136,6 +137,8 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 		}
 #endif
 
+        int flags = 1;
+        setsockopt( socket_desc, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(flags) );
         error = connect(socket_desc, addressinfo, result->ai_addrlen);
 		if (error >= 0)
 		{
