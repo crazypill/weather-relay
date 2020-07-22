@@ -473,7 +473,12 @@ int main( int argc, const char * argv[] )
         if( s_debug )
         {
             printf( "logging errors to: %s\n", s_logFilePath );
-            fprintf( s_logFile, "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C, kiss: %s:%d\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC, s_kiss_server, s_kiss_port );
+            
+            time_t t = time(NULL);
+            struct tm tm = *localtime(&t);
+            
+            if( s_logFile )
+                fprintf( s_logFile, "%d-%02d-%02d %02d:%02d:%02d: %s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C, kiss: %s:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC, s_kiss_server, s_kiss_port );
         }
     }
     
