@@ -763,7 +763,6 @@ int ax25_parse_addr (int position, char *in_addr, int strict, char *out_addr, in
 
 
 	maxlen = strict ? 6 : (AX25_MAX_ADDR_LEN-1);
-	p = in_addr;
 	i = 0;
 	for (p = in_addr; *p != '\0' && *p != '-' && *p != '*'; p++) {
 	  if (i >= maxlen) {

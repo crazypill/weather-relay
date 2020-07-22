@@ -58,7 +58,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 	struct addrinfo* result = NULL;
 	struct addrinfo* results;
 	char             verificationMessage[BUFSIZE];
-	char*            buffer = malloc(BUFSIZE);
+	char             buffer[BUFSIZE];
 #ifndef _WIN32
 	int              socket_desc = -1;
 #else
@@ -148,18 +148,18 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 		else
 		{
             log_unix_error( "sendPacket:connect: " );
-			shutdown(socket_desc, 2);
+			shutdown( socket_desc, 2 );
             close( socket_desc );
+            socket_desc = -1;
 		}
 	}
 	freeaddrinfo(results);
 	if( foundValidServerIP == 0 )
 	{
 		log_error( "sendPacket: could not connect to the server.\n" );
-        if( error )
-           return error;
-        else
-            return -1;
+        if( !error )
+            error = -1;
+        goto exitGracefully;
 	}
 
 	/* Authenticate */
@@ -188,11 +188,12 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 			bytesRead = recv( socket_desc, buffer, BUFSIZE, 0 );
 		}
 	}
-	free( buffer );
-	if( !authenticated )
+
+    if( !authenticated )
 	{
 		log_error( "Authentication failed!" );
-        return -2;
+        error = -2;
+        goto exitGracefully;
 	}
 
 	/* Send packet */
@@ -202,13 +203,15 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
     ssize_t klen = strlen( toSend );
 	ssize_t rc = send( socket_desc, toSend, klen, 0 );
     if( rc != klen )
-        log_error( "ERROR writing frame to socket.\n" );
+        log_error( "error writing frame to socket.\n" );
     
     // for some reason the APRS-IS wants a newline in there... without it, we get no error and no packet sent...
     send( socket_desc, "\n\0", 2, 0 );
-
+    error = 0;
+    
+exitGracefully:
 	/* Done! */
 	shutdown( socket_desc, 2 );
     close( socket_desc );
-	return 0;
+	return error;
 }
