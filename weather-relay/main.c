@@ -685,11 +685,11 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
 
     // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
     int err = sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
-    if( err != 0 )
-        log_error( "packet failed to send to APRS-IS, error: %d...\n", err );
-    else
+    if( err == 0 )
         log_error( "sendPacket: %s\n", packetToSend );
-    
+    else
+        log_error( "packet failed to send to APRS-IS, error: %d...\n", err );
+        
     free( packetToSend );
     wx_thread_return();
 }
