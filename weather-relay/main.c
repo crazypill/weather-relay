@@ -286,7 +286,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         min->pressure = fmin( data->pressure, min->pressure );
 #ifdef TRACE_STATS
         printTime( false );
-        stats( " pressure min: %0.2f InHg, time left: %ld\n",(min->pressure * millibar2inchHg) + kLocalOffsetInHg, kBaroInterval - (timeGetTimeSec() - s_lastBaroTime) );
+        stats( " pressure min: %0.2f InHg, time left: %ld\n",(min->pressure * millibar2inchHg) + s_localOffsetInHg, kBaroInterval - (timeGetTimeSec() - s_lastBaroTime) );
 #endif
     }
 
@@ -586,7 +586,7 @@ int main( int argc, const char * argv[] )
 
             if( frame.flags & kDataFlag_intTemp )
             {
-                trace( ", int temp: %0.2f°F", c2f( frame.intTempC - kLocalTempErrorC ) );
+                trace( ", int temp: %0.2f°F", c2f( frame.intTempC - s_localTempErrorC ) );
                 wxFrame.intTempC = frame.intTempC;
             }
 

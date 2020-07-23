@@ -28,8 +28,6 @@
 #define pascal2inchHg    0.0002953
 #define millibar2inchHg  0.02953
 
-#define kLocalTempErrorC 2.033333333333333
-
 #define c2f( a ) (((a) * 1.8000) + 32)
 #define ms2mph( a ) ((a) * 2.23694)
 #define inHg2millibars( a ) ((a) * 33.8639)
