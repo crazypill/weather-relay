@@ -82,7 +82,7 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
                 res = select( socket + 1 , NULL, &myset, NULL, &tv );
                 if( res < 0 && errno != EINTR )
                 {
-                    log_error( "Error connecting %d - %s\n", errno, strerror( errno ) );
+                    log_error( "error connecting %d - %s\n", errno, strerror( errno ) );
                     error = errno;
                     goto exitGracefully;
                 }
@@ -92,7 +92,7 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
                     lon = sizeof( int );
                     if( getsockopt( socket, SOL_SOCKET, SO_ERROR, (void*)&valopt, &lon ) < 0 )
                     {
-                        log_error( "Error in getsockopt() %d - %s\n", errno, strerror( errno ) );
+                        log_error( "error in getsockopt() %d - %s\n", errno, strerror( errno ) );
                         error = errno;
                         goto exitGracefully;
                     }
@@ -100,7 +100,7 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
                     // Check the value returned...
                     if( valopt )
                     {
-                        log_error( "Error in delayed connection() %d - %s\n", valopt, strerror( valopt ) );
+                        log_error( "error in delayed connection() %d - %s\n", valopt, strerror( valopt ) );
                         error = valopt;
                         goto exitGracefully;
                     }
@@ -108,8 +108,8 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
                 }
                 else
                 {
-                    log_error( "Timeout in select() - Cancelling!\n" );
-                    error = ETIMEDOUT;
+                    log_error( "timeout in select() - Cancelling!\n" );
+                    error = -ETIMEDOUT;     // return negative error so the outside loop continues
                     goto exitGracefully;
                 }
             }
