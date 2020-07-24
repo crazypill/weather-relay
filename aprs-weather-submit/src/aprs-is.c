@@ -56,7 +56,7 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
     if( (arg = fcntl( socket, F_GETFL, NULL )) < 0 )
     {
         log_error( "connect_with_timeout:fcntl:F_GETFL error: %s\n", strerror( errno ) );
-        error = errno;
+        error = -1;
         goto exitGracefully;
     }
     
@@ -64,7 +64,7 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
     if( fcntl( socket, F_SETFL, arg ) < 0 )
     {
         log_error( "connect_with_timeout:fcntl:F_SETFL error: %s\n", strerror( errno ) );
-        error = errno;
+        error = -1;
         goto exitGracefully;
     }
 
@@ -88,7 +88,7 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
                 if( res < 0 && errno != EINTR )
                 {
                     log_error( "error connecting %d - %s\n", errno, strerror( errno ) );
-                    error = errno;
+                    error = -1;
                     goto exitGracefully;
                 }
                 else if( res > 0 )
@@ -98,7 +98,7 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
                     if( getsockopt( socket, SOL_SOCKET, SO_ERROR, (void*)&valopt, &lon ) < 0 )
                     {
                         log_error( "error in getsockopt() %d - %s\n", errno, strerror( errno ) );
-                        error = errno;
+                        error = -1;
                         goto exitGracefully;
                     }
 
@@ -106,7 +106,7 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
                     if( valopt )
                     {
                         log_error( "error in delayed connection() %d - %s\n", valopt, strerror( valopt ) );
-                        error = valopt;
+                        error = -1;
                         goto exitGracefully;
                     }
                     break;
@@ -125,7 +125,7 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
        else
        {
           log_error( "Error connecting %d - %s\n", errno, strerror( errno ) );
-          error = errno;
+          error = -1;
           goto exitGracefully;
        }
     }
@@ -136,14 +136,14 @@ exitGracefully:
     if( (arg = fcntl( socket, F_GETFL, NULL )) < 0 )
     {
        log_error( "connect_with_timeout:fcntl:F_GETFL error: %s\n", strerror( errno ) );
-       return errno;
+       error = -1;
     }
 
     arg &= ~O_NONBLOCK;
     if( fcntl( socket, F_SETFL, arg ) < 0 )
     {
         log_error( "connect_with_timeout:fcntl:F_SETFL error: %s\n", strerror( errno ) );
-        error = errno;
+        error = -1;
     }
 
     return error;
