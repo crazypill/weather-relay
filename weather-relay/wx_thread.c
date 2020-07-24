@@ -17,6 +17,13 @@
 #ifdef WIN32
 #include <errno.h>
 
+
+wx_thread_t wx_create_thread_detached( wx_thread_entry routine, void* args )
+{
+    return wx_create_thread( routine, args );   // no difference on Windows !!@
+}
+
+
 wx_thread_t wx_create_thread( wx_thread_entry routine, void* args )
 {
     wx_thread_t thd = _beginthread(routine, 0, args);
@@ -73,6 +80,22 @@ void wx_unlock_mutex( wx_mutex_t mutex )
 
 #pragma mark -
 #else
+
+wx_thread_t wx_create_thread_detached( wx_thread_entry routine, void* args )
+{
+    pthread_t id = 0;
+    pthread_attr_t attributes;
+
+    pthread_attr_init(&attributes);
+    pthread_attr_setdetachstate(&attributes, PTHREAD_CREATE_DETACHED);
+
+    int ret = pthread_create(&id, &attributes, routine, args);
+    if( ret != 0 )
+        log_error("%s, pthread_create failed with %d\n", __FUNCTION__, ret);
+
+    return id;
+}
+
 
 wx_thread_t wx_create_thread( wx_thread_entry routine, void* args )
 {

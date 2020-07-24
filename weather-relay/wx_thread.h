@@ -28,6 +28,7 @@ typedef pthread_mutex_t* wx_mutex_t;
 
 typedef wx_thread_return_t (*wx_thread_entry)(void* args);
 wx_thread_t wx_create_thread(wx_thread_entry entry_point, void* args);
+wx_thread_t wx_create_thread_detached( wx_thread_entry routine, void* args );
 void        wx_thread_join(wx_thread_t);
 wx_thread_t wx_thread_self(void);
 int         wx_thread_equal(wx_thread_t a, wx_thread_t b);

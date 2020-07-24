@@ -661,8 +661,8 @@ int main( int argc, const char * argv[] )
                         printf( "%s\n\n", packetToSend );
                     
                     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
-                    wx_create_thread( sendPacket_thread_entry, copy_string( packetToSend ) );
-                    wx_create_thread( sendToRadio_thread_entry, copy_string( packetToSend ) );
+                    wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+                    wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
 
                     s_lastSendTime = timeGetTimeSec();
                 }
