@@ -37,6 +37,9 @@ with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.html>.
 
 #include "main.h"
 
+//#define TRACE_CONNECT_TIMEOUT
+
+#define CONNECT_TIMEOUT_SECS 10
 
 
 int connect_with_timeout( int socket, const struct sockaddr* addressinfo, socklen_t addrLen, int timeoutSecs )
@@ -72,7 +75,9 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
     {
         if( errno == EINPROGRESS )
         {
+#ifdef TRACE_CONNECT_TIMEOUT
             log_error( "EINPROGRESS in connect() - selecting\n" );
+#endif
             do
             {
                 tv.tv_sec  = timeoutSecs;
@@ -108,7 +113,9 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
                 }
                 else
                 {
+#ifdef TRACE_CONNECT_TIMEOUT
                     log_error( "timeout in select() - Cancelling!\n" );
+#endif
                     error = -ETIMEDOUT;     // return negative error so the outside loop continues
                     goto exitGracefully;
                 }
@@ -245,9 +252,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
         int flags = 1;
         setsockopt( socket_desc, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(flags) );
         
-//        error = connect(socket_desc, addressinfo, result->ai_addrlen);
-        error = connect_with_timeout( socket_desc, addressinfo, result->ai_addrlen, 10 );
-        
+        error = connect_with_timeout( socket_desc, addressinfo, result->ai_addrlen, CONNECT_TIMEOUT_SECS );
 		if (error >= 0)
 		{
 			foundValidServerIP = 1;
@@ -255,7 +260,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 		}
 		else
 		{
-            log_unix_error( "sendPacket:connect: " );
+            log_unix_error( "sendPacket:connect: " ); // this should printout errno and not error value which is our own
 			shutdown( socket_desc, 2 );
             close( socket_desc );
             socket_desc = -1;
@@ -299,7 +304,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 
     if( !authenticated )
 	{
-		log_error( "Authentication failed!" );
+		log_error( "Authentication failed!\n" );
         error = -2;
         goto exitGracefully;
 	}
