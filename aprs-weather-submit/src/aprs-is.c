@@ -38,6 +38,111 @@ with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.html>.
 #include "main.h"
 
 
+
+int connect_with_timeout( int socket, const struct sockaddr* addressinfo, socklen_t addrLen, int timeoutSecs )
+{
+    int                error = EXIT_SUCCESS;
+    long               arg = 0;
+    fd_set             myset;
+    struct timeval     tv;
+    int                valopt;
+    socklen_t          lon;
+
+
+    // Set non-blocking
+    if( (arg = fcntl( socket, F_GETFL, NULL )) < 0 )
+    {
+        log_error( "connect_with_timeout:fcntl:F_GETFL error: %s\n", strerror( errno ) );
+        error = errno;
+        goto exitGracefully;
+    }
+    
+    arg |= O_NONBLOCK;
+    if( fcntl( socket, F_SETFL, arg ) < 0 )
+    {
+        log_error( "connect_with_timeout:fcntl:F_SETFL error: %s\n", strerror( errno ) );
+        error = errno;
+        goto exitGracefully;
+    }
+
+      
+    // Trying to connect with timeout
+    int res = connect( socket, addressinfo, addrLen );
+    if( res < 0 )
+    {
+        if( errno == EINPROGRESS )
+        {
+            log_error( "EINPROGRESS in connect() - selecting\n" );
+            do
+            {
+                tv.tv_sec  = timeoutSecs;
+                tv.tv_usec = 0;
+                FD_ZERO( &myset );
+                FD_SET( socket, &myset );
+                res = select( socket + 1 , NULL, &myset, NULL, &tv );
+                if( res < 0 && errno != EINTR )
+                {
+                    log_error( "Error connecting %d - %s\n", errno, strerror( errno ) );
+                    error = errno;
+                    goto exitGracefully;
+                }
+                else if( res > 0 )
+                {
+                    // Socket selected for write
+                    lon = sizeof( int );
+                    if( getsockopt( socket, SOL_SOCKET, SO_ERROR, (void*)&valopt, &lon ) < 0 )
+                    {
+                        log_error( "Error in getsockopt() %d - %s\n", errno, strerror( errno ) );
+                        error = errno;
+                        goto exitGracefully;
+                    }
+
+                    // Check the value returned...
+                    if( valopt )
+                    {
+                        log_error( "Error in delayed connection() %d - %s\n", valopt, strerror( valopt ) );
+                        error = valopt;
+                        goto exitGracefully;
+                    }
+                    break;
+                }
+                else
+                {
+                    log_error( "Timeout in select() - Cancelling!\n" );
+                    error = ETIMEDOUT;
+                    goto exitGracefully;
+                }
+            }
+            while( 1 );
+       }
+       else
+       {
+          log_error( "Error connecting %d - %s\n", errno, strerror( errno ) );
+          error = errno;
+          goto exitGracefully;
+       }
+    }
+
+exitGracefully:
+
+    // Set to blocking mode again...
+    if( (arg = fcntl( socket, F_GETFL, NULL )) < 0 )
+    {
+       log_error( "connect_with_timeout:fcntl:F_GETFL error: %s\n", strerror( errno ) );
+       return errno;
+    }
+
+    arg &= ~O_NONBLOCK;
+    if( fcntl( socket, F_SETFL, arg ) < 0 )
+    {
+        log_error( "connect_with_timeout:fcntl:F_SETFL error: %s\n", strerror( errno ) );
+        error = errno;
+    }
+
+    return error;
+}
+
+
 /**
  * sendPacket() -- sends a packet to an APRS-IS IGate server.
  *
@@ -139,7 +244,10 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 
         int flags = 1;
         setsockopt( socket_desc, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(flags) );
-        error = connect(socket_desc, addressinfo, result->ai_addrlen);
+        
+//        error = connect(socket_desc, addressinfo, result->ai_addrlen);
+        error = connect_with_timeout( socket_desc, addressinfo, result->ai_addrlen, 10 );
+        
 		if (error >= 0)
 		{
 			foundValidServerIP = 1;
