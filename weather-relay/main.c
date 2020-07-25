@@ -305,9 +305,7 @@ void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
     
     log_error( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( inst->intTempC - s_localTempErrorC ), 0.0 );
     log_error( " avg wind[%06.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %2d%%, min pressure: %0.3f InHg  ave int temp: %0.2f°F\n",            ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( ave->intTempC - s_localTempErrorC ) );
-    
-    if( inst->flags & kDataFlag_airQuality )
-        log_error( " pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", inst->pm10_standard, inst->pm10_env, inst->pm25_standard, inst->pm25_env, inst->pm100_standard, inst->pm100_env, inst->particles_03um, inst->particles_05um, inst->particles_10um, inst->particles_25um, inst->particles_50um, inst->particles_100um );
+    log_error( " pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", inst->pm10_standard, inst->pm10_env, inst->pm25_standard, inst->pm25_env, inst->pm100_standard, inst->pm100_env, inst->particles_03um, inst->particles_05um, inst->particles_10um, inst->particles_25um, inst->particles_50um, inst->particles_100um );
 }
 
 
@@ -535,7 +533,7 @@ int main( int argc, const char * argv[] )
     Frame maxFrame = {};
     Frame aveFrame = {};
 
-    // master weather frame that is used to create APRS message
+    // primary weather frame that is used to create APRS message
     Frame wxFrame = {};
 
     uint8_t receivedFlags = 0;
@@ -554,7 +552,7 @@ int main( int argc, const char * argv[] )
             printTime( false );
 #endif
             trace( " station_id: 0x%x", frame.station_id );
-
+            
             // read flags
             if( frame.flags & kDataFlag_temp )
             {
@@ -597,6 +595,23 @@ int main( int argc, const char * argv[] )
             {
                 trace( ", pressure: %g InHg", (frame.pressure * millibar2inchHg) + s_localOffsetInHg );
                 wxFrame.pressure = frame.pressure;
+            }
+            
+            if( frame.flags & kDataFlag_airQuality )
+            {
+                trace( " pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", frame.pm10_standard, frame.pm10_env, frame.pm25_standard, frame.pm25_env, frame.pm100_standard, frame.pm100_env, frame.particles_03um, frame.particles_05um, frame.particles_10um, frame.particles_25um, frame.particles_50um, frame.particles_100um );
+                wxFrame.pm10_standard = frame.pm10_standard;
+                wxFrame.pm10_env = frame.pm10_env;
+                wxFrame.pm25_standard = frame.pm25_standard;
+                wxFrame.pm25_env = frame.pm25_env;
+                wxFrame.pm100_standard = frame.pm100_standard;
+                wxFrame.pm100_env = frame.pm100_env;
+                wxFrame.particles_03um = frame.particles_03um;
+                wxFrame.particles_05um = frame.particles_05um;
+                wxFrame.particles_10um = frame.particles_10um;
+                wxFrame.particles_25um = frame.particles_25um;
+                wxFrame.particles_50um = frame.particles_50um;
+                wxFrame.particles_100um = frame.particles_100um;
             }
 
             trace( "\n" );
