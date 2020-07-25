@@ -53,6 +53,7 @@ static FILE*       s_logFile     = NULL;
 
 static const char*  s_kiss_server = "localhost";
 static uint16_t     s_kiss_port   = 8001;
+static uint8_t      s_num_retries = 3;
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
@@ -706,12 +707,18 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     if( !packetToSend )
         wx_thread_return();
 
-    // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
-    int err = sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
-    if( err == 0 )
-        log_error( "packet sent: %s\n", packetToSend );
-    else
-        log_error( "packet failed to send to APRS-IS, error: %d...\n", err );
+    for( int i = 0; i < s_num_retries; i++ )
+    {
+        // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
+        int err = sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
+        if( err == 0 )
+        {
+            log_error( "packet sent: %s\n", packetToSend );
+            break;
+        }
+        else
+            log_error( "packet failed to send to APRS-IS, error: %d... %d of %d retries.\n", err, i, s_num_retries );
+    }
         
     free( packetToSend );
     wx_thread_return();
