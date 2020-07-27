@@ -53,7 +53,7 @@ static FILE*       s_logFile     = NULL;
 
 static const char*  s_kiss_server = "localhost";
 static uint16_t     s_kiss_port   = 8001;
-static uint8_t      s_num_retries = 3;
+static uint8_t      s_num_retries = 5;
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
