@@ -876,7 +876,7 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
         s_lastParamsTime = timeGetTimeSec();
     }
     
-    sprintf( packetToSend, "%s>APRS,TCPIP*:T#MIC,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d%d%d%d%d%d%d%d", kCallSign,
+    sprintf( packetToSend, "%s>APRS,TCPIP*:T#MIC%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d%d%d%d%d%d%d%d", kCallSign,
               aveFrame->particles_03um / 256.0,
               aveFrame->particles_05um / 256.0,
               aveFrame->particles_10um / 256.0,
