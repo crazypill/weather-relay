@@ -38,6 +38,8 @@
 //#define TRACE_STATS
 #define TRACE_AIR_STATS
 
+#define kCallSign "K6LOT-13"
+
 static time_t s_lastSendTime    = 0;
 static time_t s_lastWindTime    = 0;
 static time_t s_lastGustTime    = 0;
@@ -55,17 +57,19 @@ static bool s_debug = false;
 static const char* s_logFilePath = NULL;
 static FILE*       s_logFile     = NULL;
 
-static const char*  s_kiss_server = "localhost";
-static uint16_t     s_kiss_port   = 8001;
-static uint8_t      s_num_retries = 5;
+static const char*  s_kiss_server  = "localhost";
+static uint16_t     s_kiss_port    = 8001;
+static uint8_t      s_num_retries  = 5;
+static uint8_t      s_sequence_num = 0;
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
 
-static int connectToDireWolf( void );
-static int sendToRadio( const char* p );
-static int send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
-
+static int  connectToDireWolf( void );
+static int  sendToRadio( const char* p );
+static int  send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
+static void transmit_wx_data( const Frame* min, const Frame* max, const Frame* ave );
+static void transmit_air_data( const Frame* min, const Frame* max, const Frame* ave );
 
 
 #pragma mark -
@@ -378,7 +382,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 }
 
 
-void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
+void printFullWeather( const Frame* inst, const Frame* min, const Frame* max, const Frame* ave )
 {
     // only show this stuff if in debug mode
     if( !s_debug )
@@ -386,11 +390,11 @@ void printFullWeather( const Frame* inst, Frame* min, Frame* max, Frame* ave )
     
     log_error( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( inst->intTempC - s_localTempErrorC ), 0.0 );
     log_error( " avg wind[%06.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %2d%%, min pressure: %0.3f InHg  ave int temp: %0.2f°F\n",            ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( ave->intTempC - s_localTempErrorC ) );
-    log_error( " pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", inst->pm10_standard, inst->pm10_env, inst->pm25_standard, inst->pm25_env, inst->pm100_standard, inst->pm100_env, inst->particles_03um, inst->particles_05um, inst->particles_10um, inst->particles_25um, inst->particles_50um, inst->particles_100um );
+    log_error( "         pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", inst->pm10_standard, inst->pm10_env, inst->pm25_standard, inst->pm25_env, inst->pm100_standard, inst->pm100_env, inst->particles_03um, inst->particles_05um, inst->particles_10um, inst->particles_25um, inst->particles_50um, inst->particles_100um );
 }
 
 
-void printCurrentWeather( Frame* min, Frame* max, Frame* ave )
+void printCurrentWeather( const Frame* min, const Frame* max, const Frame* ave )
 {
     // only show this stuff if in debug mode
     if( !s_debug )
@@ -413,6 +417,7 @@ void version( int argc, const char* argv[] )
         Public License (version 3.0) for more details.");
     return;
 }
+
 
 void usage( int argc, const char* argv[] )
 {
@@ -564,15 +569,12 @@ int main( int argc, const char * argv[] )
         }
     }
     
-    char packetToSend[BUFSIZE];
-    char packetFormat = UNCOMPRESSED_PACKET;
 
     // open the serial port
     bool blocking = false;
 
     // Settings structure old and new
     struct termios newtio;
-    memset( packetToSend, 0, sizeof( packetToSend ) );
 
     int fd = open( PORT_DEVICE, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
     if( fd < 0 )
@@ -680,7 +682,7 @@ int main( int argc, const char * argv[] )
             
             if( frame.flags & kDataFlag_airQuality )
             {
-                trace( " pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", frame.pm10_standard, frame.pm10_env, frame.pm25_standard, frame.pm25_env, frame.pm100_standard, frame.pm100_env, frame.particles_03um, frame.particles_05um, frame.particles_10um, frame.particles_25um, frame.particles_50um, frame.particles_100um );
+                trace( "          pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", frame.pm10_standard, frame.pm10_env, frame.pm25_standard, frame.pm25_env, frame.pm100_standard, frame.pm100_env, frame.particles_03um, frame.particles_05um, frame.particles_10um, frame.particles_25um, frame.particles_50um, frame.particles_100um );
                 wxFrame.pm10_standard = frame.pm10_standard;
                 wxFrame.pm10_env = frame.pm10_env;
                 wxFrame.pm25_standard = frame.pm25_standard;
@@ -706,64 +708,8 @@ int main( int argc, const char * argv[] )
             {
                 if( timeGetTimeSec() > s_lastSendTime + kSendInterval )
                 {
-                    if( s_debug )
-                    {
-                        printf( "\n" );
-                        printTime( false );
-                        printf( " Sending weather info to APRS-IS...  next update @ " );
-                        printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
-                        printCurrentWeather( &minFrame, &maxFrame, &aveFrame );
-                    }
-    
-                    APRSPacket wx;
-                    packetConstructor( &wx );
-
-                    uncompressedPosition( wx.latitude,    34.108,     IS_LATITUDE );
-                    uncompressedPosition( wx.longitude, -118.3349371, IS_LONGITUDE );
-
-                    int formatTruncationCheck = snprintf( wx.callsign, 10, "K6LOT-13" );
-                    assert( formatTruncationCheck >= 0 );
-
-                    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(aveFrame.windDirection)) );
-                    assert( formatTruncationCheck >= 0 );
-
-                    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(aveFrame.windSpeedMs))) );
-                    assert( formatTruncationCheck >= 0 );
-
-                    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(maxFrame.windGustMs))) );
-                    assert( formatTruncationCheck >= 0 );
-
-                    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(aveFrame.tempC))) );
-                    assert( formatTruncationCheck >= 0 );
-
-                    unsigned short int h = aveFrame.humidity;
-                    // APRS only supports values 1-100. Round 0% up to 1%.
-                    if( h == 0 )
-                        h = 1;
-
-                    // APRS requires us to encode 100% as "00".
-                    else if( h >= 100 )
-                        h = 0;
-
-                    formatTruncationCheck = snprintf( wx.humidity, 3, "%.2d", h );
-                    assert( formatTruncationCheck >= 0 );
-
-                    // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
-                    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((minFrame.pressure * millibar2inchHg) + s_localOffsetInHg) * 10)) );
-                    assert( formatTruncationCheck >= 0 );
-
-                    memset( packetToSend, 0, sizeof( packetToSend ) );
-                    printAPRSPacket( &wx, packetToSend, packetFormat, 0, false );
-                    // add some additional info
-                    strcat( packetToSend, PROGRAM_NAME );
-                    strcat( packetToSend, VERSION );
-                    if( s_debug )
-                        printf( "%s\n\n", packetToSend );
-                    
-                    // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
-                    wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
-                    wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
-
+                    transmit_wx_data( &minFrame, &maxFrame, &aveFrame );
+                    transmit_air_data( &minFrame, &maxFrame, &aveFrame );
                     s_lastSendTime = timeGetTimeSec();
                 }
             }
@@ -784,7 +730,7 @@ int main( int argc, const char * argv[] )
 
 wx_thread_return_t sendPacket_thread_entry( void* args )
 {
-    char* packetToSend = (char*)args;
+    const char* packetToSend = (const char*)args;
     if( !packetToSend )
         wx_thread_return();
 
@@ -792,7 +738,7 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     for( int i = 0; i < s_num_retries; i++ )
     {
         // send packet to APRS-IS directly...  oh btw, if you use this code, please get your own callsign and passcode!  PLEASE
-        int err = sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
+        int err = sendPacket( "noam.aprs2.net", 10152, kCallSign, "8347", packetToSend );
         if( err == 0 )
         {
             log_error( "packet sent: %s\n", packetToSend );
@@ -806,7 +752,7 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     if( !success )
         log_error( "packet NOT sent to APRS-IS, error: %d...\n", errno );
         
-    free( packetToSend );
+    free( (void*)packetToSend );
     wx_thread_return();
 }
 
@@ -824,6 +770,114 @@ wx_thread_return_t sendToRadio_thread_entry( void* args )
     
     free( packetToSend );
     wx_thread_return();
+}
+
+
+void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame* aveFrame )
+{
+    char packetToSend[BUFSIZE];
+    char packetFormat = UNCOMPRESSED_PACKET;
+
+    if( s_debug )
+    {
+        printf( "\n" );
+        printTime( false );
+        printf( " Sending weather info to APRS-IS...  next update @ " );
+        printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
+        printCurrentWeather( minFrame, maxFrame, aveFrame );
+    }
+
+    APRSPacket wx;
+    packetConstructor( &wx );
+
+    uncompressedPosition( wx.latitude,    34.108,     IS_LATITUDE );
+    uncompressedPosition( wx.longitude, -118.3349371, IS_LONGITUDE );
+
+    int formatTruncationCheck = snprintf( wx.callsign, 10, "K6LOT-13" );
+    assert( formatTruncationCheck >= 0 );
+
+    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(aveFrame->windDirection)) );
+    assert( formatTruncationCheck >= 0 );
+
+    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(aveFrame->windSpeedMs))) );
+    assert( formatTruncationCheck >= 0 );
+
+    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(maxFrame->windGustMs))) );
+    assert( formatTruncationCheck >= 0 );
+
+    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(aveFrame->tempC))) );
+    assert( formatTruncationCheck >= 0 );
+
+    unsigned short int h = aveFrame->humidity;
+    // APRS only supports values 1-100. Round 0% up to 1%.
+    if( h == 0 )
+        h = 1;
+
+    // APRS requires us to encode 100% as "00".
+    else if( h >= 100 )
+        h = 0;
+
+    formatTruncationCheck = snprintf( wx.humidity, 3, "%.2d", h );
+    assert( formatTruncationCheck >= 0 );
+
+    // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
+    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((minFrame->pressure * millibar2inchHg) + s_localOffsetInHg) * 10)) );
+    assert( formatTruncationCheck >= 0 );
+
+    memset( packetToSend, 0, sizeof( packetToSend ) );
+    printAPRSPacket( &wx, packetToSend, packetFormat, 0, false );
+    // add some additional info
+    strcat( packetToSend, PROGRAM_NAME );
+    strcat( packetToSend, VERSION );
+    if( s_debug )
+        printf( "%s\n\n", packetToSend );
+
+    // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
+    wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+    wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+}
+
+
+void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Frame* aveFrame )
+{
+    char packetToSend[BUFSIZE];
+
+    if( s_debug )
+    {
+        printf( "\n" );
+        printTime( false );
+        printf( " Sending air quality info to APRS-IS...  next update @ " );
+        printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
+        printCurrentWeather( minFrame, maxFrame, aveFrame );
+    }
+    
+    if( s_sequence_num >= 255 )
+        s_sequence_num = 0;
+    
+    // we need to see if we ever sent the parameters, units and equations...
+//    PARM.3,5,10,25,50
+//    UNIT.um,um,um,um,um
+//    EQNS.0,2,0,0,2,0,0,2,0,0,2,0,0,2,0
+    
+//    int ret = sprintf( packetToSend, "%s>APRS,TCPIP*:T#%03d,%03d,%03d,%03d,%03d,%d%d%d%d%d%d%d%d", kCallSign, s_sequence_num++, );
+    sprintf( packetToSend, "%s>APRS,TCPIP*:T#%03d,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d%d%d%d%d%d%d%d", kCallSign, s_sequence_num++,
+              aveFrame->particles_03um / 256.0,
+              aveFrame->particles_05um / 256.0,
+              aveFrame->particles_10um / 256.0,
+              aveFrame->particles_25um / 256.0,
+              aveFrame->particles_50um / 256.0,
+              1,0,1,0,1,0,1,0 );
+
+    
+    // add some additional info
+//    strcat( packetToSend, PROGRAM_NAME );
+//    strcat( packetToSend, VERSION );
+    if( s_debug )
+        printf( "%s\n\n", packetToSend );
+
+    // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
+//    wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+//    wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
 }
 
 
