@@ -856,24 +856,23 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
     // we need to see if we ever sent the parameters, units and equations...
     if( timeGetTimeSec() > s_lastParamsTime + kParamsInterval )
     {
-        sprintf( packetToSend, "%s>APRS,TCPIP*:PARM.3,5,10,25,50", kCallSign );
+        sprintf( packetToSend, "%s>APRS,TCPIP*:%s :PARM.3,5,10,25,50", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
-      wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
-      wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+        wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+        wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
 
-        sprintf( packetToSend, "%s>APRS,TCPIP*:UNIT.um,um,um,um,um", kCallSign );
+        sprintf( packetToSend, "%s>APRS,TCPIP*:%s :UNIT.um,um,um,um,um", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
-      wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
-      wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+        wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+        wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
 
-        sprintf( packetToSend, "%s>APRS,TCPIP*:EQNS.0,256,0,0,256,0,0,256,0,0,256,0,0,256,0", kCallSign );
+        sprintf( packetToSend, "%s>APRS,TCPIP*:%s :EQNS.0,256,0,0,256,0,0,256,0,0,256,0,0,256,0", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
-      wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
-      wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
-
+        wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+        wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
         
         s_lastParamsTime = timeGetTimeSec();
     }
