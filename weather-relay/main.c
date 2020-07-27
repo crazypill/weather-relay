@@ -48,6 +48,7 @@ static time_t s_lastTempTime    = 0;
 static time_t s_lastIntTempTime = 0;
 static time_t s_lastHumiTime    = 0;
 static time_t s_lastAirTime     = 0;
+static time_t s_lastParamsTime  = 0;
 
 static float s_localOffsetInHg = 0.33f;
 static float s_localTempErrorC = 2.033333333333333;
@@ -855,11 +856,30 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
         s_sequence_num = 0;
     
     // we need to see if we ever sent the parameters, units and equations...
-//    PARM.3,5,10,25,50
-//    UNIT.um,um,um,um,um
-//    EQNS.0,2,0,0,2,0,0,2,0,0,2,0,0,2,0
+    if( timeGetTimeSec() > s_lastParamsTime + kParamsInterval )
+    {
+        sprintf( packetToSend, "%s>APRS,TCPIP*:PARM.3,5,10,25,50", kCallSign );
+        if( s_debug )
+            printf( "%s\n\n", packetToSend );
+//      wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+//      wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+
+        sprintf( packetToSend, "%s>APRS,TCPIP*:UNIT.um,um,um,um,um", kCallSign );
+        if( s_debug )
+            printf( "%s\n\n", packetToSend );
+//      wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+//      wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+
+        sprintf( packetToSend, "%s>APRS,TCPIP*:EQNS.0,2,0,0,2,0,0,2,0,0,2,0,0,2,0", kCallSign );
+        if( s_debug )
+            printf( "%s\n\n", packetToSend );
+//      wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+//      wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+
+        
+        s_lastParamsTime = timeGetTimeSec();
+    }
     
-//    int ret = sprintf( packetToSend, "%s>APRS,TCPIP*:T#%03d,%03d,%03d,%03d,%03d,%d%d%d%d%d%d%d%d", kCallSign, s_sequence_num++, );
     sprintf( packetToSend, "%s>APRS,TCPIP*:T#%03d,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d%d%d%d%d%d%d%d", kCallSign, s_sequence_num++,
               aveFrame->particles_03um / 256.0,
               aveFrame->particles_05um / 256.0,

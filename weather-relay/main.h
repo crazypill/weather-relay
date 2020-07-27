@@ -41,6 +41,7 @@
 #define kBaroInterval    60
 #define kHumiInterval    60
 #define kAirInterval     60
+#define kParamsInterval  60 * 60 * 2 // every two hours
 
 #ifdef TRACE_INCOMING_WX
 #define trace printf
