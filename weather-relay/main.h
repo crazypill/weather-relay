@@ -33,6 +33,7 @@
 #define inHg2millibars( a ) ((a) * 33.8639)
 
 // https://www.daculaweather.com/stuff/CWOP_Guide.pdf has all the intervals, etc...
+#define kTelemOffset     15       // 15 seconds after weather tx
 #define kSendInterval    60 * 5   // 5 minutes
 #define kTempInterval    60 * 5   // 5 minute average
 #define kIntTempInterval 60 * 5   // 5 minute average

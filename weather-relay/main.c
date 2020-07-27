@@ -40,15 +40,16 @@
 
 #define kCallSign "K6LOT-13"
 
-static time_t s_lastSendTime    = 0;
-static time_t s_lastWindTime    = 0;
-static time_t s_lastGustTime    = 0;
-static time_t s_lastBaroTime    = 0;
-static time_t s_lastTempTime    = 0;
-static time_t s_lastIntTempTime = 0;
-static time_t s_lastHumiTime    = 0;
-static time_t s_lastAirTime     = 0;
-static time_t s_lastParamsTime  = 0;
+static time_t s_lastSendTime      = 0;
+static time_t s_lastWindTime      = 0;
+static time_t s_lastGustTime      = 0;
+static time_t s_lastBaroTime      = 0;
+static time_t s_lastTempTime      = 0;
+static time_t s_lastIntTempTime   = 0;
+static time_t s_lastHumiTime      = 0;
+static time_t s_lastAirTime       = 0;
+static time_t s_lastParamsTime    = 0;
+static time_t s_lastTelemetryTime = 0;
 
 static float s_localOffsetInHg = 0.33f;
 static float s_localTempErrorC = 2.033333333333333;
@@ -716,9 +717,15 @@ int main( int argc, const char * argv[] )
                 if( timeGetTimeSec() > s_lastSendTime + kSendInterval )
                 {
                     transmit_wx_data( &minFrame, &maxFrame, &aveFrame );
-                    transmit_air_data( &minFrame, &maxFrame, &aveFrame );
                     s_lastSendTime = timeGetTimeSec();
                 }
+                
+                if( timeGetTimeSec() > s_lastTelemetryTime + kSendInterval + kTelemOffset )
+                {
+                    transmit_air_data( &minFrame, &maxFrame, &aveFrame );
+                    s_lastTelemetryTime = timeGetTimeSec();
+                }
+                
             }
         }
         sleep( 1 );
