@@ -114,7 +114,7 @@ void buffer_input_flush()
 
 void printTime( int printNewline )
 {
-    time_t t = time(NULL);
+    time_t t = time( NULL );
     struct tm tm = *localtime(&t);
     if( printNewline )
         printf("%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
@@ -125,7 +125,7 @@ void printTime( int printNewline )
 
 void printTimePlus5()
 {
-  time_t t = time(NULL);
+  time_t t = time( NULL );
   struct tm tm = *localtime(&t);
   printf("%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min + 5, tm.tm_sec);
 }
@@ -957,7 +957,9 @@ void transmit_status( const Frame* minFrame, const Frame* maxFrame, const Frame*
         printf( "wx-relay case temp: %0.2f F\n", c2f( aveFrame->intTempC - s_localTempErrorC ) );
     }
     
-    sprintf( packetToSend, "%s>APRS,TCPIP*:>wx-relay temp %0.2f F", kCallSign, c2f( aveFrame->intTempC - s_localTempErrorC ) );
+    time_t     t   = time( NULL );
+    struct tm* now = gmtime(&t);  // APRS uses GMT
+    sprintf( packetToSend, "%s>APRS,TCPIP*:>%.2d%.2d%.2dzwx-relay temp %0.2f F", kCallSign, now->tm_mday, now->tm_hour, now->tm_min, c2f( aveFrame->intTempC - s_localTempErrorC ) );
     if( s_debug )
         printf( "%s\n\n", packetToSend );
 
