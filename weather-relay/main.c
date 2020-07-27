@@ -61,7 +61,7 @@ static FILE*       s_logFile     = NULL;
 static const char*  s_kiss_server  = "localhost";
 static uint16_t     s_kiss_port    = 8001;
 static uint8_t      s_num_retries  = 5;
-static uint16_t     s_sequence_num = 2;
+static uint16_t     s_sequence_num = 0;
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
@@ -445,6 +445,7 @@ void help( int argc, const char* argv[] )
         Override parameters:\n\
             -k, --kiss                 Set the server we want to use, defaults to localhost.\n\
             -p, --port                 Set the port we want to use, defaults to 8001.\n\
+            -s, --seq                  Set the starting sequence number.\n\
         " );
 }
 
@@ -505,11 +506,12 @@ int main( int argc, const char * argv[] )
             {"log",                     required_argument, 0, 'l'},
             {"kiss",                    required_argument, 0, 'k'},
             {"port",                    required_argument, 0, 'p'},
+            {"seq",                     required_argument, 0, 's'},
 
             {0, 0, 0, 0}
             };
 
-        while( (c = getopt_long( argc, (char* const*)argv, "Hvdt:b:l:k:p:", long_options, &option_index)) != -1 )
+        while( (c = getopt_long( argc, (char* const*)argv, "Hvdt:b:l:k:p:s:", long_options, &option_index)) != -1 )
         {
             switch( c )
             {
@@ -545,6 +547,10 @@ int main( int argc, const char * argv[] )
 
                 case 'p':
                     s_kiss_port = atoi( optarg );
+                    break;
+
+                case 's':
+                    s_sequence_num = atoi( optarg );
                     break;
             }
         }
