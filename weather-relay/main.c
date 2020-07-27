@@ -61,6 +61,7 @@ static FILE*       s_logFile     = NULL;
 static const char*  s_kiss_server  = "localhost";
 static uint16_t     s_kiss_port    = 8001;
 static uint8_t      s_num_retries  = 5;
+static uint16_t     s_sequence_num = 2;
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
@@ -849,6 +850,9 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
         printf( "3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d\n", aveFrame->particles_03um, aveFrame->particles_05um, aveFrame->particles_10um, aveFrame->particles_25um, aveFrame->particles_50um );
     }
     
+    if( s_sequence_num >= 999 )
+        s_sequence_num = 0;
+    
     // we need to see if we ever sent the parameters, units and equations...
     if( timeGetTimeSec() > s_lastParamsTime + kParamsInterval )
     {
@@ -857,26 +861,23 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
-        sleep( 1 );
-
+        
         sprintf( packetToSend, "%s>APRS,TCPIP*::%s :UNIT.um,um,um,um,um", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
-        sleep( 1 );
 
         sprintf( packetToSend, "%s>APRS,TCPIP*::%s :EQNS.0,256,0,0,256,0,0,256,0,0,256,0,0,256,0", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
-        sleep( 1 );
-
+        
         s_lastParamsTime = timeGetTimeSec();
     }
     
-    sprintf( packetToSend, "%s>APRS,TCPIP*:T#MIC%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d%d%d%d%d%d%d%d", kCallSign,
+    sprintf( packetToSend, "%s>APRS,TCPIP*:T#%03d,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d%d%d%d%d%d%d%d", kCallSign, s_sequence_num++,
               aveFrame->particles_03um / 256.0,
               aveFrame->particles_05um / 256.0,
               aveFrame->particles_10um / 256.0,
@@ -885,8 +886,13 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
               1,0,1,0,1,0,1,0 );
 
     
+    // add some additional info
+//    strcat( packetToSend, PROGRAM_NAME );
+//    strcat( packetToSend, VERSION );
     if( s_debug )
         printf( "%s\n\n", packetToSend );
+
+    // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
     wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
 }
