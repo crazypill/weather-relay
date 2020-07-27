@@ -857,19 +857,22 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
-        
+        sleep( 1 );
+
         sprintf( packetToSend, "%s>APRS,TCPIP*::%s :UNIT.um,um,um,um,um", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+        sleep( 1 );
 
         sprintf( packetToSend, "%s>APRS,TCPIP*::%s :EQNS.0,256,0,0,256,0,0,256,0,0,256,0,0,256,0", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
-        
+        sleep( 1 );
+
         s_lastParamsTime = timeGetTimeSec();
     }
     
@@ -882,13 +885,8 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
               1,0,1,0,1,0,1,0 );
 
     
-    // add some additional info
-//    strcat( packetToSend, PROGRAM_NAME );
-//    strcat( packetToSend, VERSION );
     if( s_debug )
         printf( "%s\n\n", packetToSend );
-
-    // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
     wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
 }
