@@ -869,7 +869,7 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
 //      wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
 //      wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
 
-        sprintf( packetToSend, "%s>APRS,TCPIP*:EQNS.0,2,0,0,2,0,0,2,0,0,2,0,0,2,0", kCallSign );
+        sprintf( packetToSend, "%s>APRS,TCPIP*:EQNS.0,256,0,0,256,0,0,256,0,0,256,0,0,256,0", kCallSign );
         if( s_debug )
             printf( "%s\n\n", packetToSend );
 //      wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
