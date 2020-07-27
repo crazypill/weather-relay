@@ -847,8 +847,7 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
     {
         printf( "\n" );
         printTime( false );
-        printf( " Sending air quality info to APRS-IS...  next update @ " );
-        printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
+        printf( " Sending air quality info to APRS-IS...\n" );
         printf( "3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d\n", aveFrame->particles_03um, aveFrame->particles_05um, aveFrame->particles_10um, aveFrame->particles_25um, aveFrame->particles_50um );
     }
     
