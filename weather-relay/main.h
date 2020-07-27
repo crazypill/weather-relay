@@ -39,7 +39,7 @@
 #define kIntTempInterval 60 * 5   // 5 minute average
 #define kWindInterval    60 * 2   // every 2 minutes we reset the average wind speed and direction
 #define kGustInterval    60 * 10  // every 10 minutes we reset the max wind gust to 0
-#define kStatusInterval  60 * 10  // every ten minutes
+#define kStatusInterval  60 * 10 + 5  // every ten minutes + 5 seconds offset
 #define kBaroInterval    60
 #define kHumiInterval    60
 #define kAirInterval     60

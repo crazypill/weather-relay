@@ -964,8 +964,8 @@ void transmit_status( const Frame* minFrame, const Frame* maxFrame, const Frame*
         printf( "%s\n\n", packetToSend );
 
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
-//    wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
-//    wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+    wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+    wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
 }
 
 
