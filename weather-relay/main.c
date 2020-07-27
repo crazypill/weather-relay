@@ -957,7 +957,7 @@ void transmit_status( const Frame* minFrame, const Frame* maxFrame, const Frame*
         printf( "wx-relay case temp: %0.2f F\n", c2f( aveFrame->intTempC - s_localTempErrorC ) );
     }
     
-    sprintf( packetToSend, "%s>APRS,TCPIP*:>wx-relay case temp %0.2f F", kCallSign, c2f( aveFrame->intTempC - s_localTempErrorC ) );
+    sprintf( packetToSend, "%s>APRS,TCPIP*:>wx-relay temp %0.2f F", kCallSign, c2f( aveFrame->intTempC - s_localTempErrorC ) );
     if( s_debug )
         printf( "%s\n\n", packetToSend );
 
