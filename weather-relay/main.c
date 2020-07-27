@@ -707,6 +707,7 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     if( !packetToSend )
         wx_thread_return();
 
+    bool success = false;
     for( int i = 0; i < s_num_retries; i++ )
     {
         // send packet to APRS-IS directly but also to Direwolf running locally to hit the radio path
@@ -714,11 +715,15 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
         if( err == 0 )
         {
             log_error( "packet sent: %s\n", packetToSend );
+            success = true;
             break;
         }
         else
-            log_error( "packet failed to send to APRS-IS, error: %d... %d of %d retries.\n", err, i, s_num_retries );
+            log_error( "packet failed to send to APRS-IS, error: %d... %d of %d retries.\n", err, i + 1, s_num_retries );
     }
+    
+    if( !success )
+        log_error( "packet NOT send to APRS-IS, error: %d...\n", errno );
         
     free( packetToSend );
     wx_thread_return();
