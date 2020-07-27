@@ -723,7 +723,7 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     }
     
     if( !success )
-        log_error( "packet NOT send to APRS-IS, error: %d...\n", errno );
+        log_error( "packet NOT sent to APRS-IS, error: %d...\n", errno );
         
     free( packetToSend );
     wx_thread_return();
