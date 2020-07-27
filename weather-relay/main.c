@@ -35,6 +35,9 @@
 #include "kiss_frame.h"
 
 
+//#define TRACE_STATS
+#define TRACE_AIR_STATS
+
 static time_t s_lastSendTime    = 0;
 static time_t s_lastWindTime    = 0;
 static time_t s_lastGustTime    = 0;
@@ -42,6 +45,7 @@ static time_t s_lastBaroTime    = 0;
 static time_t s_lastTempTime    = 0;
 static time_t s_lastIntTempTime = 0;
 static time_t s_lastHumiTime    = 0;
+static time_t s_lastAirTime     = 0;
 
 static float s_localOffsetInHg = 0.33f;
 static float s_localTempErrorC = 2.033333333333333;
@@ -291,6 +295,83 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 #endif
     }
 
+
+    if( data->flags & kDataFlag_airQuality )
+    {
+        if( timeGetTimeSec() > s_lastAirTime + kAirInterval )
+        {
+            ave->pm10_standard = 0;
+            ave->pm25_standard = 0;
+            ave->pm100_standard = 0;
+            ave->pm10_env = 0;
+            ave->pm25_env = 0;
+            ave->pm100_env = 0;
+            ave->particles_03um = 0;
+            ave->particles_05um = 0;
+            ave->particles_10um = 0;
+            ave->particles_25um = 0;
+            ave->particles_50um = 0;
+            ave->particles_100um = 0;
+            s_lastAirTime = timeGetTimeSec();
+        }
+
+        // check for no data before calculating mean
+        if( ave->pm10_standard == 0 )
+            ave->pm10_standard = data->pm10_standard;
+        ave->pm10_standard = (data->pm10_standard + ave->pm10_standard) / 2;
+
+        if( ave->pm25_standard == 0 )
+            ave->pm25_standard = data->pm25_standard;
+        ave->pm25_standard = (data->pm25_standard + ave->pm25_standard) / 2;
+
+        if( ave->pm100_standard == 0 )
+            ave->pm100_standard = data->pm100_standard;
+        ave->pm100_standard = (data->pm100_standard + ave->pm100_standard) / 2;
+
+        if( ave->pm10_env == 0 )
+            ave->pm10_env = data->pm10_env;
+        ave->pm10_env = (data->pm10_env + ave->pm10_env) / 2;
+
+        if( ave->pm25_env == 0 )
+            ave->pm25_env = data->pm25_env;
+        ave->pm25_env = (data->pm25_env + ave->pm25_env) / 2;
+
+        if( ave->pm100_env == 0 )
+            ave->pm100_env = data->pm100_env;
+        ave->pm100_env = (data->pm100_env + ave->pm100_env) / 2;
+
+        if( ave->particles_03um == 0 )
+            ave->particles_03um = data->particles_03um;
+        ave->particles_03um = (data->particles_03um + ave->particles_03um) / 2;
+
+        if( ave->particles_05um == 0 )
+            ave->particles_05um = data->particles_05um;
+        ave->particles_05um = (data->particles_05um + ave->particles_05um) / 2;
+
+        if( ave->particles_10um == 0 )
+            ave->particles_10um = data->particles_10um;
+        ave->particles_10um = (data->particles_10um + ave->particles_10um) / 2;
+
+        if( ave->particles_25um == 0 )
+            ave->particles_25um = data->particles_25um;
+        ave->particles_25um = (data->particles_25um + ave->particles_25um) / 2;
+
+        if( ave->particles_50um == 0 )
+            ave->particles_50um = data->particles_50um;
+        ave->particles_50um = (data->particles_50um + ave->particles_50um) / 2;
+
+        if( ave->particles_100um == 0 )
+            ave->particles_100um = data->particles_100um;
+        ave->particles_100um = (data->particles_100um + ave->particles_100um) / 2;
+
+        
+#ifdef TRACE_AIR_STATS
+        printTime( false );
+        log_error( "averages pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", ave->pm10_standard, ave->pm10_env, ave->pm25_standard, ave->pm25_env, ave->pm100_standard, ave->pm100_env, ave->particles_03um, ave->particles_05um, ave->particles_10um, ave->particles_25um, ave->particles_50um, ave->particles_100um );
+#endif
+    }
+
+    
 //    if( data.flags & kDataFlag_rain )
 //        printf( "rain:       %g\n", data.rain );
 

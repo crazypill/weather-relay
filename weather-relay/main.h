@@ -40,7 +40,7 @@
 #define kGustInterval    60 * 10  // every 10 minutes we reset the max wind gust to 0
 #define kBaroInterval    60
 #define kHumiInterval    60
-
+#define kAirInterval     60
 
 #ifdef TRACE_INCOMING_WX
 #define trace printf
