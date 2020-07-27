@@ -640,7 +640,12 @@ int main( int argc, const char * argv[] )
         return PORT_ERROR;
 
     trace( "%s: reading from serial port: %s...\n\n", PROGRAM_NAME, PORT_DEVICE );
-
+    
+    // set the last time to right now so that when we startup we don't send all the messages at the same time
+    s_lastSendTime      = timeGetTimeSec();
+    s_lastTelemetryTime = s_lastSendTime;
+    s_lastStatusTime    = s_lastSendTime;
+    
     // this holds all the min/max/averages
     Frame minFrame = {};
     Frame maxFrame = {};
