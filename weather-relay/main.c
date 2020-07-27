@@ -845,7 +845,6 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
 
     if( s_debug )
     {
-        printf( "\n" );
         printTime( false );
         printf( " Sending air quality info to APRS-IS...\n" );
         printf( "3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d\n", aveFrame->particles_03um, aveFrame->particles_05um, aveFrame->particles_10um, aveFrame->particles_25um, aveFrame->particles_50um );
