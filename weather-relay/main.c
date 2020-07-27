@@ -710,7 +710,7 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     bool success = false;
     for( int i = 0; i < s_num_retries; i++ )
     {
-        // send packet to APRS-IS directly...
+        // send packet to APRS-IS directly...  oh btw, if you use this code, please get your own callsign and passcode!  PLEASE
         int err = sendPacket( "noam.aprs2.net", 10152, "K6LOT-13", "8347", packetToSend );
         if( err == 0 )
         {
