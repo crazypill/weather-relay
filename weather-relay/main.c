@@ -36,7 +36,7 @@
 
 
 //#define TRACE_STATS
-#define TRACE_AIR_STATS
+//#define TRACE_AIR_STATS
 
 #define kCallSign "K6LOT-13"
 
