@@ -959,12 +959,12 @@ void transmit_status( const Frame* minFrame, const Frame* maxFrame, const Frame*
     {
         printTime( false );
         printf( " Sending status to APRS-IS...\n" );
-        printf( "wx-relay case temp: %0.2f F\n", c2f( aveFrame->intTempC - s_localTempErrorC ) );
+        printf( "wx-relay case temp: %0.2f°F\n", c2f( aveFrame->intTempC - s_localTempErrorC ) );
     }
     
     time_t     t   = time( NULL );
     struct tm* now = gmtime(&t);  // APRS uses GMT
-    sprintf( packetToSend, "%s>APRS,TCPIP*:>%.2d%.2d%.2dzwx-relay temp %0.2f F", kCallSign, now->tm_mday, now->tm_hour, now->tm_min, c2f( aveFrame->intTempC - s_localTempErrorC ) );
+    sprintf( packetToSend, "%s>APRS,TCPIP*:>%.2d%.2d%.2dzwx-relay temp %0.2fF", kCallSign, now->tm_mday, now->tm_hour, now->tm_min, c2f( aveFrame->intTempC - s_localTempErrorC ) );
     if( s_debug )
         printf( "%s\n\n", packetToSend );
 
