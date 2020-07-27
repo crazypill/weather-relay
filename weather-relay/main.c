@@ -450,6 +450,7 @@ void help( int argc, const char* argv[] )
             -k, --kiss                 Set the server we want to use, defaults to localhost.\n\
             -p, --port                 Set the port we want to use, defaults to 8001.\n\
             -s, --seq                  Set the starting sequence number.\n\
+            -f, --file                 Set the sequence file to use.\n\
         " );
 }
 
@@ -511,11 +512,12 @@ int main( int argc, const char * argv[] )
             {"kiss",                    required_argument, 0, 'k'},
             {"port",                    required_argument, 0, 'p'},
             {"seq",                     required_argument, 0, 's'},
+            {"file",                    required_argument, 0, 'f'},
 
             {0, 0, 0, 0}
             };
 
-        while( (c = getopt_long( argc, (char* const*)argv, "Hvdt:b:l:k:p:s:", long_options, &option_index)) != -1 )
+        while( (c = getopt_long( argc, (char* const*)argv, "Hvdt:b:l:k:p:s:f:", long_options, &option_index)) != -1 )
         {
             switch( c )
             {
@@ -555,6 +557,10 @@ int main( int argc, const char * argv[] )
 
                 case 's':
                     s_sequence_num = atoi( optarg );
+                    break;
+
+                case 'f':
+                    s_seqFilePath = optarg;
                     break;
             }
         }
