@@ -50,6 +50,7 @@ static time_t s_lastHumiTime      = 0;
 static time_t s_lastAirTime       = 0;
 static time_t s_lastParamsTime    = 0;
 static time_t s_lastTelemetryTime = 0;
+static time_t s_lastStatusTime    = 0;
 
 static float s_localOffsetInHg = 0.33f;
 static float s_localTempErrorC = 2.033333333333333;
@@ -75,7 +76,7 @@ static int  sendToRadio( const char* p );
 static int  send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
 static void transmit_wx_data( const Frame* min, const Frame* max, const Frame* ave );
 static void transmit_air_data( const Frame* min, const Frame* max, const Frame* ave );
-
+static void transmit_status( const Frame* min, const Frame* max, const Frame* ave );
 
 #pragma mark -
 
@@ -747,6 +748,11 @@ int main( int argc, const char * argv[] )
                     s_lastTelemetryTime = timeGetTimeSec();
                 }
                 
+                if( timeGetTimeSec() > s_lastStatusTime + kStatusInterval )
+                {
+                    transmit_status( &minFrame, &maxFrame, &aveFrame );
+                    s_lastStatusTime = timeGetTimeSec();
+                }
             }
         }
         sleep( 1 );
@@ -919,10 +925,6 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
               aveFrame->particles_50um / 256.0,
               1,0,1,0,1,0,1,0 );
 
-    
-    // add some additional info
-//    strcat( packetToSend, PROGRAM_NAME );
-//    strcat( packetToSend, VERSION );
     if( s_debug )
         printf( "%s\n\n", packetToSend );
 
@@ -943,6 +945,26 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
     }
 }
 
+
+void transmit_status( const Frame* minFrame, const Frame* maxFrame, const Frame* aveFrame )
+{
+    char packetToSend[BUFSIZE];
+
+    if( s_debug )
+    {
+        printTime( false );
+        printf( " Sending status to APRS-IS...\n" );
+        printf( "wx-relay case temp: %0.2f F\n", c2f( aveFrame->intTempC - s_localTempErrorC ) );
+    }
+    
+    sprintf( packetToSend, "%s>APRS,TCPIP*:>wx-relay case temp %0.2f F", kCallSign, c2f( aveFrame->intTempC - s_localTempErrorC ) );
+    if( s_debug )
+        printf( "%s\n\n", packetToSend );
+
+    // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
+//    wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+//    wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+}
 
 
 #pragma mark -
