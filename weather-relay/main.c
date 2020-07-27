@@ -366,7 +366,6 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 
         
 #ifdef TRACE_AIR_STATS
-        printTime( false );
         log_error( "averages pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", ave->pm10_standard, ave->pm10_env, ave->pm25_standard, ave->pm25_env, ave->pm100_standard, ave->pm100_env, ave->particles_03um, ave->particles_05um, ave->particles_10um, ave->particles_25um, ave->particles_50um, ave->particles_100um );
 #endif
     }
@@ -700,7 +699,8 @@ int main( int argc, const char * argv[] )
             printFullWeather( &wxFrame, &minFrame, &maxFrame, &aveFrame );
 
             // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
-            // and at least 5 minutes has passed...  !!@ also need to average data over the 5 minute period...
+            // and at least 5 minutes has passed...  !!@ also need to change averaging code to use average up to the instant
+            // using saved data...  right now have good code to deal with not having enough data for averages.
             receivedFlags |= frame.flags;
             if( (receivedFlags & 0x7F) == 0x7F )
             {
