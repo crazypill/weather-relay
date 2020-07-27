@@ -784,7 +784,7 @@ void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame
         printTime( false );
         printf( " Sending weather info to APRS-IS...  next update @ " );
         printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
-        printf( "3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d\n", aveFrame->particles_03um, aveFrame->particles_05um, aveFrame->particles_10um, aveFrame->particles_25um, aveFrame->particles_50um );
+        printCurrentWeather( minFrame, maxFrame, aveFrame );
     }
 
     APRSPacket wx;
@@ -848,7 +848,7 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
         printTime( false );
         printf( " Sending air quality info to APRS-IS...  next update @ " );
         printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
-        printCurrentWeather( minFrame, maxFrame, aveFrame );
+        printf( "3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d\n", aveFrame->particles_03um, aveFrame->particles_05um, aveFrame->particles_10um, aveFrame->particles_25um, aveFrame->particles_50um );
     }
     
     if( s_sequence_num >= 255 )
