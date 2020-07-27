@@ -59,6 +59,9 @@ static bool s_debug = false;
 static const char* s_logFilePath = NULL;
 static FILE*       s_logFile     = NULL;
 
+static const char* s_seqFilePath = NULL;
+static FILE*       s_seqFile     = NULL;
+
 static const char*  s_kiss_server  = "localhost";
 static uint16_t     s_kiss_port    = 8001;
 static uint8_t      s_num_retries  = 5;
@@ -576,7 +579,19 @@ int main( int argc, const char * argv[] )
                 fprintf( s_logFile, "%d-%02d-%02d %02d:%02d:%02d: %s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C, kiss: %s:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC, s_kiss_server, s_kiss_port );
         }
     }
-    
+
+    // look for sequence file if we have a path and do not have a sequence number override
+    if( !s_sequence_num && s_seqFilePath && !s_seqFile )
+    {
+        s_seqFile = fopen( s_seqFilePath, "rb" );
+        if( !s_seqFile )
+            log_error( "  failed to open sequence file: %s\n", s_seqFilePath );
+        if( s_seqFile )
+        {
+            fread( &s_sequence_num, sizeof( uint16_t ), 1, s_seqFile );
+            fclose( s_seqFile );
+        }
+    }
 
     // open the serial port
     bool blocking = false;
@@ -908,6 +923,18 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
     wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+    
+    if( s_seqFilePath )
+    {
+        s_seqFile = fopen( s_seqFilePath, "wb" );
+        if( !s_seqFile )
+            log_error( "  failed to open sequence file: %s\n", s_seqFilePath );
+        if( s_seqFile )
+        {
+            fwrite( &s_sequence_num, sizeof( uint16_t ), 1, s_seqFile );
+            fclose( s_seqFile );
+        }
+    }
 }
 
 
