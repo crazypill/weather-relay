@@ -294,8 +294,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( ms2mph( data->windGustMs ) > 100 )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-            printTime( false );
-            printf( " wind gust too high[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windGustMs ), kGustInterval - (timeGetTimeSec() - s_lastGustTime) );
+            log_error( " wind gust too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windGustMs ), kGustInterval - (timeGetTimeSec() - s_lastGustTime) );
             data->flags &= ~kDataFlag_gust;
             return;
         }
