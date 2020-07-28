@@ -155,10 +155,34 @@ uint8_t imin( uint8_t a, uint8_t b )
 #pragma mark -
 
 
+// https://weather.gladstonefamily.net/CWOP_Guide.pdf
 void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 {
     if( data->flags & kDataFlag_temp )
     {
+        float tempF = c2f( data->tempC );
+        if( tempF < -60.0f || tempF > 130.0f )
+        {
+            // blow off this entire frame of data- it's probably all wrong
+            log_error( " temp out of range %0.2f°F, time left: %ld\n", tempF, kTempInterval - (timeGetTimeSec() - s_lastTempTime) );
+            data->flags &= ~kDataFlag_temp;
+            return;
+        }
+        
+        // do temporal check now
+        if( ave->tempC )
+        {
+            // look at the average temp and see if the current temp is greater than 35°F/hr
+            // !!@ we skip the per hour part and just look to see if any entry is that much different than the one before it...
+            if( fabs( tempF - c2f( ave->tempC ) ) > 35.0f )
+            {
+                // blow off this entire frame of data- it's probably all wrong
+                log_error( " temp temporal check failed: %0.2f°F, ave: %0.2f°F time left: %ld\n", tempF, c2f( ave->tempC ), kTempInterval - (timeGetTimeSec() - s_lastTempTime) );
+                data->flags &= ~kDataFlag_temp;
+                return;
+            }
+        }
+
         if( timeGetTimeSec() > s_lastTempTime + kTempInterval )
         {
             ave->tempC = 0;
@@ -198,6 +222,14 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     
     if( data->flags & kDataFlag_humidity )
     {
+        if( data->humidity < 0 || data->humidity > 100 )
+        {
+            // blow off this entire frame of data- it's probably all wrong
+            log_error( " humidity out of range %d%%, time left: %ld\n", data->humidity, kHumiInterval - (timeGetTimeSec() - s_lastHumiTime) );
+            data->flags &= ~kDataFlag_humidity;
+            return;
+        }
+
         if( timeGetTimeSec() > s_lastHumiTime + kHumiInterval )
         {
             ave->humidity = 0;
@@ -220,8 +252,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( ms2mph( data->windSpeedMs ) > 100 )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-            printTime( false );
-            printf( " wind speed too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
+            log_error( " wind speed too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
             data->flags &= ~kDataFlag_wind;
             return;
         }
@@ -229,12 +260,10 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( data->windDirection < 0 || data->windDirection > 360 )
         {
             // blow off this entire frame of data- it's probably all wrong
-            printTime( false );
-            printf( " wind direction out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
+            log_error( " wind direction out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
             data->flags &= ~kDataFlag_wind;
             return;
         }
-
         
         if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
         {
