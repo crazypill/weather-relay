@@ -39,6 +39,17 @@
 //#define TRACE_AIR_STATS
 
 #define kCallSign "K6LOT-13"
+#define kPasscode "8347"
+
+#define kStartingTimeThreshold 30   // 30 seconds
+#define kNumberOfRecords       200  // 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
+
+typedef struct
+{
+    time_t timeStampSecs;
+    Frame  frame;
+} __attribute__ ((__packed__)) wxrecord;
+
 
 static time_t s_lastSendTime      = 0;
 static time_t s_lastWindTime      = 0;
@@ -63,10 +74,16 @@ static FILE*       s_logFile     = NULL;
 static const char* s_seqFilePath = NULL;
 static FILE*       s_seqFile     = NULL;
 
-static const char*  s_kiss_server  = "localhost";
-static uint16_t     s_kiss_port    = 8001;
-static uint8_t      s_num_retries  = 5;
-static uint16_t     s_sequence_num = 0;
+static const char* s_wxlogFilePath = NULL;
+static FILE*       s_wxlogFile     = NULL;
+static wxrecord*   s_wxlog         = NULL;
+
+static const char* s_kiss_server  = "localhost";
+static uint16_t    s_kiss_port    = 8001;
+static uint8_t     s_num_retries  = 10;
+static uint16_t    s_sequence_num = 0;
+static size_t      s_wx_count     = 0;
+static size_t      s_wx_size_mins = 0;
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
@@ -80,6 +97,7 @@ static void transmit_wx_data( const Frame* min, const Frame* max, const Frame* a
 static void transmit_air_data( const Frame* frame );
 static void transmit_status( const Frame* frame );
 
+static bool wxlog_startup( void );
 static bool wxlog_frame( const Frame* wxFrame );
 static bool wxlog_get_wx_averages( Frame* wxFrame );
 
@@ -485,11 +503,13 @@ void help( int argc, const char* argv[] )
             -k, --kiss                 Set the server we want to use, defaults to localhost.\n\
             -p, --port                 Set the port we want to use, defaults to 8001.\n\
             -s, --seq                  Set the starting sequence number.\n\
+         Required parameters:\n\
             -f, --file                 Set the sequence file to use.\n\
+            -w, --wxlog                Set the weather log file to use for up to the minute stats.\n\
         " );
 }
 
-
+         
 void log_error( const char* format, ... )
 {
     char buf[2048] = {0};
@@ -548,11 +568,12 @@ int main( int argc, const char * argv[] )
             {"port",                    required_argument, 0, 'p'},
             {"seq",                     required_argument, 0, 's'},
             {"file",                    required_argument, 0, 'f'},
+            {"wxlog",                   required_argument, 0, 'w'},
 
             {0, 0, 0, 0}
             };
 
-        while( (c = getopt_long( argc, (char* const*)argv, "Hvdt:b:l:k:p:s:f:", long_options, &option_index)) != -1 )
+        while( (c = getopt_long( argc, (char* const*)argv, "Hvdt:b:l:k:p:s:f:w:", long_options, &option_index)) != -1 )
         {
             switch( c )
             {
@@ -597,6 +618,10 @@ int main( int argc, const char * argv[] )
                 case 'f':
                     s_seqFilePath = optarg;
                     break;
+                    
+                case 'w':
+                    s_wxlogFilePath = optarg;
+                    break;
             }
         }
     }
@@ -633,6 +658,8 @@ int main( int argc, const char * argv[] )
             fclose( s_seqFile );
         }
     }
+    
+    wxlog_startup();
 
     // open the serial port
     bool blocking = false;
@@ -836,7 +863,7 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     for( int i = 0; i < s_num_retries; i++ )
     {
         // send packet to APRS-IS directly...  oh btw, if you use this code, please get your own callsign and passcode!  PLEASE
-        int err = sendPacket( "noam.aprs2.net", 10152, kCallSign, "8347", packetToSend );
+        int err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, packetToSend );
         if( err == 0 )
         {
             log_error( "packet sent: %s\n", packetToSend );
@@ -1208,15 +1235,150 @@ int connectToDireWolf( void )
 
 #pragma mark -
 
+bool wxlog_startup( void )
+{
+    // open file
+    if( !s_wxlogFilePath )
+    {
+        log_error( " wxlog_startup: don't have a wx history file to do statistics from- using old running method.\n" );
+        return false;
+    }
+    
+    s_wxlogFile = fopen( s_wxlogFilePath, "rb" );
+    
+    // count number of items (look at file size / record size)
+    wxrecord first;
+    wxrecord last;
+    size_t   wxlog_size = sizeof( wxrecord ) * kNumberOfRecords;
+
+    size_t bytes_read = fread( &first, sizeof( wxrecord ), 1, s_wxlogFile );
+    if( bytes_read == sizeof( wxrecord ) )
+    {
+        fseek( s_wxlogFile, 0, SEEK_END );
+        long file_size = ftell( s_wxlogFile );
+        s_wx_count = (file_size / sizeof( wxrecord ));
+        
+        fseek( s_wxlogFile, sizeof( wxrecord ), SEEK_END );
+        bytes_read = fread( &last, sizeof( wxrecord ), 1, s_wxlogFile );
+
+        // look at first and last entry to determine window size and start time
+        if( bytes_read == sizeof( wxrecord ) )
+        {
+            // if the start time is too far away from right NOW, dump file and start fresh...
+            if( (timeGetTimeSec() - first.timeStampSecs) > kStartingTimeThreshold )
+                s_wx_size_mins = 0;
+            else
+                s_wx_size_mins = (first.timeStampSecs - last.timeStampSecs) / 60;
+            
+            // now read in all the data
+            if( s_wx_size_mins )
+            {
+                // alloc memory for entire thing -- data comes in at about 5 second intervals if we are lucky.
+                // so for 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
+                s_wxlog = malloc( wxlog_size );
+
+                if( s_wx_count <= wxlog_size )
+                {
+                    if( s_wxlog )
+                    {
+                        bytes_read = fread( &s_wxlog, sizeof( wxrecord ), s_wx_count, s_wxlogFile );
+                        if( bytes_read != wxlog_size )
+                        {
+                            log_error( " failed to read wx log. needed: %ld, got: %ld\n", bytes_read, wxlog_size );
+                            s_wx_size_mins = 0;
+                            s_wx_count = 0;
+                        }
+                    }
+                    else
+                    {
+                        log_error( " failed to allocate memory for wx log\n" );
+                        s_wx_size_mins = 0;
+                        s_wx_count = 0;
+                    }
+                }
+                else
+                {
+                    log_error( " wx log is bigger than our buffer!\n" );
+                    s_wx_size_mins = 0;
+                    s_wx_count = 0;
+                }
+            }
+        }
+    }
+    else
+    {
+        // there isn't even one record in this file...
+        log_error( " wx log has no records!\n" );
+        s_wx_count = 0;
+        s_wx_size_mins = 0;
+    }
+    
+    // close file
+    fclose( s_wxlogFile );
+    s_wxlogFile = NULL;
+    
+    // make sure that we have our buffer allocated
+    if( !s_wxlog )
+        s_wxlog = malloc( wxlog_size );
+    
+    if( !s_wxlog )
+    {
+        log_error( " failed to allocate memory for wx log\n" );
+        return false;
+    }
+
+    return true;
+}
+
+
+bool insert_frame( const wxrecord* rec, wxrecord* buffer )
+{
+    if( !s_wxlog || !rec || !buffer )
+        return false;
+
+    // see if there's room to move stuff without truncating
+    if( s_wx_count )
+    {
+        if( s_wx_count < kNumberOfRecords - 1 )
+        {
+            // copy only what we have, which will be faster than copying the entire buffer every add
+            memmove( &buffer[1], &buffer[0], s_wx_count * sizeof( wxrecord ) );
+            ++s_wx_count;
+        }
+        else
+        {
+            // the buffer is full so we need to move a shortened version of the buffer (which effectively truncates it)
+            memmove( &buffer[1], &buffer[0], (s_wx_count - 1) * sizeof( wxrecord ) );
+        }
+    }
+    else
+        ++s_wx_count;   // first one in doesn't need a memmove
+
+    // put the actual data in there now
+    memcpy( buffer, rec, sizeof( wxrecord ) );
+    return true;
+}
+
 
 bool wxlog_frame( const Frame* wxFrame )
 {
-    return false;
+    if( !wxFrame || !s_wxlog )
+        return false;
+
+    // add entry
+    wxrecord wx = { .timeStampSecs = timeGetTimeSec(), .frame = *wxFrame };
+    
+    // shove everyone down one entry...
+    return insert_frame( &wx, s_wxlog );
 }
 
 
 bool wxlog_get_wx_averages( Frame* wxFrame )
 {
+    // go thru all averages, min and max- records are in order of newest to oldest
+    
+    // record results wxFrame (we start ignoring certain data after the window expires on it)
+    
     return false;
 }
 
