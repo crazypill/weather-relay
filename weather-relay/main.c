@@ -74,9 +74,15 @@ static wx_thread_return_t sendPacket_thread_entry( void* args );
 static int  connectToDireWolf( void );
 static int  sendToRadio( const char* p );
 static int  send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
+
+static void transmit_wx_frame( const Frame* frame );
 static void transmit_wx_data( const Frame* min, const Frame* max, const Frame* ave );
-static void transmit_air_data( const Frame* min, const Frame* max, const Frame* ave );
-static void transmit_status( const Frame* min, const Frame* max, const Frame* ave );
+static void transmit_air_data( const Frame* frame );
+static void transmit_status( const Frame* frame );
+
+static bool wxlog_frame( const Frame* wxFrame );
+static bool wxlog_get_wx_averages( Frame* wxFrame );
+
 
 #pragma mark -
 
@@ -428,13 +434,13 @@ void printFullWeather( const Frame* inst, const Frame* min, const Frame* max, co
 }
 
 
-void printCurrentWeather( const Frame* min, const Frame* max, const Frame* ave )
+void printCurrentWeather( const Frame* frame )
 {
     // only show this stuff if in debug mode
     if( !s_debug )
         return;
 
-    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %g\n", ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( ave->intTempC - s_localTempErrorC ), 0.0 );
+    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %g\n", frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), 0.0 );
 }
 
 
@@ -767,23 +773,41 @@ int main( int argc, const char * argv[] )
             // and at least 5 minutes has passed...  !!@ also need to change averaging code to use average up to the instant
             // using saved data...  right now have good code to deal with not having enough data for averages.
             receivedFlags |= frame.flags;
-            if( (receivedFlags & 0x7F) == 0x7F )
+            if( (receivedFlags & kDataFlag_allMask) == kDataFlag_allMask )
             {
+                // this is where we record the data to disk FILO up to our longest window (10 minutes).
+                wxlog_frame( &wxFrame );
+                
                 if( timeGetTimeSec() > s_lastSendTime + kSendInterval )
                 {
-                    transmit_wx_data( &minFrame, &maxFrame, &aveFrame );
+                    // get real-time averages from disk-data...for tx
+                    if( wxlog_get_wx_averages( &wxFrame ) )
+                        transmit_wx_frame( &wxFrame );
+                    else
+                        transmit_wx_data( &minFrame, &maxFrame, &aveFrame );
+                    
                     s_lastSendTime = timeGetTimeSec();
                 }
                 
                 if( timeGetTimeSec() > s_lastTelemetryTime + kSendInterval + kTelemOffset )
                 {
-                    transmit_air_data( &minFrame, &maxFrame, &aveFrame );
+                    // get real-time averages from disk-data...for tx
+                    if( wxlog_get_wx_averages( &wxFrame ) )
+                        transmit_air_data( &wxFrame );
+                    else
+                        transmit_air_data( &aveFrame );
+                    
                     s_lastTelemetryTime = timeGetTimeSec();
                 }
                 
                 if( timeGetTimeSec() > s_lastStatusTime + kStatusInterval )
                 {
-                    transmit_status( &minFrame, &maxFrame, &aveFrame );
+                    // get real-time averages from disk-data...for tx
+                    if( wxlog_get_wx_averages( &wxFrame ) )
+                        transmit_status( &wxFrame );
+                    else
+                        transmit_status( &aveFrame );
+
                     s_lastStatusTime = timeGetTimeSec();
                 }
             }
@@ -849,6 +873,19 @@ wx_thread_return_t sendToRadio_thread_entry( void* args )
 
 void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame* aveFrame )
 {
+    Frame wx;
+    wx.windDirection = aveFrame->windDirection;
+    wx.windSpeedMs   = aveFrame->windSpeedMs;
+    wx.windGustMs    = maxFrame->windGustMs;
+    wx.tempC         = aveFrame->tempC;
+    wx.humidity      = aveFrame->humidity;
+    wx.pressure      = minFrame->pressure;
+    transmit_wx_frame( &wx );
+}
+
+
+void transmit_wx_frame( const Frame* frame )
+{
     char packetToSend[BUFSIZE];
     char packetFormat = UNCOMPRESSED_PACKET;
 
@@ -858,7 +895,7 @@ void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame
         printTime( false );
         printf( " Sending weather info to APRS-IS...  next update @ " );
         printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
-        printCurrentWeather( minFrame, maxFrame, aveFrame );
+        printCurrentWeather( frame );
     }
 
     APRSPacket wx;
@@ -870,19 +907,19 @@ void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame
     int formatTruncationCheck = snprintf( wx.callsign, 10, "K6LOT-13" );
     assert( formatTruncationCheck >= 0 );
 
-    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(aveFrame->windDirection)) );
+    formatTruncationCheck = snprintf( wx.windDirection, 4, "%03d", (int)(round(frame->windDirection)) );
     assert( formatTruncationCheck >= 0 );
 
-    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(aveFrame->windSpeedMs))) );
+    formatTruncationCheck = snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame->windSpeedMs))) );
     assert( formatTruncationCheck >= 0 );
 
-    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(maxFrame->windGustMs))) );
+    formatTruncationCheck = snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(frame->windGustMs))) );
     assert( formatTruncationCheck >= 0 );
 
-    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(aveFrame->tempC))) );
+    formatTruncationCheck = snprintf( wx.temperature, 4, "%03d", (int)(round(c2f(frame->tempC))) );
     assert( formatTruncationCheck >= 0 );
 
-    unsigned short int h = aveFrame->humidity;
+    unsigned short int h = frame->humidity;
     // APRS only supports values 1-100. Round 0% up to 1%.
     if( h == 0 )
         h = 1;
@@ -895,12 +932,13 @@ void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame
     assert( formatTruncationCheck >= 0 );
 
     // we are converting back from InHg because that's the offset we know based on airport data! (this means we go from millibars -> InHg + offset -> millibars)
-    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((minFrame->pressure * millibar2inchHg) + s_localOffsetInHg) * 10)) );
+    formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((frame->pressure * millibar2inchHg) + s_localOffsetInHg) * 10)) );
     assert( formatTruncationCheck >= 0 );
 
     memset( packetToSend, 0, sizeof( packetToSend ) );
     printAPRSPacket( &wx, packetToSend, packetFormat, 0, false );
-    // add some additional info
+    
+    // add a comment with our software version info
     strcat( packetToSend, PROGRAM_NAME );
     strcat( packetToSend, VERSION );
     if( s_debug )
@@ -912,7 +950,8 @@ void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame
 }
 
 
-void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Frame* aveFrame )
+
+void transmit_air_data( const Frame* frame )
 {
     char packetToSend[BUFSIZE];
 
@@ -920,7 +959,7 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
     {
         printTime( false );
         printf( " Sending air quality info to APRS-IS...\n" );
-        printf( "3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d\n", aveFrame->particles_03um, aveFrame->particles_05um, aveFrame->particles_10um, aveFrame->particles_25um, aveFrame->particles_50um );
+        printf( "3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d\n", frame->particles_03um, frame->particles_05um, frame->particles_10um, frame->particles_25um, frame->particles_50um );
     }
     
     if( s_sequence_num >= 999 )
@@ -954,11 +993,11 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
     }
     
     sprintf( packetToSend, "%s>APRS,TCPIP*:T#%03d,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d%d%d%d%d%d%d%d", kCallSign, s_sequence_num++,
-              aveFrame->particles_03um / 256.0,
-              aveFrame->particles_05um / 256.0,
-              aveFrame->particles_10um / 256.0,
-              aveFrame->particles_25um / 256.0,
-              aveFrame->particles_50um / 256.0,
+              frame->particles_03um / 256.0,
+              frame->particles_05um / 256.0,
+              frame->particles_10um / 256.0,
+              frame->particles_25um / 256.0,
+              frame->particles_50um / 256.0,
               1,0,1,0,1,0,1,0 );
 
     if( s_debug )
@@ -982,7 +1021,7 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
 }
 
 
-void transmit_status( const Frame* minFrame, const Frame* maxFrame, const Frame* aveFrame )
+void transmit_status( const Frame* frame )
 {
     char packetToSend[BUFSIZE];
 
@@ -990,12 +1029,12 @@ void transmit_status( const Frame* minFrame, const Frame* maxFrame, const Frame*
     {
         printTime( false );
         printf( " Sending status to APRS-IS...\n" );
-        printf( "wx-relay case temp: %0.2f°F\n", c2f( aveFrame->intTempC - s_localTempErrorC ) );
+        printf( "wx-relay case temp: %0.2f°F\n", c2f( frame->intTempC - s_localTempErrorC ) );
     }
     
     time_t     t   = time( NULL );
     struct tm* now = gmtime(&t);  // APRS uses GMT
-    sprintf( packetToSend, "%s>APRS,TCPIP*:>%.2d%.2d%.2dzwx-relay temp %0.2fF", kCallSign, now->tm_mday, now->tm_hour, now->tm_min, c2f( aveFrame->intTempC - s_localTempErrorC ) );
+    sprintf( packetToSend, "%s>APRS,TCPIP*:>%.2d%.2d%.2dzwx-relay temp %0.2fF", kCallSign, now->tm_mday, now->tm_hour, now->tm_min, c2f( frame->intTempC - s_localTempErrorC ) );
     if( s_debug )
         printf( "%s\n\n", packetToSend );
 
@@ -1166,3 +1205,18 @@ int connectToDireWolf( void )
 
     return socket_desc;
 }
+
+#pragma mark -
+
+
+bool wxlog_frame( const Frame* wxFrame )
+{
+    return false;
+}
+
+
+bool wxlog_get_wx_averages( Frame* wxFrame )
+{
+    return false;
+}
+
