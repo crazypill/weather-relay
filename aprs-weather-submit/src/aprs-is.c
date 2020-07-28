@@ -260,7 +260,6 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 		}
 		else
 		{
-            log_unix_error( "sendPacket:connect: " ); // this should printout errno and not error value which is our own
 			shutdown( socket_desc, 2 );
             close( socket_desc );
             socket_desc = -1;
