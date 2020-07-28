@@ -171,21 +171,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 	struct addrinfo* results;
 	char             verificationMessage[BUFSIZE];
 	char             buffer[BUFSIZE];
-#ifndef _WIN32
 	int              socket_desc = -1;
-#else
-	SOCKET           socket_desc = INVALID_SOCKET;
-	int              wsaResult;
-	WSADATA          wsaData;
-
-	wsaResult = WSAStartup(MAKEWORD(2,2), &wsaData);
-	if (wsaResult != 0)
-	{
-		fprintf(stderr,
-		        "WinSock2: WSAStartup failed with error: %d\n", wsaResult);
-		exit(EXIT_FAILURE);
-	}
-#endif
 
 	error = getaddrinfo(server, NULL, NULL, &results);
 	if (error != 0)
@@ -198,7 +184,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 		{
             log_error( "error in sendPacket:getaddrinfo: %s %s\n", server, gai_strerror(error) );
 		}
-        return error;
+        return -3;
 	}
 
 	for (result = results; result != NULL; result = result->ai_next)
