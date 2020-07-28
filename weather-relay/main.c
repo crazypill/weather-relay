@@ -930,7 +930,7 @@ void transmit_air_data( const Frame* minFrame, const Frame* maxFrame, const Fram
     // we need to see if we ever sent the parameters, units and equations...
     if( timeGetTimeSec() > s_lastParamsTime + kParamsInterval )
     {
-        sprintf( packetToSend, "%s>APRS,TCPIP*::%s :PARM.3um,5um,10um,25um,50um", kCallSign, kCallSign );
+        sprintf( packetToSend, "%s>APRS,TCPIP*::%s :PARM.0.3um,0.5um,1.0um,2.5um,5.0um", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
