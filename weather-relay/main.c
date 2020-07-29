@@ -149,18 +149,17 @@ void signalHandler( int sig )
     switch( sig )
     {
         case SIGHUP:
-            log_error( "got SIGHUP\n" );
             dump_frames();
             break;
             
         case SIGINT:
-            log_error( "got SIGINT\n" );
             wxlog_shutdown();
+            exit( EXIT_SUCCESS );
             break;
             
         case SIGTERM:
-            log_error( "got SIGTERM\n" );
             wxlog_shutdown();
+            exit( EXIT_SUCCESS );
             break;
 
         default:
