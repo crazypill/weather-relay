@@ -157,11 +157,15 @@ void signalHandler( int sig )
             
         case SIGINT:
             wxlog_shutdown();
+            if( s_logFile )
+                fclose( s_logFile );
             exit( EXIT_SUCCESS );
             break;
             
         case SIGTERM:
             wxlog_shutdown();
+            if( s_logFile )
+                fclose( s_logFile );
             exit( EXIT_SUCCESS );
             break;
 
@@ -962,8 +966,6 @@ int main( int argc, const char * argv[] )
     }
     
     // loop never finishes so this code never executes...
-    if( s_logFile )
-        fclose( s_logFile );
     return EXIT_SUCCESS;
 }
 
