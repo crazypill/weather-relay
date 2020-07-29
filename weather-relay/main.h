@@ -14,7 +14,7 @@
 
 
 // define this to see incoming weather data from weather sensors...
-//#define TRACE_INCOMING_WX
+#define TRACE_INCOMING_WX
 //#define TRACE_STATS
 //#define DEBUG_PERIODS     // shortens the time we wait to test the code
 
