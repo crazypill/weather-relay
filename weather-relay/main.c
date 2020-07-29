@@ -1558,6 +1558,9 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
     size_t windCount     = 0;
     size_t humidityCount = 0;
     size_t airCount      = 0;
+    
+    // accumulator for humidity
+    uint32_t humidity = 0;
 
     // accumulators for air counts
     uint32_t pm10_standard   = 0;
@@ -1596,7 +1599,7 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
 
         if( timeIndexSecs < kHumiPeriod )
         {
-            wxFrame->humidity += s_wxlog[i].frame.humidity;
+            humidity += s_wxlog[i].frame.humidity;
             ++humidityCount;
         }
 
@@ -1609,20 +1612,20 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
 
         if( timeIndexSecs < kAirPeriod )
         {
-            wxFrame->pm10_standard  += s_wxlog[i].frame.pm10_standard;
-            wxFrame->pm25_standard  += s_wxlog[i].frame.pm25_standard;
-            wxFrame->pm100_standard += s_wxlog[i].frame.pm100_standard;
+            pm10_standard  += s_wxlog[i].frame.pm10_standard;
+            pm25_standard  += s_wxlog[i].frame.pm25_standard;
+            pm100_standard += s_wxlog[i].frame.pm100_standard;
 
-            wxFrame->pm10_env  += s_wxlog[i].frame.pm10_env;
-            wxFrame->pm25_env  += s_wxlog[i].frame.pm25_env;
-            wxFrame->pm100_env += s_wxlog[i].frame.pm100_env;
+            pm10_env  += s_wxlog[i].frame.pm10_env;
+            pm25_env  += s_wxlog[i].frame.pm25_env;
+            pm100_env += s_wxlog[i].frame.pm100_env;
 
-            wxFrame->particles_03um  += s_wxlog[i].frame.particles_03um;
-            wxFrame->particles_05um  += s_wxlog[i].frame.particles_05um;
-            wxFrame->particles_10um  += s_wxlog[i].frame.particles_10um;
-            wxFrame->particles_25um  += s_wxlog[i].frame.particles_25um;
-            wxFrame->particles_50um  += s_wxlog[i].frame.particles_50um;
-            wxFrame->particles_100um += s_wxlog[i].frame.particles_100um;
+            particles_03um  += s_wxlog[i].frame.particles_03um;
+            particles_05um  += s_wxlog[i].frame.particles_05um;
+            particles_10um  += s_wxlog[i].frame.particles_10um;
+            particles_25um  += s_wxlog[i].frame.particles_25um;
+            particles_50um  += s_wxlog[i].frame.particles_50um;
+            particles_100um += s_wxlog[i].frame.particles_100um;
             ++airCount;
         }
         
@@ -1654,10 +1657,10 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
     // take means
     wxFrame->tempC         /= tempCount;
     wxFrame->intTempC      /= intTempCount;
-    wxFrame->humidity      /= humidityCount;
     wxFrame->windDirection /= windCount;
     wxFrame->windSpeedMs   /= windCount;
-        
+    wxFrame->humidity       = humidity / humidityCount;
+
     wxFrame->pm10_standard   = pm10_standard  / airCount;
     wxFrame->pm25_standard   = pm25_standard  / airCount;
     wxFrame->pm100_standard  = pm100_standard / airCount;
