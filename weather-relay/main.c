@@ -836,6 +836,9 @@ int main( int argc, const char * argv[] )
             // doing this first allows us to turn off flags for bad measurements so this code skips them too-
             updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
             
+            // reset the wind gusts each time through here so that it doesn't stick to extra frames before we get another gust message
+            wxFrame.windGustMs = 0;
+            
 #ifdef TRACE_INCOMING_WX
             printTime( false );
 #endif
@@ -906,8 +909,7 @@ int main( int argc, const char * argv[] )
             printFullWeather( &wxFrame, &minFrame, &maxFrame, &aveFrame );
 
             // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
-            // and at least 5 minutes has passed...  !!@ also need to change averaging code to use average up to the instant
-            // using saved data...  right now have good code to deal with not having enough data for averages.
+            // and at least 5 minutes has passed...
             receivedFlags |= frame.flags;
             
             uint8_t dataMask = kDataFlag_allMask;
@@ -927,7 +929,6 @@ int main( int argc, const char * argv[] )
                 
                 if( current > s_lastSendTime + kSendInterval )
                 {
-                    // get real-time averages from disk-data...for tx
                     if( wxlog_get_wx_averages( &wxFrame ) )
                         transmit_wx_frame( &wxFrame );
                     else
@@ -938,7 +939,6 @@ int main( int argc, const char * argv[] )
 
                 if( (current > s_lastTelemetryTime + kSendInterval) && (current - s_startupTime > kTelemDelaySecs ) )
                 {
-                    // get real-time averages from disk-data...for tx
                     if( wxlog_get_wx_averages( &wxFrame ) )
                         transmit_air_data( &wxFrame );
                     else
@@ -949,7 +949,6 @@ int main( int argc, const char * argv[] )
                 
                 if( (current > s_lastStatusTime + kStatusInterval) && (current - s_startupTime > kStatusDelaySecs) )
                 {
-                    // get real-time averages from disk-data...for tx
                     if( wxlog_get_wx_averages( &wxFrame ) )
                         transmit_status( &wxFrame );
                     else
