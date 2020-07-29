@@ -254,7 +254,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 	freeaddrinfo(results);
 	if( foundValidServerIP == 0 )
 	{
-		log_error( "sendPacket: could not connect to the server.\n" );
+		log_error( "sendPacket: could not connect to the server.  %s\n", toSend );
         if( !error )
             error = -1;
         goto exitGracefully;
@@ -289,7 +289,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
 
     if( !authenticated )
 	{
-		log_error( "Authentication failed!\n" );
+		log_error( "Authentication failed.  %s\n", toSend );
         error = -2;
         goto exitGracefully;
 	}
@@ -301,7 +301,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
     ssize_t klen = strlen( toSend );
 	ssize_t rc = send( socket_desc, toSend, klen, 0 );
     if( rc != klen )
-        log_error( "error writing frame to socket.\n" );
+        log_error( "error writing frame to socket.  %s\n", toSend );
     
     // for some reason the APRS-IS wants a newline in there... without it, we get no error and no packet sent...
     send( socket_desc, "\n\0", 2, 0 );

@@ -995,12 +995,12 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
                 success = true;
                 break;
             }
-            else
-                log_error( "failed to send to APRS-IS (%d).  %d of %d retries: %s\n", err, i + 1, s_num_retries, packetToSend );
+//            else
+//                log_error( "failed to send to APRS-IS (%d).  %d of %d retries: %s\n", err, i + 1, s_num_retries, packetToSend );
         }
         
         if( !success )
-            log_error( "NOT sent to APRS-IS (%d).  %s\n", errno, packetToSend );
+            log_error( "NOT sent (%d): %s\n", errno, packetToSend );
     }
     
     free( (void*)packetToSend );
