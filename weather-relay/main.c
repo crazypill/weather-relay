@@ -38,13 +38,14 @@
 
 //#define TRACE_STATS
 //#define TRACE_AIR_STATS
+//#define TIME_OUT_OLD_DATA
 #define TRACE_INSERTS
 
 #define kCallSign "K6LOT-13"
 #define kPasscode "8347"
 
 #define kStartingTimeThreshold 30   // 30 seconds
-#define kNumberOfRecords       200  // 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
+#define kMaxNumberOfRecords    200  // 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
 
 typedef struct
 {
@@ -102,10 +103,11 @@ static void transmit_air_data( const Frame* frame );
 static void transmit_status( const Frame* frame );
 
 static bool wxlog_startup( void );
+static bool wxlog_shutdown( void );
 static bool wxlog_frame( const Frame* wxFrame );
 static bool wxlog_get_wx_averages( Frame* wxFrame );
 
-static void dump_frames();
+static void dump_frames( void );
 
 
 #pragma mark -
@@ -156,10 +158,12 @@ void signalHandler( int sig )
 
         case SIGINT:
             log_error( "got SIGINT\n" );
+            wxlog_shutdown();
             break;
             
         case SIGTERM:
             log_error( "got SIGTERM\n" );
+            wxlog_shutdown();
             break;
 
         default:
@@ -168,6 +172,9 @@ void signalHandler( int sig )
     }
 }
 
+
+
+#pragma mark -
 
 void nullprint( const char* format, ... )
 {
@@ -242,7 +249,7 @@ void printCurrentWeather( const Frame* frame )
 
 
 
-void dump_frames()
+void dump_frames( void )
 {
     if( !s_wxlog )
         return;
@@ -578,6 +585,7 @@ void help( int argc, const char* argv[] )
             -d, --debug                Show the incoming radio data and packet sends.\n\
             -x, --test                 Do everything except send the actual packets, for testing...\n\
             -l, --log                  Log errors and debug info to this file.\n\
+            -w, --wxlog                Set the weather log file to use for up to the minute stats on restart.\n\
         Tuning parameters:\n\
             -b, --baro                 Set the barometric pressure offset in InHg.\n\
             -t, --temp                 Set the interior temperature offset in °C.\n\
@@ -588,10 +596,96 @@ void help( int argc, const char* argv[] )
             -e, --device               Set the serial device to use (defaults to /dev/serial0).\n\
          Required parameters:\n\
             -f, --file                 Set the sequence file to use.\n\
-            -w, --wxlog                Set the weather log file to use for up to the minute stats.\n\
         " );
 }
 
+
+void handle_command( int argc, const char * argv[] )
+{
+    int c = '\0';          /* for getopt_long() */
+    int option_index = 0;  /* for getopt_long() */
+
+    const static struct option long_options[] = {
+        {"help",                    no_argument,       0, 'H'},
+        {"version",                 no_argument,       0, 'v'},
+        {"debug",                   no_argument,       0, 'd'},
+        {"test",                    no_argument,       0, 'x'},
+        {"temp",                    required_argument, 0, 't'},
+        {"baro",                    required_argument, 0, 'b'},
+        {"log",                     required_argument, 0, 'l'},
+        {"kiss",                    required_argument, 0, 'k'},
+        {"port",                    required_argument, 0, 'p'},
+        {"seq",                     required_argument, 0, 's'},
+        {"file",                    required_argument, 0, 'f'},
+        {"wxlog",                   required_argument, 0, 'w'},
+        {"device",                  required_argument, 0, 'e'},
+
+        {0, 0, 0, 0}
+        };
+
+    while( (c = getopt_long( argc, (char* const*)argv, "Hvdxt:b:l:k:p:s:f:w:e:", long_options, &option_index)) != -1 )
+    {
+        switch( c )
+        {
+            /* Complete help (-H | --help) */
+            case 'H':
+                help( argc, argv );
+                break;
+
+            /* Version information (-v | --version) */
+            case 'v':
+                version( argc, argv );
+                break;
+
+            case 'b':
+                s_localOffsetInHg = atof( optarg );
+                break;
+
+            case 't':
+                s_localTempErrorC = atof( optarg );
+                break;
+
+            case 'd':
+                s_debug = true;
+                break;
+
+            case 'l':
+                s_logFilePath = optarg;
+                break;
+
+            case 'k':
+                s_kiss_server = optarg;
+                break;
+
+            case 'p':
+                s_kiss_port = atoi( optarg );
+                break;
+
+            case 's':
+                s_sequence_num = atoi( optarg );
+                break;
+
+            case 'f':
+                s_seqFilePath = optarg;
+                break;
+                
+            case 'w':
+                s_wxlogFilePath = optarg;
+                break;
+
+            case 'e':
+                s_port_device = optarg;
+                break;
+                
+            case 'x':
+                s_test_mode = true;
+                break;
+        }
+    }
+}
+
+
+#pragma mark -
          
 void log_error( const char* format, ... )
 {
@@ -645,88 +739,7 @@ int main( int argc, const char * argv[] )
 
     // do some command processing...
     if( argc >= 2 )
-    {
-        int c = '\0';          /* for getopt_long() */
-        int option_index = 0;  /* for getopt_long() */
-
-        const static struct option long_options[] = {
-            {"help",                    no_argument,       0, 'H'},
-            {"version",                 no_argument,       0, 'v'},
-            {"debug",                   no_argument,       0, 'd'},
-            {"test",                    no_argument,       0, 'x'},
-            {"temp",                    required_argument, 0, 't'},
-            {"baro",                    required_argument, 0, 'b'},
-            {"log",                     required_argument, 0, 'l'},
-            {"kiss",                    required_argument, 0, 'k'},
-            {"port",                    required_argument, 0, 'p'},
-            {"seq",                     required_argument, 0, 's'},
-            {"file",                    required_argument, 0, 'f'},
-            {"wxlog",                   required_argument, 0, 'w'},
-            {"device",                  required_argument, 0, 'e'},
-
-            {0, 0, 0, 0}
-            };
-
-        while( (c = getopt_long( argc, (char* const*)argv, "Hvdxt:b:l:k:p:s:f:w:e:", long_options, &option_index)) != -1 )
-        {
-            switch( c )
-            {
-                /* Complete help (-H | --help) */
-                case 'H':
-                    help( argc, argv );
-                    return EXIT_SUCCESS;
-
-                /* Version information (-v | --version) */
-                case 'v':
-                    version( argc, argv );
-                    return EXIT_SUCCESS;
-                    
-                case 'b':
-                    s_localOffsetInHg = atof( optarg );
-                    break;
-
-                case 't':
-                    s_localTempErrorC = atof( optarg );
-                    break;
-
-                case 'd':
-                    s_debug = true;
-                    break;
-
-                case 'l':
-                    s_logFilePath = optarg;
-                    break;
-
-                case 'k':
-                    s_kiss_server = optarg;
-                    break;
-
-                case 'p':
-                    s_kiss_port = atoi( optarg );
-                    break;
-
-                case 's':
-                    s_sequence_num = atoi( optarg );
-                    break;
-
-                case 'f':
-                    s_seqFilePath = optarg;
-                    break;
-                    
-                case 'w':
-                    s_wxlogFilePath = optarg;
-                    break;
-
-                case 'e':
-                    s_port_device = optarg;
-                    break;
-                    
-                case 'x':
-                    s_test_mode = true;
-                    break;
-            }
-        }
-    }
+        handle_command( argc, argv );
     
     if( s_debug )
         printf( "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C, kiss: %s:%d\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC, s_kiss_server, s_kiss_port );
@@ -1356,7 +1369,7 @@ int connectToDireWolf( void )
 
 bool wxlog_startup( void )
 {
-    size_t wxlog_size = sizeof( wxrecord ) * kNumberOfRecords;
+    size_t wxlog_size = sizeof( wxrecord ) * kMaxNumberOfRecords;
 
     if( !s_wxlogFilePath )
     {
@@ -1375,76 +1388,83 @@ bool wxlog_startup( void )
     }
     
     s_wxlogFile = fopen( s_wxlogFilePath, "rb" );
-    
-    // count number of items (look at file size / record size)
-    wxrecord first;
-    wxrecord last;
-
-    size_t bytes_read = fread( &first, sizeof( wxrecord ), 1, s_wxlogFile );
-    if( bytes_read == sizeof( wxrecord ) )
+    if( s_wxlogFile )
     {
-        fseek( s_wxlogFile, 0, SEEK_END );
-        long file_size = ftell( s_wxlogFile );
-        s_wx_count = (file_size / sizeof( wxrecord ));
-        
-        fseek( s_wxlogFile, sizeof( wxrecord ), SEEK_END );
-        bytes_read = fread( &last, sizeof( wxrecord ), 1, s_wxlogFile );
+        // count number of items (look at file size / record size)
+        wxrecord first;
+        wxrecord last;
 
-        // look at first and last entry to determine window size and start time
-        if( bytes_read == sizeof( wxrecord ) )
+        size_t recs_read = fread( &first, sizeof( wxrecord ), 1, s_wxlogFile );
+        if( recs_read == 1 )
         {
-            // if the start time is too far away from right NOW, dump file and start fresh...
-            if( (timeGetTimeSec() - first.timeStampSecs) > kStartingTimeThreshold )
-                s_wx_size_secs = 0;
-            else
-                s_wx_size_secs = first.timeStampSecs - last.timeStampSecs;
+            fseek( s_wxlogFile, 0, SEEK_END );
+            long file_size = ftell( s_wxlogFile );
+            s_wx_count = (file_size / sizeof( wxrecord ));
             
-            // now read in all the data
-            if( s_wx_size_secs )
-            {
-                // alloc memory for entire thing -- data comes in at about 5 second intervals if we are lucky.
-                // so for 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
-                s_wxlog = malloc( wxlog_size );
+            fseek( s_wxlogFile, file_size - sizeof( wxrecord ), SEEK_SET );
+            recs_read = fread( &last, sizeof( wxrecord ), 1, s_wxlogFile );
 
-                if( s_wx_count <= wxlog_size )
+            // look at first and last entry to determine window size and start time
+            if( recs_read == 1 )
+            {
+#ifdef TIME_OUT_OLD_DATA
+                // if the start time is too far away from right NOW, dump file and start fresh...
+                if( (timeGetTimeSec() - first.timeStampSecs) > kStartingTimeThreshold )
+                    s_wx_size_secs = 0;
+                else
+                    s_wx_size_secs = first.timeStampSecs - last.timeStampSecs;
+#else
+                s_wx_size_secs = first.timeStampSecs - last.timeStampSecs;
+#endif
+                
+                // now read in all the data
+                if( s_wx_size_secs )
                 {
-                    if( s_wxlog )
+                    // alloc memory for entire thing -- data comes in at about 5 second intervals if we are lucky.
+                    // so for 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
+                    s_wxlog = malloc( wxlog_size );
+
+                    if( s_wx_count < kMaxNumberOfRecords )
                     {
-                        bytes_read = fread( &s_wxlog, sizeof( wxrecord ), s_wx_count, s_wxlogFile );
-                        if( bytes_read != wxlog_size )
+                        if( s_wxlog )
                         {
-                            log_error( " failed to read wx log. needed: %ld, got: %ld\n", bytes_read, wxlog_size );
+                            rewind( s_wxlogFile );
+                            recs_read = fread( s_wxlog, sizeof( wxrecord ), s_wx_count, s_wxlogFile );
+                            if( recs_read != s_wx_count )
+                            {
+                                log_error( " failed to read wx log. needed: %ld, got: %ld\n", s_wx_count, recs_read );
+                                s_wx_size_secs = 0;
+                                s_wx_count = 0;
+                            }
+                        }
+                        else
+                        {
+                            log_error( " failed to allocate memory for wx log\n" );
                             s_wx_size_secs = 0;
                             s_wx_count = 0;
                         }
                     }
                     else
                     {
-                        log_error( " failed to allocate memory for wx log\n" );
+                        log_error( " wx log is bigger than our buffer! truncation not implemented...\n" );
                         s_wx_size_secs = 0;
                         s_wx_count = 0;
                     }
                 }
-                else
-                {
-                    log_error( " wx log is bigger than our buffer!\n" );
-                    s_wx_size_secs = 0;
-                    s_wx_count = 0;
-                }
             }
         }
+        else
+        {
+            // there isn't even one record in this file...
+            log_error( " wx log has no records!\n" );
+            s_wx_count = 0;
+            s_wx_size_secs = 0;
+        }
+        
+        // close file
+        fclose( s_wxlogFile );
+        s_wxlogFile = NULL;
     }
-    else
-    {
-        // there isn't even one record in this file...
-        log_error( " wx log has no records!\n" );
-        s_wx_count = 0;
-        s_wx_size_secs = 0;
-    }
-    
-    // close file
-    fclose( s_wxlogFile );
-    s_wxlogFile = NULL;
     
     // make sure that we have our buffer allocated
     if( !s_wxlog )
@@ -1471,53 +1491,15 @@ bool wxlog_shutdown( void )
     if( !s_wxlogFile )
         return false;
 
-    size_t bytes_out = fwrite( &s_wxlog, sizeof( wxrecord ), s_wx_count, s_wxlogFile );
-    if( bytes_out != wxlog_size )
-        log_error( " failed to write wx log. wrote: %ld, total: %ld\n", bytes_out, wxlog_size );
+    size_t recs_out = fwrite( s_wxlog, sizeof( wxrecord ), s_wx_count, s_wxlogFile );
+    if( recs_out != s_wx_count )
+        log_error( " failed to write wx log. wrote: %ld, total: %ld\n", recs_out, wxlog_size / sizeof( wxrecord ) );
     
     fclose( s_wxlogFile );
     s_wxlogFile = NULL;
     
     free( s_wxlog );
     s_wxlog = NULL;
-    return true;
-}
-
-
-bool insert_frame( const wxrecord* rec, wxrecord* buffer )
-{
-    if( !s_wxlog || !rec || !buffer )
-        return false;
-
-    // see if there's room to move stuff without truncating
-    if( s_wx_count )
-    {
-        if( s_wx_count < kNumberOfRecords - 1 )
-        {
-            // copy only what we have, which will be faster than copying the entire buffer every add
-            memmove( &buffer[1], &buffer[0], s_wx_count * sizeof( wxrecord ) );
-            ++s_wx_count;
-        }
-        else
-        {
-            // the buffer is full so we need to move a shortened version of the buffer (which effectively truncates it)
-            memmove( &buffer[1], &buffer[0], (s_wx_count - 1) * sizeof( wxrecord ) );
-        }
-    }
-    else
-        ++s_wx_count;   // first one in doesn't need a memmove
-
-    // put the actual data in there now
-    memcpy( buffer, rec, sizeof( wxrecord ) );
-
-    s_wx_size_secs = timeGetTimeSec() - buffer[s_wx_count - 1].timeStampSecs;
-    
-#ifdef TRACE_INSERTS
-    printTime( false );
-    printf( " -> record[%03zu]: window: %3ld secs, ", s_wx_count, s_wx_size_secs );
-    printCurrentWeather( &buffer->frame );
-#endif
-    
     return true;
 }
 
@@ -1530,8 +1512,37 @@ bool wxlog_frame( const Frame* wxFrame )
     // add entry
     wxrecord wx = { .timeStampSecs = timeGetTimeSec(), .frame = *wxFrame };
     
-    // shove everyone down one entry...
-    return insert_frame( &wx, s_wxlog );
+    // see if there's room to move stuff without truncating
+    if( s_wx_count )
+    {
+        if( s_wx_count < kMaxNumberOfRecords - 1 )
+        {
+            // copy only what we have, which will be faster than copying the entire buffer every add
+            memmove( &s_wxlog[1], &s_wxlog[0], s_wx_count * sizeof( wxrecord ) );
+        }
+        else
+        {
+            // the buffer is full so we need to move a shortened version of the buffer (which effectively truncates it)
+            memmove( &s_wxlog[1], &s_wxlog[0], (s_wx_count - 1) * sizeof( wxrecord ) );
+        }
+    }
+    
+    // stop buffering if we have a big enough window, this can grow but never shrink
+    if( (s_wx_count < kMaxNumberOfRecords - 1) && (s_wx_size_secs < kLongestInterval) )
+        ++s_wx_count;
+
+    // put the actual data in there now
+    memcpy( s_wxlog, &wx, sizeof( wxrecord ) );
+
+    s_wx_size_secs = timeGetTimeSec() - s_wxlog[s_wx_count - 1].timeStampSecs;
+    
+#ifdef TRACE_INSERTS
+    printTime( false );
+    printf( " -> record[%03zu]: window: %3ld secs, ", s_wx_count, s_wx_size_secs );
+    printCurrentWeather( &s_wxlog->frame );
+#endif
+    
+    return true;
 }
 
 

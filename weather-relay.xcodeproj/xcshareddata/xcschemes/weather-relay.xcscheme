@@ -60,6 +60,10 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "-w &quot;/Users/alex/Desktop/wx.history&quot;"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-x"
             isEnabled = "YES">
          </CommandLineArgument>
