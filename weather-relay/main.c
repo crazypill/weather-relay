@@ -1771,7 +1771,10 @@ void queue_error_packet( const char* packetData )
 const char* queue_get_next_packet( void )
 {
     if( !s_queue_num || s_queue_busy )
+    {
+        printf( "queue_get_next_packet queue busy!\n" );
         return NULL;
+    }
     
     s_error_queue_busy = true;
     const char* result = s_queue[0];
@@ -1793,7 +1796,10 @@ const char* queue_get_next_packet( void )
 const char* error_queue_get_next_packet( void )
 {
     if( !s_error_queue_num || s_error_queue_busy )
+    {
+        printf( "error_queue_get_next_packet queue busy!\n" );
         return NULL;
+    }
     
     s_error_queue_busy = true;
     const char* result = s_error_queue[0];
