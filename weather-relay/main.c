@@ -150,13 +150,9 @@ void signalHandler( int sig )
     {
         case SIGHUP:
             log_error( "got SIGHUP\n" );
-            break;
-            
-        case SIGINFO:
-            log_error( "got SIGINFO\n" );
             dump_frames();
             break;
-
+            
         case SIGINT:
             log_error( "got SIGINT\n" );
             wxlog_shutdown();
@@ -734,7 +730,6 @@ int main( int argc, const char * argv[] )
     {
         signal( SIGINT,  signalHandler );
         signal( SIGTERM, signalHandler );
-        signal( SIGINFO, signalHandler );
         signal( SIGHUP,  signalHandler );
     }
 
