@@ -37,6 +37,7 @@
 # OS X crap
 .DS_Stor?
 *.xcuserstate
+Breakpoints_v2.xcbkptlist
 
 # Build directory
 build
