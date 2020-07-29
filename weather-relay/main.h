@@ -16,7 +16,7 @@
 // define this to see incoming weather data from weather sensors...
 //#define TRACE_INCOMING_WX
 //#define TRACE_STATS
-#define DEBUG_PERIODS     // shortens the time we wait to test the code
+//#define DEBUG_PERIODS     // shortens the time we wait to test the code
 
 
 
@@ -37,7 +37,7 @@
 
 // https://www.daculaweather.com/stuff/CWOP_Guide.pdf has all the intervals, etc...
 #define kTelemDelaySecs     15  // 15 seconds after weather tx - used to stagger messages so they don't pile up on each other
-#define kStatusDelaySecs    45  // 45 seconds after weather tx
+#define kStatusDelaySecs    30
 
 #ifdef DEBUG_PERIODS
 // for debugging otherwise we spend a lifetime waiting for data to debug with...

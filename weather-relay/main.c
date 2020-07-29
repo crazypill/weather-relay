@@ -934,8 +934,6 @@ int main( int argc, const char * argv[] )
                     s_lastSendTime = timeGetTimeSec();
                 }
 
-                printf( "current - s_startupTime: %ld\n", current - s_startupTime );
-
                 if( (current > s_lastTelemetryTime + kSendInterval) && (current - s_startupTime > kTelemDelaySecs ) )
                 {
                     // get real-time averages from disk-data...for tx
