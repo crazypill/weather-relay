@@ -235,10 +235,10 @@ void printFullWeather( const Frame* inst, const Frame* min, const Frame* max, co
 }
 
 
-void printCurrentWeather( const Frame* frame )
+void printCurrentWeather( const Frame* frame, bool alwaysPrint )
 {
     // only show this stuff if in debug mode
-    if( !s_debug && !s_test_mode )
+    if( !alwaysPrint && !s_debug && !s_test_mode )
         return;
 
     printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %g\n", frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), 0.0 );
@@ -257,7 +257,7 @@ void dump_frames( void )
     {
         struct tm tm = *localtime( &s_wxlog[i].timeStampSecs );
         printf( "%d-%02d-%02d %02d:%02d:%02d.%03d: ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, i );
-        printCurrentWeather( &s_wxlog[i].frame );
+        printCurrentWeather( &s_wxlog[i].frame, true );
     }
 }
 
@@ -1047,7 +1047,7 @@ void transmit_wx_frame( const Frame* frame )
         printTime( false );
         printf( " Sending weather info to APRS-IS...  next update @ " );
         printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
-        printCurrentWeather( frame );
+        printCurrentWeather( frame, false );
     }
 
     APRSPacket wx;
@@ -1536,7 +1536,7 @@ bool wxlog_frame( const Frame* wxFrame )
 #ifdef TRACE_INSERTS
     printTime( false );
     printf( " -> record[%03zu]: window: %3ld secs, ", s_wx_count, s_wx_size_secs );
-    printCurrentWeather( &s_wxlog->frame );
+    printCurrentWeather( &s_wxlog->frame, false );
 #endif
     
     return true;
@@ -1677,7 +1677,7 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
     wxFrame->particles_100um = particles_100um / airCount;
 
 #ifdef TRACE_AVERAGES
-    printCurrentWeather( wxFrame );
+    printCurrentWeather( wxFrame, false );
 #endif
     return true;
 }
