@@ -1411,7 +1411,10 @@ bool wxlog_startup( void )
                 if( (timeGetTimeSec() - first.timeStampSecs) > kHistoryTimeout )
                     s_wx_size_secs = 0;
                 else
+                {
+                    log_error( "using old history data...\n" );
                     s_wx_size_secs = first.timeStampSecs - last.timeStampSecs;
+                }
 #else
                 s_wx_size_secs = first.timeStampSecs - last.timeStampSecs;
 #endif
