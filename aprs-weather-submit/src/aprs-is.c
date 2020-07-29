@@ -239,7 +239,7 @@ int sendPacket (const char* const restrict server, const unsigned short port, co
         setsockopt( socket_desc, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(flags) );
         
         error = connect_with_timeout( socket_desc, addressinfo, result->ai_addrlen, CONNECT_TIMEOUT_SECS );
-		if (error >= 0)
+		if (error == 0)
 		{
 			foundValidServerIP = 1;
 			break; /* for loop */
