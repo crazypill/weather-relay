@@ -66,6 +66,7 @@ static time_t s_lastAirTime       = 0;
 static time_t s_lastParamsTime    = 0;
 static time_t s_lastTelemetryTime = 0;
 static time_t s_lastStatusTime    = 0;
+static time_t s_startupTime       = 0;
 
 static float s_localOffsetInHg = 0.33f;
 static float s_localTempErrorC = 2.033333333333333;
@@ -812,11 +813,6 @@ int main( int argc, const char * argv[] )
 
     trace( "%s: reading from serial port: %s...\n\n", PROGRAM_NAME, s_port_device );
     
-    // set the last time to right now so that when we startup we don't send all the messages at the same time
-    s_lastSendTime      = timeGetTimeSec() - kSendInterval;
-    s_lastTelemetryTime = s_lastSendTime;
-    s_lastStatusTime    = s_lastSendTime;
-    
     // this holds all the min/max/averages
     Frame minFrame = {};
     Frame maxFrame = {};
@@ -918,10 +914,16 @@ int main( int argc, const char * argv[] )
                 
             if( (receivedFlags & dataMask) == dataMask )
             {
+                // set the startup time to right now so that when we startup we don't send all the messages at the same time - do this only once, first time we get full weather message
+                if( !s_startupTime )
+                    s_startupTime = timeGetTimeSec();
+
                 // this is where we record the data to disk FILO up to our longest window (10 minutes).
                 wxlog_frame( &wxFrame );
                 
-                if( timeGetTimeSec() > s_lastSendTime + kSendInterval )
+                time_t current = timeGetTimeSec();
+                
+                if( current > s_lastSendTime + kSendInterval )
                 {
                     // get real-time averages from disk-data...for tx
                     if( wxlog_get_wx_averages( &wxFrame ) )
@@ -931,8 +933,10 @@ int main( int argc, const char * argv[] )
                     
                     s_lastSendTime = timeGetTimeSec();
                 }
-                
-                if( timeGetTimeSec() > s_lastTelemetryTime + kSendInterval + kTelemOffset )
+
+                printf( "current - s_startupTime: %ld\n", current - s_startupTime );
+
+                if( (current > s_lastTelemetryTime + kSendInterval) && (current - s_startupTime > kTelemDelaySecs ) )
                 {
                     // get real-time averages from disk-data...for tx
                     if( wxlog_get_wx_averages( &wxFrame ) )
@@ -943,7 +947,7 @@ int main( int argc, const char * argv[] )
                     s_lastTelemetryTime = timeGetTimeSec();
                 }
                 
-                if( timeGetTimeSec() > s_lastStatusTime + kStatusInterval )
+                if( (current > s_lastStatusTime + kStatusInterval) && (current - s_startupTime > kStatusDelaySecs) )
                 {
                     // get real-time averages from disk-data...for tx
                     if( wxlog_get_wx_averages( &wxFrame ) )
