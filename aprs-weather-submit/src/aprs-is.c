@@ -105,7 +105,7 @@ int connect_with_timeout( int socket, const struct sockaddr* addressinfo, sockle
                     // Check the value returned...
                     if( valopt )
                     {
-                        log_error( "error in delayed connection() %d - %s\n", valopt, strerror( valopt ) );
+                        log_error( "%s (%d)\n", strerror( valopt ), valopt );
                         error = -1;
                         goto exitGracefully;
                     }

@@ -39,7 +39,8 @@
 //#define TRACE_STATS
 //#define TRACE_AIR_STATS
 //#define TIME_OUT_OLD_DATA
-#define TRACE_INSERTS
+//#define TRACE_INSERTS
+#define TRACE_AVERAGES
 
 #define kCallSign "K6LOT-13"
 #define kPasscode "8347"
@@ -1639,10 +1640,11 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
             wxFrame->pressure = fmin( s_wxlog[i].frame.pressure, wxFrame->pressure );
     }
 
-    
+#ifdef TRACE_AVERAGES
     struct tm tm = *localtime( &current );
-    printf( "%d-%02d-%02d %02d:%02d:%02d: counts: %zu, %zu, %zu, %zu -> ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, tempCount, intTempCount, humidityCount, windCount );
-
+    printf( "%d-%02d-%02d %02d:%02d:%02d: counts: t:%zu, i:%zu, h:%zu, w:%zu, a:%zu -> ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, tempCount, intTempCount, humidityCount, windCount, airCount );
+#endif
+    
     // guard against divide by zero and also ensure we have an instantaneous value rather than zero if no average
     if( !airCount )
         airCount = 1;
@@ -1675,8 +1677,9 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
     wxFrame->particles_50um  = particles_50um / airCount;
     wxFrame->particles_100um = particles_100um / airCount;
 
+#ifdef TRACE_AVERAGES
     printCurrentWeather( wxFrame );
-
+#endif
     return true;
 }
 
