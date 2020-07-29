@@ -40,7 +40,7 @@
 //#define TRACE_AIR_STATS
 //#define TIME_OUT_OLD_DATA
 //#define TRACE_INSERTS
-#define TRACE_AVERAGES
+//#define TRACE_AVERAGES
 
 #define kCallSign "K6LOT-13"
 #define kPasscode "8347"
