@@ -251,7 +251,7 @@ void dump_frames( void )
     if( !s_wxlog )
         return;
     
-    printf( "dumping frames:\n" );
+    printf( "dumping %zu frames:\n", s_wx_count );
     
     for( int i = 0; i < s_wx_count; i++ )
     {
