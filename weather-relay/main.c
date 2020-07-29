@@ -49,6 +49,7 @@
 
 #define kHistoryTimeout        60 * 2  // 2 minutes (to restart the app before the history rots)
 #define kMaxNumberOfRecords    200     // 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
+#define kMaxQueueItems         32
 
 typedef struct
 {
@@ -94,6 +95,14 @@ static size_t      s_wx_count     = 0;
 static size_t      s_wx_size_secs = 0;
 static bool        s_test_mode    = false;
 
+static sig_atomic_t s_queue_busy = 0;
+static sig_atomic_t s_queue_num  = 0;
+static const char*  s_queue[kMaxQueueItems] = {};        // these are packets waiting to be dispatched
+
+static sig_atomic_t s_error_queue_busy = 0;
+static sig_atomic_t s_error_queue_num  = 0;
+static const char*  s_error_queue[kMaxQueueItems] = {};  // these are packets that failed to send after already being queued for later send.  These will get requeued later...
+
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
 
@@ -112,6 +121,12 @@ static bool wxlog_frame( const Frame* wxFrame );
 static bool wxlog_get_wx_averages( Frame* wxFrame );
 
 static void dump_frames( void );
+
+static void        queue_packet( const char* packetData );
+static const char* queue_get_next_packet( void );
+
+static void        queue_error_packet( const char* packetData );
+static const char* error_queue_get_next_packet( void );
 
 
 #pragma mark -
@@ -976,6 +991,8 @@ int main( int argc, const char * argv[] )
 
 wx_thread_return_t sendPacket_thread_entry( void* args )
 {
+    int         err          = 0;
+    bool        success      = false;
     const char* packetToSend = (const char*)args;
     if( !packetToSend )
         wx_thread_return();
@@ -986,11 +1003,10 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     }
     else
     {
-        bool success = false;
         for( int i = 0; i < s_num_retries; i++ )
         {
             // send packet to APRS-IS directly...  oh btw, if you use this code, please get your own callsign and passcode!  PLEASE
-            int err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, packetToSend );
+            err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, packetToSend );
             if( err == 0 )
             {
                 log_error( "sent: %s\n", packetToSend );
@@ -1002,10 +1018,38 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
         }
         
         if( !success )
-            log_error( "NOT sent (%d): %s\n", errno, packetToSend );
+        {
+            // for packets that failed to send, we queue them up for the next time we send data
+            queue_packet( packetToSend );
+        }
     }
     
     free( (void*)packetToSend );
+    
+    // for the initial send, the code is super aggressive but for the packet queue, it's less so
+    // we also don't want to try sending when we just got an error, so make sure we didn't just have a failure...
+    if( success && !s_queue_busy  )
+    {
+        // see if there are any packets we should try sending
+        const char* queued = NULL;
+        do
+        {
+            queued = queue_get_next_packet();
+            if( queued )
+            {
+                err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, queued );
+                if( err == 0 )
+                    log_error( "sent: %s\n", queued );
+                else
+                {
+                    // the idea behind this queue is it is sent to the main queue once it's empty on the next invocation
+                    queue_error_packet( queued );
+                }
+                free( (void*)queued );
+                sleep( 1 ); // wait a second between each packet
+            }
+        } while( queued );
+    }
     wx_thread_return();
 }
 
@@ -1688,3 +1732,81 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
     return true;
 }
 
+
+#pragma mark -
+
+// !!@ can probably make only one set of code but with parameterized queue info
+void queue_packet( const char* packetData )
+{
+    if( s_queue_num >= kMaxQueueItems )
+    {
+        log_error( "queue is full, dropping: %s\n", packetData );
+        return;
+    }
+    
+    s_queue_busy = true;
+    const char* entry = copy_string( packetData );
+    s_queue[s_queue_num++] = entry;
+    log_error( "queued: %s\n", entry );
+    s_queue_busy = false;
+}
+
+
+void queue_error_packet( const char* packetData )
+{
+    if( s_error_queue_num >= kMaxQueueItems )
+    {
+        log_error( "error queue is full, dropping: %s\n", packetData );
+        return;
+    }
+    
+    s_error_queue_busy = true;
+    const char* entry = copy_string( packetData );
+    s_error_queue[s_error_queue_num++] = entry;
+    log_error( "error queued: %s\n", entry );
+    s_error_queue_busy = false;
+}
+
+
+const char* queue_get_next_packet( void )
+{
+    if( !s_queue_num || s_queue_busy )
+        return NULL;
+    
+    s_error_queue_busy = true;
+    const char* result = s_queue[0];
+    
+    --s_queue_num;
+    if( s_queue_num < 0 )
+    {
+        printf( "queue_get_next_packet underflow!\n" );
+        s_queue_num = 0;
+    }
+    
+    // now shift the entire list
+    memmove( &s_queue[1], &s_queue[0], s_queue_num * sizeof( const char* ) );
+    s_error_queue_busy = false;
+    return result;
+}
+
+
+const char* error_queue_get_next_packet( void )
+{
+    if( !s_error_queue_num || s_error_queue_busy )
+        return NULL;
+    
+    s_error_queue_busy = true;
+    const char* result = s_error_queue[0];
+    
+    --s_error_queue_num;
+    if( s_error_queue_num < 0 )
+    {
+        printf( "error_queue_get_next_packet underflow!\n" );
+        s_error_queue_num = 0;
+    }
+
+    // now shift the entire list
+    memmove( &s_error_queue[1], &s_error_queue[0], s_error_queue_num * sizeof( const char* ) );
+    s_error_queue_busy = false;
+    return result;
+}
