@@ -36,17 +36,19 @@
 #include "kiss_frame.h"
 
 
+// don't use old history if it's too far away from now...
+#define TIME_OUT_OLD_DATA
+
 //#define TRACE_STATS
 //#define TRACE_AIR_STATS
-//#define TIME_OUT_OLD_DATA
 //#define TRACE_INSERTS
 //#define TRACE_AVERAGES
 
 #define kCallSign "K6LOT-13"
 #define kPasscode "8347"
 
-#define kStartingTimeThreshold 30   // 30 seconds
-#define kMaxNumberOfRecords    200  // 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
+#define kHistoryTimeout        60 * 2  // 2 minutes (to restart the app before the history rots)
+#define kMaxNumberOfRecords    200     // 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
 
 typedef struct
 {
@@ -1406,7 +1408,7 @@ bool wxlog_startup( void )
             {
 #ifdef TIME_OUT_OLD_DATA
                 // if the start time is too far away from right NOW, dump file and start fresh...
-                if( (timeGetTimeSec() - first.timeStampSecs) > kStartingTimeThreshold )
+                if( (timeGetTimeSec() - first.timeStampSecs) > kHistoryTimeout )
                     s_wx_size_secs = 0;
                 else
                     s_wx_size_secs = first.timeStampSecs - last.timeStampSecs;
