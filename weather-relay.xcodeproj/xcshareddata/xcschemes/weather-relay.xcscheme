@@ -52,16 +52,20 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-H"
-            isEnabled = "NO">
+            argument = "-e /dev/cu.usbserial-0001"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-l &quot;/Users/alex/Desktop/wxlogtest.log&quot;"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-d"
+            argument = "-x"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-d"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--baro 0.34"
@@ -73,6 +77,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-v"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-H"
             isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>

@@ -17,7 +17,6 @@
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"
 #define PORT_DEVICE "/dev/serial0"
-//#define PORT_DEVICE "/dev/serial1"
 
 // define this to see incoming weather data from weather sensors...
 //#define TRACE_INCOMING_WX
@@ -33,17 +32,34 @@
 #define inHg2millibars( a ) ((a) * 33.8639)
 
 // https://www.daculaweather.com/stuff/CWOP_Guide.pdf has all the intervals, etc...
-#define kTelemOffset     15       // 15 seconds after weather tx
-#define kSendInterval    60 * 5   // 5 minutes
-#define kTempInterval    60 * 5   // 5 minute average
-#define kIntTempInterval 60 * 5   // 5 minute average
-#define kWindInterval    60 * 2   // every 2 minutes we reset the average wind speed and direction
-#define kGustInterval    60 * 10  // every 10 minutes we reset the max wind gust to 0
-#define kStatusInterval  60 * 10 + 15  // every ten minutes + 15 seconds offset
-#define kBaroInterval    60
-#define kHumiInterval    60
-#define kAirInterval     60
-#define kParamsInterval  60 * 60 * 2 // every two hours
+#define kTelemOffset     15            // 15 seconds after weather tx
+//#define kSendInterval    60 * 5        // 5 minutes
+//#define kParamsInterval  60 * 60 * 2   // every two hours
+//#define kStatusInterval  60 * 10 + 15  // every ten minutes + 15 seconds offset
+
+//#define kTempPeriod    60 * 5   // 5 minute average
+//#define kIntTempPeriod 60 * 5   // 5 minute average
+//#define kWindPeriod    60 * 2   // every 2 minutes we reset the average wind speed and direction
+//#define kGustPeriod    60 * 10  // every 10 minutes we reset the max wind gust to 0
+//#define kBaroPeriod    60
+//#define kHumiPeriod    60
+//#define kAirPeriod     60
+
+// for debugging otherwise we spend a lifetime waiting for data to debug with...
+#define kSendInterval    30
+#define kParamsInterval  60
+#define kStatusInterval  60
+
+#define kTempPeriod    15
+#define kIntTempPeriod 15
+#define kWindPeriod    20
+#define kGustPeriod    30
+#define kBaroPeriod    15
+#define kHumiPeriod    15
+#define kAirPeriod     15
+
+
+#define kLongestInterval kGustPeriod
 
 #ifdef TRACE_INCOMING_WX
 #define trace printf

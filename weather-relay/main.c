@@ -23,6 +23,7 @@
 #include <assert.h>
 #include <netdb.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include "main.h"
 
@@ -37,6 +38,7 @@
 
 //#define TRACE_STATS
 //#define TRACE_AIR_STATS
+#define TRACE_INSERTS
 
 #define kCallSign "K6LOT-13"
 #define kPasscode "8347"
@@ -48,7 +50,7 @@ typedef struct
 {
     time_t timeStampSecs;
     Frame  frame;
-} __attribute__ ((__packed__)) wxrecord;
+} wxrecord;
 
 
 static time_t s_lastSendTime      = 0;
@@ -78,12 +80,14 @@ static const char* s_wxlogFilePath = NULL;
 static FILE*       s_wxlogFile     = NULL;
 static wxrecord*   s_wxlog         = NULL;
 
+static const char* s_port_device  = PORT_DEVICE;
 static const char* s_kiss_server  = "localhost";
 static uint16_t    s_kiss_port    = 8001;
 static uint8_t     s_num_retries  = 10;
 static uint16_t    s_sequence_num = 0;
 static size_t      s_wx_count     = 0;
-static size_t      s_wx_size_mins = 0;
+static size_t      s_wx_size_secs = 0;
+static bool        s_test_mode    = false;
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
@@ -101,8 +105,68 @@ static bool wxlog_startup( void );
 static bool wxlog_frame( const Frame* wxFrame );
 static bool wxlog_get_wx_averages( Frame* wxFrame );
 
+static void dump_frames();
+
 
 #pragma mark -
+
+int getErrno( int result )
+{
+    int err;
+    
+    err = 0;
+    if (result < 0) {
+        err = errno;
+        assert(err != 0);
+    }
+    return err;
+}
+
+
+int ignoreSIGPIPE()
+{
+    int err;
+    struct sigaction signalState;
+    
+    err = sigaction( SIGPIPE, NULL, &signalState );
+    err = getErrno( err );
+    if( err == 0 )
+    {
+        signalState.sa_handler = SIG_IGN;
+        err = sigaction( SIGPIPE, &signalState, NULL );
+        err = getErrno( err );
+    }
+    
+    return err;
+}
+
+
+void signalHandler( int sig )
+{
+    switch( sig )
+    {
+        case SIGHUP:
+            log_error( "got SIGHUP\n" );
+            break;
+            
+        case SIGINFO:
+            log_error( "got SIGINFO\n" );
+            dump_frames();
+            break;
+
+        case SIGINT:
+            log_error( "got SIGINT\n" );
+            break;
+            
+        case SIGTERM:
+            log_error( "got SIGTERM\n" );
+            break;
+
+        default:
+            assert( false );
+            break;
+    }
+}
 
 
 void nullprint( const char* format, ... )
@@ -155,6 +219,45 @@ void printTimePlus5()
 }
 
 
+void printFullWeather( const Frame* inst, const Frame* min, const Frame* max, const Frame* ave )
+{
+    // only show this stuff if in debug mode
+    if( !s_debug )
+        return;
+    
+    log_error( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( inst->intTempC - s_localTempErrorC ), 0.0 );
+    log_error( " avg wind[%06.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %2d%%, min pressure: %0.3f InHg  ave int temp: %0.2f°F\n",            ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( ave->intTempC - s_localTempErrorC ) );
+    log_error( " pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d),  3um: %03d,  5um: %03d,  10um: %03d,  25um: %03d,  50um: %03d,  100um: %03d\n", inst->pm10_standard, inst->pm10_env, inst->pm25_standard, inst->pm25_env, inst->pm100_standard, inst->pm100_env, inst->particles_03um, inst->particles_05um, inst->particles_10um, inst->particles_25um, inst->particles_50um, inst->particles_100um );
+}
+
+
+void printCurrentWeather( const Frame* frame )
+{
+    // only show this stuff if in debug mode
+    if( !s_debug && !s_test_mode )
+        return;
+
+    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %g\n", frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), 0.0 );
+}
+
+
+
+void dump_frames()
+{
+    if( !s_wxlog )
+        return;
+    
+    printf( "dumping frames:\n" );
+    
+    for( int i = 0; i < s_wx_count; i++ )
+    {
+        struct tm tm = *localtime( &s_wxlog[i].timeStampSecs );
+        printf( "%d-%02d-%02d %02d:%02d:%02d.%03d: ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, i );
+        printCurrentWeather( &s_wxlog[i].frame );
+    }
+}
+
+
 time_t timeGetTimeSec()
 {
     time_t rawtime = 0;
@@ -188,7 +291,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( tempF < -60.0f || tempF > 130.0f )
         {
             // blow off this entire frame of data- it's probably all wrong
-            log_error( " temp out of range %0.2f°F, time left: %ld\n", tempF, kTempInterval - (timeGetTimeSec() - s_lastTempTime) );
+            log_error( " temp out of range %0.2f°F, time left: %ld\n", tempF, kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
             data->flags &= ~kDataFlag_temp;
             return;
         }
@@ -201,13 +304,13 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             if( fabs( tempF - c2f( ave->tempC ) ) > 35.0f )
             {
                 // blow off this entire frame of data- it's probably all wrong
-                log_error( " temp temporal check failed: %0.2f°F, ave: %0.2f°F time left: %ld\n", tempF, c2f( ave->tempC ), kTempInterval - (timeGetTimeSec() - s_lastTempTime) );
+                log_error( " temp temporal check failed: %0.2f°F, ave: %0.2f°F time left: %ld\n", tempF, c2f( ave->tempC ), kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
                 data->flags &= ~kDataFlag_temp;
                 return;
             }
         }
 
-        if( timeGetTimeSec() > s_lastTempTime + kTempInterval )
+        if( timeGetTimeSec() > s_lastTempTime + kTempPeriod )
         {
             ave->tempC = 0;
             s_lastTempTime = timeGetTimeSec();
@@ -220,13 +323,13 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         ave->tempC = (data->tempC + ave->tempC) * 0.5f;
 #ifdef TRACE_STATS
         printTime( false );
-        stats( " temp average: %0.2f°F, time left: %ld\n", c2f( ave->tempC ), kTempInterval - (timeGetTimeSec() - s_lastTempTime) );
+        stats( " temp average: %0.2f°F, time left: %ld\n", c2f( ave->tempC ), kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
 #endif
     }
 
     if( data->flags & kDataFlag_intTemp )
     {
-        if( timeGetTimeSec() > s_lastIntTempTime + kIntTempInterval )
+        if( timeGetTimeSec() > s_lastIntTempTime + kIntTempPeriod )
         {
             ave->intTempC = 0;
             s_lastIntTempTime = timeGetTimeSec();
@@ -239,7 +342,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         ave->intTempC = (data->intTempC + ave->intTempC) * 0.5f;
 #ifdef TRACE_STATS
         printTime( false );
-        stats( " int temp average: %0.2f°F, time left: %ld\n", c2f( ave->intTempC ), kIntTempInterval - (timeGetTimeSec() - s_lastIntTempTime) );
+        stats( " int temp average: %0.2f°F, time left: %ld\n", c2f( ave->intTempC ), kIntTempPeriod - (timeGetTimeSec() - s_lastIntTempTime) );
 #endif
     }
 
@@ -249,12 +352,12 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( data->humidity < 0 || data->humidity > 100 )
         {
             // blow off this entire frame of data- it's probably all wrong
-            log_error( " humidity out of range %d%%, time left: %ld\n", data->humidity, kHumiInterval - (timeGetTimeSec() - s_lastHumiTime) );
+            log_error( " humidity out of range %d%%, time left: %ld\n", data->humidity, kHumiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
             data->flags &= ~kDataFlag_humidity;
             return;
         }
 
-        if( timeGetTimeSec() > s_lastHumiTime + kHumiInterval )
+        if( timeGetTimeSec() > s_lastHumiTime + kHumiPeriod )
         {
             ave->humidity = 0;
             s_lastHumiTime = timeGetTimeSec();
@@ -266,7 +369,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         ave->humidity = (data->humidity + ave->humidity) / 2;
 #ifdef TRACE_STATS
         printTime( false );
-        stats( " humidity average: %d%%, time left: %ld\n", ave->humidity, kHumiInterval - (timeGetTimeSec() - s_lastHumiTime) );
+        stats( " humidity average: %d%%, time left: %ld\n", ave->humidity, kHumiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
 #endif
     }
     
@@ -276,7 +379,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( ms2mph( data->windSpeedMs ) > 100 )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-            log_error( " wind speed too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
+            log_error( " wind speed too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
             data->flags &= ~kDataFlag_wind;
             return;
         }
@@ -284,12 +387,12 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( data->windDirection < 0 || data->windDirection > 360 )
         {
             // blow off this entire frame of data- it's probably all wrong
-            log_error( " wind direction out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
+            log_error( " wind direction out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
             data->flags &= ~kDataFlag_wind;
             return;
         }
         
-        if( timeGetTimeSec() > s_lastWindTime + kWindInterval )
+        if( timeGetTimeSec() > s_lastWindTime + kWindPeriod )
         {
             ave->windSpeedMs = 0;
             ave->windDirection = 0;
@@ -307,7 +410,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
 #ifdef TRACE_STATS
         printTime( false );
-        stats( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindInterval - (timeGetTimeSec() - s_lastWindTime) );
+        stats( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
 #endif
     }
 
@@ -318,13 +421,13 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( ms2mph( data->windGustMs ) > 100 )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-            log_error( " wind gust too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windGustMs ), kGustInterval - (timeGetTimeSec() - s_lastGustTime) );
+            log_error( " wind gust too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
             data->flags &= ~kDataFlag_gust;
             return;
         }
         
         // we create a 10 minute window of instantaneous gust measurements
-        if( timeGetTimeSec() > s_lastGustTime + kGustInterval )
+        if( timeGetTimeSec() > s_lastGustTime + kGustPeriod )
         {
             max->windGustMs = 0;
             s_lastGustTime = timeGetTimeSec();
@@ -333,14 +436,14 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         max->windGustMs = fmax( data->windGustMs, max->windGustMs );
 #ifdef TRACE_STATS
         printTime( false );
-        stats( " gust max: %0.2f mph, time left: %ld\n", ms2mph( max->windGustMs ), kGustInterval- (timeGetTimeSec() - s_lastGustTime) );
+        stats( " gust max: %0.2f mph, time left: %ld\n", ms2mph( max->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
 #endif
     }
 
 
     if( data->flags & kDataFlag_pressure )
     {
-        if( timeGetTimeSec() > s_lastBaroTime + kBaroInterval )
+        if( timeGetTimeSec() > s_lastBaroTime + kBaroPeriod )
         {
             min->pressure = 0;
             s_lastBaroTime = timeGetTimeSec();
@@ -353,14 +456,14 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         min->pressure = fmin( data->pressure, min->pressure );
 #ifdef TRACE_STATS
         printTime( false );
-        stats( " pressure min: %0.2f InHg, time left: %ld\n",(min->pressure * millibar2inchHg) + s_localOffsetInHg, kBaroInterval - (timeGetTimeSec() - s_lastBaroTime) );
+        stats( " pressure min: %0.2f InHg, time left: %ld\n",(min->pressure * millibar2inchHg) + s_localOffsetInHg, kBaroPeriod - (timeGetTimeSec() - s_lastBaroTime) );
 #endif
     }
 
 
     if( data->flags & kDataFlag_airQuality )
     {
-        if( timeGetTimeSec() > s_lastAirTime + kAirInterval )
+        if( timeGetTimeSec() > s_lastAirTime + kAirPeriod )
         {
             ave->pm10_standard = 0;
             ave->pm25_standard = 0;
@@ -440,28 +543,6 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 }
 
 
-void printFullWeather( const Frame* inst, const Frame* min, const Frame* max, const Frame* ave )
-{
-    // only show this stuff if in debug mode
-    if( !s_debug )
-        return;
-    
-    log_error( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( inst->intTempC - s_localTempErrorC ), 0.0 );
-    log_error( " avg wind[%06.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %2d%%, min pressure: %0.3f InHg  ave int temp: %0.2f°F\n",            ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( ave->intTempC - s_localTempErrorC ) );
-    log_error( " pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d),  3um: %03d,  5um: %03d,  10um: %03d,  25um: %03d,  50um: %03d,  100um: %03d\n", inst->pm10_standard, inst->pm10_env, inst->pm25_standard, inst->pm25_env, inst->pm100_standard, inst->pm100_env, inst->particles_03um, inst->particles_05um, inst->particles_10um, inst->particles_25um, inst->particles_50um, inst->particles_100um );
-}
-
-
-void printCurrentWeather( const Frame* frame )
-{
-    // only show this stuff if in debug mode
-    if( !s_debug )
-        return;
-
-    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %g\n", frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), 0.0 );
-}
-
-
 void version( int argc, const char* argv[] )
 {
     printf( "%s, version %s", PROGRAM_NAME, "1.0.0" );
@@ -495,6 +576,7 @@ void help( int argc, const char* argv[] )
             -H, --help                 Show this help and exit.\n\
             -v, --version              Show version and licensing information, and exit.\n\
             -d, --debug                Show the incoming radio data and packet sends.\n\
+            -x, --test                 Do everything except send the actual packets, for testing...\n\
             -l, --log                  Log errors and debug info to this file.\n\
         Tuning parameters:\n\
             -b, --baro                 Set the barometric pressure offset in InHg.\n\
@@ -503,6 +585,7 @@ void help( int argc, const char* argv[] )
             -k, --kiss                 Set the server we want to use, defaults to localhost.\n\
             -p, --port                 Set the port we want to use, defaults to 8001.\n\
             -s, --seq                  Set the starting sequence number.\n\
+            -e, --device               Set the serial device to use (defaults to /dev/serial0).\n\
          Required parameters:\n\
             -f, --file                 Set the sequence file to use.\n\
             -w, --wxlog                Set the weather log file to use for up to the minute stats.\n\
@@ -551,6 +634,15 @@ void log_unix_error( const char* prefix )
 
 int main( int argc, const char * argv[] )
 {
+    int err = ignoreSIGPIPE();
+    if( err == 0 )
+    {
+        signal( SIGINT,  signalHandler );
+        signal( SIGTERM, signalHandler );
+        signal( SIGINFO, signalHandler );
+        signal( SIGHUP,  signalHandler );
+    }
+
     // do some command processing...
     if( argc >= 2 )
     {
@@ -561,6 +653,7 @@ int main( int argc, const char * argv[] )
             {"help",                    no_argument,       0, 'H'},
             {"version",                 no_argument,       0, 'v'},
             {"debug",                   no_argument,       0, 'd'},
+            {"test",                    no_argument,       0, 'x'},
             {"temp",                    required_argument, 0, 't'},
             {"baro",                    required_argument, 0, 'b'},
             {"log",                     required_argument, 0, 'l'},
@@ -569,11 +662,12 @@ int main( int argc, const char * argv[] )
             {"seq",                     required_argument, 0, 's'},
             {"file",                    required_argument, 0, 'f'},
             {"wxlog",                   required_argument, 0, 'w'},
+            {"device",                  required_argument, 0, 'e'},
 
             {0, 0, 0, 0}
             };
 
-        while( (c = getopt_long( argc, (char* const*)argv, "Hvdt:b:l:k:p:s:f:w:", long_options, &option_index)) != -1 )
+        while( (c = getopt_long( argc, (char* const*)argv, "Hvdxt:b:l:k:p:s:f:w:e:", long_options, &option_index)) != -1 )
         {
             switch( c )
             {
@@ -622,6 +716,14 @@ int main( int argc, const char * argv[] )
                 case 'w':
                     s_wxlogFilePath = optarg;
                     break;
+
+                case 'e':
+                    s_port_device = optarg;
+                    break;
+                    
+                case 'x':
+                    s_test_mode = true;
+                    break;
             }
         }
     }
@@ -667,10 +769,10 @@ int main( int argc, const char * argv[] )
     // Settings structure old and new
     struct termios newtio;
 
-    int fd = open( PORT_DEVICE, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
+    int fd = open( s_port_device, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
     if( fd < 0 )
     {
-        log_error( "Failed to open serial port: %s\n", PORT_DEVICE );
+        log_error( " failed to open serial port: %s\n", s_port_device );
         return PORT_ERROR;
     }
 
@@ -700,7 +802,7 @@ int main( int argc, const char * argv[] )
     if( fd == -1 )
         return PORT_ERROR;
 
-    trace( "%s: reading from serial port: %s...\n\n", PROGRAM_NAME, PORT_DEVICE );
+    trace( "%s: reading from serial port: %s...\n\n", PROGRAM_NAME, s_port_device );
     
     // set the last time to right now so that when we startup we don't send all the messages at the same time
     s_lastSendTime      = timeGetTimeSec() - kSendInterval;
@@ -713,14 +815,15 @@ int main( int argc, const char * argv[] )
     Frame aveFrame = {};
 
     // primary weather frame that is used to create APRS message
-    Frame wxFrame = {};
+    Frame wxFrame;
+    memset( &wxFrame, 0, sizeof( Frame ) );
 
     uint8_t receivedFlags = 0;
     ssize_t result = 0;
     while( 1 )
     {
-        Frame frame = {};
-
+        Frame frame;
+       
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
         {
@@ -800,7 +903,12 @@ int main( int argc, const char * argv[] )
             // and at least 5 minutes has passed...  !!@ also need to change averaging code to use average up to the instant
             // using saved data...  right now have good code to deal with not having enough data for averages.
             receivedFlags |= frame.flags;
-            if( (receivedFlags & kDataFlag_allMask) == kDataFlag_allMask )
+            
+            uint8_t dataMask = kDataFlag_allMask;
+            if( s_test_mode )
+                dataMask = 0x1F; // this is just the data from the radio with no additional sensor data
+                
+            if( (receivedFlags & dataMask) == dataMask )
             {
                 // this is where we record the data to disk FILO up to our longest window (10 minutes).
                 wxlog_frame( &wxFrame );
@@ -859,24 +967,31 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     if( !packetToSend )
         wx_thread_return();
 
-    bool success = false;
-    for( int i = 0; i < s_num_retries; i++ )
+    if( s_test_mode )
     {
-        // send packet to APRS-IS directly...  oh btw, if you use this code, please get your own callsign and passcode!  PLEASE
-        int err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, packetToSend );
-        if( err == 0 )
+        log_error( "packet that would be sent: %s\n", packetToSend );
+    }
+    else
+    {
+        bool success = false;
+        for( int i = 0; i < s_num_retries; i++ )
         {
-            log_error( "packet sent: %s\n", packetToSend );
-            success = true;
-            break;
+            // send packet to APRS-IS directly...  oh btw, if you use this code, please get your own callsign and passcode!  PLEASE
+            int err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, packetToSend );
+            if( err == 0 )
+            {
+                log_error( "packet sent: %s\n", packetToSend );
+                success = true;
+                break;
+            }
+            else
+                log_error( "packet failed to send to APRS-IS, error: %d.  %d of %d retries: %s\n", err, i + 1, s_num_retries, packetToSend );
         }
-        else
-            log_error( "packet failed to send to APRS-IS, error: %d.  %d of %d retries: %s\n", err, i + 1, s_num_retries, packetToSend );
+        
+        if( !success )
+            log_error( "packet NOT sent to APRS-IS, error: %d...%s\n", errno, packetToSend );
     }
     
-    if( !success )
-        log_error( "packet NOT sent to APRS-IS, error: %d...%s\n", errno, packetToSend );
-        
     free( (void*)packetToSend );
     wx_thread_return();
 }
@@ -1077,6 +1192,10 @@ void transmit_status( const Frame* frame )
 int sendToRadio( const char* p )
 {
     int result = 0;
+    
+    if( s_test_mode )
+        return result;
+    
     // Parse the "TNC2 monitor format" and convert to AX.25 frame.
     unsigned char frame_data[AX25_MAX_PACKET_LEN];
     packet_t pp = ax25_from_text( (char*)p, 1 );
@@ -1237,11 +1356,22 @@ int connectToDireWolf( void )
 
 bool wxlog_startup( void )
 {
-    // open file
+    size_t wxlog_size = sizeof( wxrecord ) * kNumberOfRecords;
+
     if( !s_wxlogFilePath )
     {
-        log_error( " wxlog_startup: don't have a wx history file to do statistics from- using old running method.\n" );
-        return false;
+        log_error( " wxlog_startup: don't have a wx history file to save our statistics to.\n" );
+        if( !s_wxlog )
+            s_wxlog = malloc( wxlog_size );
+        
+        if( !s_wxlog )
+        {
+            log_error( " failed to allocate memory for wx log\n" );
+            return false;
+        }
+        s_wx_size_secs = 0;
+        s_wx_count = 0;
+        return true;
     }
     
     s_wxlogFile = fopen( s_wxlogFilePath, "rb" );
@@ -1249,7 +1379,6 @@ bool wxlog_startup( void )
     // count number of items (look at file size / record size)
     wxrecord first;
     wxrecord last;
-    size_t   wxlog_size = sizeof( wxrecord ) * kNumberOfRecords;
 
     size_t bytes_read = fread( &first, sizeof( wxrecord ), 1, s_wxlogFile );
     if( bytes_read == sizeof( wxrecord ) )
@@ -1266,12 +1395,12 @@ bool wxlog_startup( void )
         {
             // if the start time is too far away from right NOW, dump file and start fresh...
             if( (timeGetTimeSec() - first.timeStampSecs) > kStartingTimeThreshold )
-                s_wx_size_mins = 0;
+                s_wx_size_secs = 0;
             else
-                s_wx_size_mins = (first.timeStampSecs - last.timeStampSecs) / 60;
+                s_wx_size_secs = first.timeStampSecs - last.timeStampSecs;
             
             // now read in all the data
-            if( s_wx_size_mins )
+            if( s_wx_size_secs )
             {
                 // alloc memory for entire thing -- data comes in at about 5 second intervals if we are lucky.
                 // so for 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
@@ -1285,21 +1414,21 @@ bool wxlog_startup( void )
                         if( bytes_read != wxlog_size )
                         {
                             log_error( " failed to read wx log. needed: %ld, got: %ld\n", bytes_read, wxlog_size );
-                            s_wx_size_mins = 0;
+                            s_wx_size_secs = 0;
                             s_wx_count = 0;
                         }
                     }
                     else
                     {
                         log_error( " failed to allocate memory for wx log\n" );
-                        s_wx_size_mins = 0;
+                        s_wx_size_secs = 0;
                         s_wx_count = 0;
                     }
                 }
                 else
                 {
                     log_error( " wx log is bigger than our buffer!\n" );
-                    s_wx_size_mins = 0;
+                    s_wx_size_secs = 0;
                     s_wx_count = 0;
                 }
             }
@@ -1310,7 +1439,7 @@ bool wxlog_startup( void )
         // there isn't even one record in this file...
         log_error( " wx log has no records!\n" );
         s_wx_count = 0;
-        s_wx_size_mins = 0;
+        s_wx_size_secs = 0;
     }
     
     // close file
@@ -1327,6 +1456,30 @@ bool wxlog_startup( void )
         return false;
     }
 
+    return true;
+}
+
+
+bool wxlog_shutdown( void )
+{
+    if( !s_wxlogFilePath || !s_wxlog || !s_wx_count )
+        return false;
+
+    size_t wxlog_size = sizeof( wxrecord ) * s_wx_count;
+    
+    s_wxlogFile = fopen( s_wxlogFilePath, "wb" );
+    if( !s_wxlogFile )
+        return false;
+
+    size_t bytes_out = fwrite( &s_wxlog, sizeof( wxrecord ), s_wx_count, s_wxlogFile );
+    if( bytes_out != wxlog_size )
+        log_error( " failed to write wx log. wrote: %ld, total: %ld\n", bytes_out, wxlog_size );
+    
+    fclose( s_wxlogFile );
+    s_wxlogFile = NULL;
+    
+    free( s_wxlog );
+    s_wxlog = NULL;
     return true;
 }
 
@@ -1356,6 +1509,15 @@ bool insert_frame( const wxrecord* rec, wxrecord* buffer )
 
     // put the actual data in there now
     memcpy( buffer, rec, sizeof( wxrecord ) );
+
+    s_wx_size_secs = timeGetTimeSec() - buffer[s_wx_count - 1].timeStampSecs;
+    
+#ifdef TRACE_INSERTS
+    printTime( false );
+    printf( " -> record[%03zu]: window: %3ld secs, ", s_wx_count, s_wx_size_secs );
+    printCurrentWeather( &buffer->frame );
+#endif
+    
     return true;
 }
 
@@ -1375,10 +1537,135 @@ bool wxlog_frame( const Frame* wxFrame )
 
 bool wxlog_get_wx_averages( Frame* wxFrame )
 {
+    if( !wxFrame )
+        return false;
+    
+    if( s_wx_size_secs < kLongestInterval )
+        return false;
+    
+    time_t current = timeGetTimeSec();
+    memset( wxFrame, 0, sizeof( Frame ) );
+    
+    // these counts are used to derive the averages
+    size_t tempCount     = 0;
+    size_t intTempCount  = 0;
+    size_t windCount     = 0;
+    size_t humidityCount = 0;
+    size_t airCount      = 0;
+
+    // accumulators for air counts
+    uint32_t pm10_standard   = 0;
+    uint32_t pm25_standard   = 0;
+    uint32_t pm100_standard  = 0;
+    uint32_t pm10_env        = 0;
+    uint32_t pm25_env        = 0;
+    uint32_t pm100_env       = 0;
+    uint32_t particles_03um  = 0;
+    uint32_t particles_05um  = 0;
+    uint32_t particles_10um  = 0;
+    uint32_t particles_25um  = 0;
+    uint32_t particles_50um  = 0;
+    uint32_t particles_100um = 0;
+    
+    // start with really high pressure as we want the low of the period
+    wxFrame->pressure = 2000; // that'll crush you
+    
     // go thru all averages, min and max- records are in order of newest to oldest
+    for( int i = 0; i < s_wx_count; i++ )
+    {
+        time_t timeIndexSecs = current - s_wxlog[i].timeStampSecs;  // timestamps go in decreasing order
+        
+        // different data has different averaging windows or min/max windows - accumulate directly inside the wxFrame (except for air stuff which might not fit in 16 bits while accumulating)
+        if( timeIndexSecs < kTempPeriod )
+        {
+            wxFrame->tempC += s_wxlog[i].frame.tempC;
+            ++tempCount;
+        }
+
+        if( timeIndexSecs < kIntTempPeriod )
+        {
+            wxFrame->intTempC += s_wxlog[i].frame.intTempC;
+            ++intTempCount;
+        }
+
+        if( timeIndexSecs < kHumiPeriod )
+        {
+            wxFrame->humidity += s_wxlog[i].frame.humidity;
+            ++humidityCount;
+        }
+
+        if( timeIndexSecs < kWindPeriod )
+        {
+            wxFrame->windDirection += s_wxlog[i].frame.windDirection;
+            wxFrame->windSpeedMs   += s_wxlog[i].frame.windSpeedMs;
+            ++windCount;
+        }
+
+        if( timeIndexSecs < kAirPeriod )
+        {
+            wxFrame->pm10_standard  += s_wxlog[i].frame.pm10_standard;
+            wxFrame->pm25_standard  += s_wxlog[i].frame.pm25_standard;
+            wxFrame->pm100_standard += s_wxlog[i].frame.pm100_standard;
+
+            wxFrame->pm10_env  += s_wxlog[i].frame.pm10_env;
+            wxFrame->pm25_env  += s_wxlog[i].frame.pm25_env;
+            wxFrame->pm100_env += s_wxlog[i].frame.pm100_env;
+
+            wxFrame->particles_03um  += s_wxlog[i].frame.particles_03um;
+            wxFrame->particles_05um  += s_wxlog[i].frame.particles_05um;
+            wxFrame->particles_10um  += s_wxlog[i].frame.particles_10um;
+            wxFrame->particles_25um  += s_wxlog[i].frame.particles_25um;
+            wxFrame->particles_50um  += s_wxlog[i].frame.particles_50um;
+            wxFrame->particles_100um += s_wxlog[i].frame.particles_100um;
+            ++airCount;
+        }
+        
+        // these two don't have counts because they only do min/max
+        if( timeIndexSecs < kGustPeriod )
+            wxFrame->windGustMs = fmax( s_wxlog[i].frame.windGustMs, wxFrame->windGustMs );
+
+        if( timeIndexSecs < kBaroPeriod )
+            wxFrame->pressure = fmin( s_wxlog[i].frame.pressure, wxFrame->pressure );
+    }
+
     
-    // record results wxFrame (we start ignoring certain data after the window expires on it)
+    struct tm tm = *localtime( &current );
+    printf( "%d-%02d-%02d %02d:%02d:%02d: counts: %zu, %zu, %zu, %zu -> ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, tempCount, intTempCount, humidityCount, windCount );
+
+    // guard against divide by zero and also ensure we have an instantaneous value rather than zero if no average
+    if( !airCount )
+        airCount = 1;
+    if( !tempCount )
+        tempCount = 1;
+    if( !intTempCount )
+        intTempCount = 1;
+    if( !humidityCount )
+        humidityCount = 1;
+    if( !windCount )
+        windCount = 1;
     
-    return false;
+    // take means
+    wxFrame->tempC         /= tempCount;
+    wxFrame->intTempC      /= intTempCount;
+    wxFrame->humidity      /= humidityCount;
+    wxFrame->windDirection /= windCount;
+    wxFrame->windSpeedMs   /= windCount;
+        
+    wxFrame->pm10_standard   = pm10_standard  / airCount;
+    wxFrame->pm25_standard   = pm25_standard  / airCount;
+    wxFrame->pm100_standard  = pm100_standard / airCount;
+    wxFrame->pm10_env        = pm10_env       / airCount;
+    wxFrame->pm25_env        = pm25_env       / airCount;
+    wxFrame->pm100_env       = pm100_env      / airCount;
+    wxFrame->particles_03um  = particles_03um / airCount;
+    wxFrame->particles_05um  = particles_05um / airCount;
+    wxFrame->particles_10um  = particles_10um / airCount;
+    wxFrame->particles_25um  = particles_25um / airCount;
+    wxFrame->particles_50um  = particles_50um / airCount;
+    wxFrame->particles_100um = particles_100um / airCount;
+
+    printCurrentWeather( wxFrame );
+
+    return true;
 }
 
