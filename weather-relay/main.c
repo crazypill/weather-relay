@@ -992,16 +992,16 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
             int err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, packetToSend );
             if( err == 0 )
             {
-                log_error( "packet sent: %s\n", packetToSend );
+                log_error( "sent: %s\n", packetToSend );
                 success = true;
                 break;
             }
             else
-                log_error( "packet failed to send to APRS-IS, error: %d.  %d of %d retries: %s\n", err, i + 1, s_num_retries, packetToSend );
+                log_error( "failed to send to APRS-IS, error: %d.  %d of %d retries: %s\n", err, i + 1, s_num_retries, packetToSend );
         }
         
         if( !success )
-            log_error( "packet NOT sent to APRS-IS, error: %d...%s\n", errno, packetToSend );
+            log_error( "NOT sent to APRS-IS, error: %d...%s\n", errno, packetToSend );
     }
     
     free( (void*)packetToSend );
@@ -1018,7 +1018,7 @@ wx_thread_return_t sendToRadio_thread_entry( void* args )
     // also send a packet to Direwolf running locally to hit the radio path...
     int err = sendToRadio( packetToSend );
     if( err != 0 )
-        log_error( "packet failed to send via Direwolf for radio path, error: %d...\n", err );
+        log_error( "failed to send via Direwolf for radio path, error: %d...\n", err );
     
     free( packetToSend );
     wx_thread_return();
