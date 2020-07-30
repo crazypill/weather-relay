@@ -1000,6 +1000,8 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     if( s_test_mode )
     {
         log_error( "packet that would be sent: %s\n", packetToSend );
+//        queue_packet( packetToSend );
+//        success = true;
     }
     else
     {
@@ -1028,28 +1030,33 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     
     // for the initial send, the code is super aggressive but for the packet queue, it's less so
     // we also don't want to try sending when we just got an error, so make sure we didn't just have a failure...
-//    if( success && !s_queue_busy  )
-//    {
-//        // see if there are any packets we should try sending
-//        const char* queued = NULL;
-//        do
-//        {
-//            queued = queue_get_next_packet();
-//            if( queued )
-//            {
-//                err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, queued );
-//                if( err == 0 )
-//                    log_error( "sent: %s\n", queued );
-//                else
-//                {
-//                    // the idea behind this queue is it is sent to the main queue once it's empty on the next invocation
-//                    queue_error_packet( queued );
-//                }
-//                free( (void*)queued );
-//                sleep( 1 ); // wait a second between each packet
-//            }
-//        } while( queued );
-//    }
+    if( success && !s_queue_busy  )
+    {
+        // see if there are any packets we should try sending
+        const char* queued = NULL;
+        do
+        {
+            queued = queue_get_next_packet();
+            if( queued )
+            {
+                if( s_test_mode )
+                    log_error( "queued packet that would be sent: %s\n", queued );
+                else
+                {
+                    err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, queued );
+                    if( err == 0 )
+                        log_error( "sent: %s\n", queued );
+                    else
+                    {
+                        // the idea behind this queue is it is sent to the main queue once it's empty on the next invocation
+                        queue_error_packet( queued );
+                    }
+                    sleep( 1 ); // wait a second between each packet
+                }
+                free( (void*)queued );
+            }
+        } while( queued );
+    }
     wx_thread_return();
 }
 
@@ -1744,11 +1751,11 @@ void queue_packet( const char* packetData )
         return;
     }
     
-//    s_queue_busy = true;
-//    const char* entry = copy_string( packetData );
-//    s_queue[s_queue_num++] = entry;
-//    s_queue_busy = false;
-    log_error( "not queued: %s\n", packetData );
+    s_queue_busy = true;
+    const char* entry = copy_string( packetData );
+    s_queue[s_queue_num++] = entry;
+    s_queue_busy = false;
+    log_error( "queued: %s\n", packetData );
 }
 
 
@@ -1763,8 +1770,8 @@ void queue_error_packet( const char* packetData )
     s_error_queue_busy = true;
     const char* entry = copy_string( packetData );
     s_error_queue[s_error_queue_num++] = entry;
-    log_error( "error queued: %s\n", entry );
     s_error_queue_busy = false;
+    log_error( "error queued: %s\n", entry );
 }
 
 
@@ -1776,7 +1783,7 @@ const char* queue_get_next_packet( void )
         return NULL;
     }
     
-    s_error_queue_busy = true;
+    s_queue_busy = true;
     const char* result = s_queue[0];
     
     --s_queue_num;
@@ -1787,8 +1794,10 @@ const char* queue_get_next_packet( void )
     }
     
     // now shift the entire list
-    memmove( &s_queue[1], &s_queue[0], s_queue_num * sizeof( const char* ) );
-    s_error_queue_busy = false;
+    size_t queueSize = kMaxQueueItems;
+    memmove( &s_queue[0], &s_queue[1], queueSize * sizeof( const char* ) );
+    s_queue[queueSize] = NULL; // last item needs to be nulled out to be safe
+    s_queue_busy = false;
     return result;
 }
 
@@ -1812,7 +1821,9 @@ const char* error_queue_get_next_packet( void )
     }
 
     // now shift the entire list
-    memmove( &s_error_queue[1], &s_error_queue[0], s_error_queue_num * sizeof( const char* ) );
+    size_t queueSize = kMaxQueueItems;
+    memmove( &s_error_queue[0], &s_error_queue[1], queueSize * sizeof( const char* ) );
+    s_error_queue[queueSize] = NULL; // last item needs to be nulled out to be safe
     s_error_queue_busy = false;
     return result;
 }
