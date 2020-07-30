@@ -1020,8 +1020,12 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
                 success = true;
                 break;
             }
-//            else
-//                log_error( "failed to send to APRS-IS (%d).  %d of %d retries: %s\n", err, i + 1, s_num_retries, packetToSend );
+            
+            // check for authentication error case and don't retry in that case, just queue the packet for the next server that accepts us
+            if( err == -2 )
+                break;
+
+            log_error( "retry (%d-%d): (%d) %s\n", i + 1, s_num_retries, err, packetToSend );
         }
         
         if( !success )
@@ -1809,7 +1813,7 @@ const char* queue_get_next_packet( void )
     return result;
 }
 
-
+/*
 const char* error_queue_get_next_packet( void )
 {
     if( !s_error_queue_num || s_error_queue_busy )
@@ -1841,3 +1845,4 @@ const char* error_queue_get_next_packet( void )
     s_error_queue_busy = false;
     return result;
 }
+*/
