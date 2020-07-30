@@ -1054,7 +1054,7 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
                 {
                     err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, queued );
                     if( err == 0 )
-                        log_error( "sent: %s\n", queued );
+                        log_error( "resent: %s\n", queued );
                     else
                     {
                         // the idea behind this queue is it is sent to the main queue once it's empty on the next invocation
