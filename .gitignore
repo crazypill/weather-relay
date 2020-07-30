@@ -38,6 +38,7 @@
 .DS_Stor?
 *.xcuserstate
 Breakpoints_v2.xcbkptlist
+*xcuserdata
 
 # Build directory
 build
