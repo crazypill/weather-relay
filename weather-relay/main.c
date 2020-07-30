@@ -1016,7 +1016,7 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
             err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, packetToSend );
             if( err == 0 )
             {
-                log_error( "sent: %s\n", packetToSend );
+                log_error( "  sent: %s\n", packetToSend );
                 success = true;
                 break;
             }
