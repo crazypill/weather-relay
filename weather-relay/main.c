@@ -834,6 +834,11 @@ int main( int argc, const char * argv[] )
 
     trace( "%s: reading from serial port: %s...\n\n", PROGRAM_NAME, s_port_device );
     
+    
+#ifdef DEBUG_PERIODS
+    printf( "WARNING using debug periods, packets will get sent very often!\n" );
+#endif
+    
     // this holds all the min/max/averages
     Frame minFrame = {};
     Frame maxFrame = {};
@@ -1777,7 +1782,10 @@ void queue_error_packet( const char* packetData )
 
 const char* queue_get_next_packet( void )
 {
-    if( !s_queue_num || s_queue_busy )
+    if( !s_queue_num )
+        return NULL;
+
+    if( s_queue_busy )
     {
         printf( "queue_get_next_packet queue busy!\n" );
         return NULL;
@@ -1804,6 +1812,12 @@ const char* queue_get_next_packet( void )
 
 const char* error_queue_get_next_packet( void )
 {
+    if( !s_error_queue_num || s_error_queue_busy )
+    {
+        printf( "error_queue_get_next_packet queue busy!\n" );
+        return NULL;
+    }
+
     if( !s_error_queue_num || s_error_queue_busy )
     {
         printf( "error_queue_get_next_packet queue busy!\n" );
