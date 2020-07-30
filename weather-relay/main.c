@@ -1028,28 +1028,28 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
     
     // for the initial send, the code is super aggressive but for the packet queue, it's less so
     // we also don't want to try sending when we just got an error, so make sure we didn't just have a failure...
-    if( success && !s_queue_busy  )
-    {
-        // see if there are any packets we should try sending
-        const char* queued = NULL;
-        do
-        {
-            queued = queue_get_next_packet();
-            if( queued )
-            {
-                err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, queued );
-                if( err == 0 )
-                    log_error( "sent: %s\n", queued );
-                else
-                {
-                    // the idea behind this queue is it is sent to the main queue once it's empty on the next invocation
-                    queue_error_packet( queued );
-                }
-                free( (void*)queued );
-                sleep( 1 ); // wait a second between each packet
-            }
-        } while( queued );
-    }
+//    if( success && !s_queue_busy  )
+//    {
+//        // see if there are any packets we should try sending
+//        const char* queued = NULL;
+//        do
+//        {
+//            queued = queue_get_next_packet();
+//            if( queued )
+//            {
+//                err = sendPacket( "noam.aprs2.net", 10152, kCallSign, kPasscode, queued );
+//                if( err == 0 )
+//                    log_error( "sent: %s\n", queued );
+//                else
+//                {
+//                    // the idea behind this queue is it is sent to the main queue once it's empty on the next invocation
+//                    queue_error_packet( queued );
+//                }
+//                free( (void*)queued );
+//                sleep( 1 ); // wait a second between each packet
+//            }
+//        } while( queued );
+//    }
     wx_thread_return();
 }
 
@@ -1744,11 +1744,11 @@ void queue_packet( const char* packetData )
         return;
     }
     
-    s_queue_busy = true;
-    const char* entry = copy_string( packetData );
-    s_queue[s_queue_num++] = entry;
-    log_error( "queued: %s\n", entry );
-    s_queue_busy = false;
+//    s_queue_busy = true;
+//    const char* entry = copy_string( packetData );
+//    s_queue[s_queue_num++] = entry;
+//    s_queue_busy = false;
+    log_error( "not queued: %s\n", packetData );
 }
 
 
