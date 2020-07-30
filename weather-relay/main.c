@@ -1025,7 +1025,7 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
             if( err == -2 )
                 break;
 
-            log_error( "retry (%d-%d): (%d) %s\n", i + 1, s_num_retries, err, packetToSend );
+            log_error( "retry (%d/%d): (%d) %s\n", i + 1, s_num_retries, err, packetToSend );
         }
         
         if( !success )
