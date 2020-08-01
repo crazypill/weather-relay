@@ -50,6 +50,7 @@
 #define kHistoryTimeout        60 * 2  // 2 minutes (to restart the app before the history rots)
 #define kMaxNumberOfRecords    200     // 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
 #define kMaxQueueItems         32
+#define kLogRollInterval       60 * 60 * 24   // (roll the log daily)
 
 typedef struct
 {
@@ -70,6 +71,7 @@ static time_t s_lastParamsTime    = 0;
 static time_t s_lastTelemetryTime = 0;
 static time_t s_lastStatusTime    = 0;
 static time_t s_startupTime       = 0;
+static time_t s_last_log_roll     = 0;
 
 static float s_localOffsetInHg = 0.33f;
 static float s_localTempErrorC = 2.033333333333333;
@@ -725,6 +727,28 @@ void log_error( const char* format, ... )
     // print to debug as well...
     if( s_debug )
         printf( "%d-%02d-%02d %02d:%02d:%02d: %s", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, buf );
+    
+    if( s_logFile && (timeGetTimeSec() > (s_last_log_roll + kLogRollInterval)) )
+    {
+        fclose( s_logFile );
+        
+        char* buffer = malloc( strlen( s_logFilePath ) + 8 );   // 6 date/time characters, a '.', and null byte
+        if( buffer )
+        {
+            time_t t = time( NULL );
+            struct tm tm = *localtime( &t );
+            sprintf( buffer, "%s.%d%02d%02d", s_logFilePath, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday );
+            
+            // rename it
+            if( rename( s_logFilePath, buffer ) != 0 )
+                perror( "rename" );
+            
+            // now reopen new file and carry on
+            s_logFile = fopen( s_logFilePath, "a" );
+            free( buffer );
+        }
+        s_last_log_roll = timeGetTimeSec();
+    }
 }
 
 
@@ -760,7 +784,8 @@ int main( int argc, const char * argv[] )
     
     if( s_debug )
         printf( "%s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C, kiss: %s:%d\n", PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC, s_kiss_server, s_kiss_port );
-
+    
+    s_last_log_roll = timeGetTimeSec();
     if( s_logFilePath && !s_logFile )
     {
         s_logFile = fopen( s_logFilePath, "a" );
@@ -1066,6 +1091,9 @@ wx_thread_return_t sendPacket_thread_entry( void* args )
             }
         } while( queued );
     }
+    
+    // !!@ need code to spill error queue into delayed queue !
+    // 
     wx_thread_return();
 }
 
