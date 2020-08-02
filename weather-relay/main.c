@@ -732,7 +732,7 @@ void log_error( const char* format, ... )
     {
         fclose( s_logFile );
         
-        char* buffer = malloc( strlen( s_logFilePath ) + 8 );   // 6 date/time characters, a '.', and null byte
+        char* buffer = malloc( strlen( s_logFilePath ) + 10 );   // 8 date/time characters, a '.', and null byte
         if( buffer )
         {
             time_t t = time( NULL );
@@ -1804,11 +1804,14 @@ void queue_error_packet( const char* packetData )
         return;
     }
     
-    s_error_queue_busy = true;
-    const char* entry = copy_string( packetData );
-    s_error_queue[s_error_queue_num++] = entry;
-    s_error_queue_busy = false;
-    log_error( "error queued: %s\n", entry );
+    // avoid a memory leak until this is completely implemented... right now we don't have any direct evidence that we need this code at all
+    log_error( "error bucket: dropping packet: %s\n", packetData );
+    
+//    s_error_queue_busy = true;
+//    const char* entry = copy_string( packetData );
+//    s_error_queue[s_error_queue_num++] = entry;
+//    s_error_queue_busy = false;
+//    log_error( "error queued: %s\n", entry );
 }
 
 
