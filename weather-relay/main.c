@@ -328,17 +328,10 @@ bool validate_wx_frame( const Frame* frame )
         return false;
     }
 
-    if( ms2mph( frame->windSpeedMs ) > 100 )
+    if( ms2mph( frame->windSpeedMs ) > 100 || ms2mph( frame->windSpeedMs ) < 0 )
     {
         // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-        log_error( "validate_wx_frame: wind speed too high[%0.2f°]: %0.2f mph\n", frame->windDirection, ms2mph( frame->windSpeedMs ) );
-        return false;
-    }
-
-    if( ms2mph( frame->windSpeedMs ) < 0 )
-    {
-        // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-        log_error( "validate_wx_frame: wind speed too low[%0.2f°]: %0.2f mph\n", frame->windDirection, ms2mph( frame->windSpeedMs ) );
+        log_error( "validate_wx_frame: wind speed out of range[%0.2f°]: %0.2f mph\n", frame->windDirection, ms2mph( frame->windSpeedMs ) );
         return false;
     }
 
@@ -349,17 +342,10 @@ bool validate_wx_frame( const Frame* frame )
         return false;
     }
 
-    if( ms2mph( frame->windGustMs ) > 100 )
+    if( ms2mph( frame->windGustMs ) > 100 || ms2mph( frame->windGustMs ) < 0  )
     {
         // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-        log_error( " wind gust too high[%0.2f°]: %0.2f mph\n", frame->windDirection, ms2mph( frame->windGustMs ) );
-        return false;
-    }
-
-    if( ms2mph( frame->windGustMs ) < 0 )
-    {
-        // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-        log_error( " wind gust too low[%0.2f°]: %0.2f mph\n", frame->windDirection, ms2mph( frame->windGustMs ) );
+        log_error( " wind gust out of range[%0.2f°]: %0.2f mph\n", frame->windDirection, ms2mph( frame->windGustMs ) );
         return false;
     }
 
