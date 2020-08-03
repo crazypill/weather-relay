@@ -361,13 +361,14 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 {
     if( data->flags & kDataFlag_temp )
     {
+        bool  frameOk = true;
         float tempF = c2f( data->tempC );
         if( tempF < kTempLowBar || tempF > kTempHighBar )
         {
             // blow off this entire frame of data- it's probably all wrong
             log_error( " temp out of range %0.2f°F, time left: %ld\n", tempF, kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
             data->flags &= ~kDataFlag_temp;
-            return;
+            frameOk = false;
         }
         
         // do temporal check now
@@ -380,25 +381,28 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
                 // blow off this entire frame of data- it's probably all wrong
                 log_error( " temp temporal check failed: %0.2f°F, ave: %0.2f°F time left: %ld\n", tempF, c2f( ave->tempC ), kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
                 data->flags &= ~kDataFlag_temp;
-                return;
+                frameOk = false;
             }
         }
-
+        
         if( timeGetTimeSec() > s_lastTempTime + kTempPeriod )
         {
             ave->tempC = 0;
             s_lastTempTime = timeGetTimeSec();
         }
 
-        // check for no data before calculating mean
-        if( ave->tempC == 0.0 )
-            ave->tempC = data->tempC;
+        if( frameOk )
+        {
+            // check for no data before calculating mean
+            if( ave->tempC == 0.0 )
+                ave->tempC = data->tempC;
 
-        ave->tempC = (data->tempC + ave->tempC) * 0.5f;
+            ave->tempC = (data->tempC + ave->tempC) * 0.5f;
 #ifdef TRACE_STATS
-        printTime( false );
-        stats( " temp average: %0.2f°F, time left: %ld\n", c2f( ave->tempC ), kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
+            printTime( false );
+            stats( " temp average: %0.2f°F, time left: %ld\n", c2f( ave->tempC ), kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
 #endif
+        }
     }
 
     if( data->flags & kDataFlag_intTemp )
@@ -423,12 +427,13 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     
     if( data->flags & kDataFlag_humidity )
     {
+        bool frameOk = true;
         if( data->humidity < kHumidityLowBar || data->humidity > kHumidityHighBar )
         {
             // blow off this entire frame of data- it's probably all wrong
             log_error( " humidity out of range %d%%, time left: %ld\n", data->humidity, kHumiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
             data->flags &= ~kDataFlag_humidity;
-            return;
+            frameOk = false;
         }
 
         if( timeGetTimeSec() > s_lastHumiTime + kHumiPeriod )
@@ -437,25 +442,29 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             s_lastHumiTime = timeGetTimeSec();
         }
 
-        // check for no data before calculating mean
-        if( ave->humidity == 0 )
-            ave->humidity = data->humidity;
-        ave->humidity = (data->humidity + ave->humidity) / 2;
+        if( frameOk )
+        {
+            // check for no data before calculating mean
+            if( ave->humidity == 0 )
+                ave->humidity = data->humidity;
+            ave->humidity = (data->humidity + ave->humidity) / 2;
 #ifdef TRACE_STATS
-        printTime( false );
-        stats( " humidity average: %d%%, time left: %ld\n", ave->humidity, kHumiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
+            printTime( false );
+            stats( " humidity average: %d%%, time left: %ld\n", ave->humidity, kHumiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
 #endif
+        }
     }
     
     // for wind we want the ave over the interval period
     if( data->flags & kDataFlag_wind )
     {
+        bool frameOk = true;
         if( ms2mph( data->windSpeedMs ) > kWindHighBar )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
             log_error( " wind speed too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
             data->flags &= ~kDataFlag_wind;
-            return;
+            frameOk = false;
         }
 
         if( data->windDirection < 0 || data->windDirection > 360 )
@@ -463,7 +472,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             // blow off this entire frame of data- it's probably all wrong
             log_error( " wind direction out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
             data->flags &= ~kDataFlag_wind;
-            return;
+            frameOk = false;
         }
         
         if( timeGetTimeSec() > s_lastWindTime + kWindPeriod )
@@ -473,31 +482,35 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             s_lastWindTime = timeGetTimeSec();
         }
 
-        // check for no data before calculating mean
-        if( ave->windSpeedMs == 0.0 )
-            ave->windSpeedMs = data->windSpeedMs;
+        if( frameOk )
+        {
+            // check for no data before calculating mean
+            if( ave->windSpeedMs == 0.0 )
+                ave->windSpeedMs = data->windSpeedMs;
 
-        if( ave->windDirection == 0.0 )
-            ave->windDirection = data->windDirection;
+            if( ave->windDirection == 0.0 )
+                ave->windDirection = data->windDirection;
 
-        ave->windSpeedMs = (data->windSpeedMs + ave->windSpeedMs) * 0.5f;
-        ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
+            ave->windSpeedMs = (data->windSpeedMs + ave->windSpeedMs) * 0.5f;
+            ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
 #ifdef TRACE_STATS
-        printTime( false );
-        stats( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
+            printTime( false );
+            stats( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
 #endif
+        }
     }
-
+    
     // for gusts we want the max instantaneous over the interval period
     if( data->flags & kDataFlag_gust )
     {
+        bool frameOk = true;
         // I saw a 700 MPH wind gust go by which seems nuts... so trap that error
         if( ms2mph( data->windGustMs ) > kWindHighBar )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
             log_error( " wind gust too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
             data->flags &= ~kDataFlag_gust;
-            return;
+            frameOk = false;
         }
         
         // we create a 10 minute window of instantaneous gust measurements
@@ -507,13 +520,15 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             s_lastGustTime = timeGetTimeSec();
         }
 
-        max->windGustMs = fmax( data->windGustMs, max->windGustMs );
+        if( frameOk )
+        {
+            max->windGustMs = fmax( data->windGustMs, max->windGustMs );
 #ifdef TRACE_STATS
-        printTime( false );
-        stats( " gust max: %0.2f mph, time left: %ld\n", ms2mph( max->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
+            printTime( false );
+            stats( " gust max: %0.2f mph, time left: %ld\n", ms2mph( max->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
 #endif
+        }
     }
-
 
     if( data->flags & kDataFlag_pressure )
     {
