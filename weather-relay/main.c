@@ -1256,6 +1256,9 @@ void transmit_wx_frame( const Frame* frame )
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
     wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+    
+    // !!@ add check to send packet over WIDE2-1 as well maybe every thirty minutes !!@
+//    wx_create_thread_detached( sendToRadioWIDE_thread_entry, copy_string( packetToSend ) );
 }
 
 
