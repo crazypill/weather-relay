@@ -31,14 +31,23 @@
 #define pascal2inchHg    0.0002953
 #define millibar2inchHg  0.02953
 
-#define c2f( a ) (((a) * 1.8000) + 32)
-#define ms2mph( a ) ((a) * 2.23694)
+#define c2f( a )           (((a) * 1.8000) + 32)
+#define ms2mph( a )         ((a) * 2.23694)
 #define inHg2millibars( a ) ((a) * 33.8639)
 
 // https://www.daculaweather.com/stuff/CWOP_Guide.pdf has all the intervals, etc...
 #define kTelemDelaySecs     15  // 15 seconds after weather tx - used to stagger messages so they don't pile up on each other
 #define kStatusDelaySecs    30
 
+#define kTempLowBar      -60.0f
+#define kTempHighBar     130.0f
+#define kHumidityLowBar  0
+#define kHumidityHighBar 100
+#define kWindLowBar      0
+#define kWindHighBar     100
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_PERIODS
 // for debugging otherwise we spend a lifetime waiting for data to debug with...
 #define kSendInterval    30
@@ -68,6 +77,8 @@
 #define kAirPeriod     60
 
 #endif
+//-----------------------------------------------------------------------------------------------------------------------------
+
 
 #define kLongestInterval kGustPeriod
 

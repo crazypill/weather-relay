@@ -314,21 +314,21 @@ uint8_t imin( uint8_t a, uint8_t b )
 bool validate_wx_frame( const Frame* frame )
 {
     float tempF = c2f( frame->tempC );
-    if( tempF < -60.0f || tempF > 130.0f )
+    if( tempF < kTempLowBar || tempF > kTempHighBar )
     {
         // blow off this entire frame of data- it's probably all wrong
         log_error( "validate_wx_frame: temp out of range %0.2f°F\n", tempF );
         return false;
     }
     
-    if( frame->humidity < 0 || frame->humidity > 100 )
+    if( frame->humidity < kHumidityLowBar || frame->humidity > kHumidityHighBar )
     {
         // blow off this entire frame of data- it's probably all wrong
         log_error( "validate_wx_frame: humidity out of range %d%%\n", frame->humidity );
         return false;
     }
 
-    if( ms2mph( frame->windSpeedMs ) > 100 || ms2mph( frame->windSpeedMs ) < 0 )
+    if( ms2mph( frame->windSpeedMs ) > kWindHighBar || ms2mph( frame->windSpeedMs ) < kWindLowBar )
     {
         // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
         log_error( "validate_wx_frame: wind speed out of range[%0.2f°]: %0.2f mph\n", frame->windDirection, ms2mph( frame->windSpeedMs ) );
@@ -342,7 +342,8 @@ bool validate_wx_frame( const Frame* frame )
         return false;
     }
 
-    if( ms2mph( frame->windGustMs ) > 100 || ms2mph( frame->windGustMs ) < 0  )
+    // I saw a 274 MPH wind gust go by even after the input data trapping... this must be a bug in the averaging or something I haven't thought of yet !!@
+    if( ms2mph( frame->windGustMs ) > kWindHighBar || ms2mph( frame->windGustMs ) < kWindLowBar  )
     {
         // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
         log_error( " wind gust out of range[%0.2f°]: %0.2f mph\n", frame->windDirection, ms2mph( frame->windGustMs ) );
@@ -353,13 +354,15 @@ bool validate_wx_frame( const Frame* frame )
 }
 
 
+// this does a few things, it averages data until we have enough history to do it properly.
+// it also checks the incoming wx sensor data to make sure it isn't nuts.  also does some check from CWOP guide.
 // https://weather.gladstonefamily.net/CWOP_Guide.pdf
 void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 {
     if( data->flags & kDataFlag_temp )
     {
         float tempF = c2f( data->tempC );
-        if( tempF < -60.0f || tempF > 130.0f )
+        if( tempF < kTempLowBar || tempF > kTempHighBar )
         {
             // blow off this entire frame of data- it's probably all wrong
             log_error( " temp out of range %0.2f°F, time left: %ld\n", tempF, kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
@@ -420,7 +423,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     
     if( data->flags & kDataFlag_humidity )
     {
-        if( data->humidity < 0 || data->humidity > 100 )
+        if( data->humidity < kHumidityLowBar || data->humidity > kHumidityHighBar )
         {
             // blow off this entire frame of data- it's probably all wrong
             log_error( " humidity out of range %d%%, time left: %ld\n", data->humidity, kHumiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
@@ -447,7 +450,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     // for wind we want the ave over the interval period
     if( data->flags & kDataFlag_wind )
     {
-        if( ms2mph( data->windSpeedMs ) > 100 )
+        if( ms2mph( data->windSpeedMs ) > kWindHighBar )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
             log_error( " wind speed too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
@@ -489,7 +492,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     if( data->flags & kDataFlag_gust )
     {
         // I saw a 700 MPH wind gust go by which seems nuts... so trap that error
-        if( ms2mph( data->windGustMs ) > 100 )
+        if( ms2mph( data->windGustMs ) > kWindHighBar )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
             log_error( " wind gust too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
@@ -605,13 +608,14 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         log_error( "averages pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", ave->pm10_standard, ave->pm10_env, ave->pm25_standard, ave->pm25_env, ave->pm100_standard, ave->pm100_env, ave->particles_03um, ave->particles_05um, ave->particles_10um, ave->particles_25um, ave->particles_50um, ave->particles_100um );
 #endif
     }
-
-    
 //    if( data.flags & kDataFlag_rain )
 //        printf( "rain:       %g\n", data.rain );
-
-
 }
+
+
+
+#pragma mark -
+
 
 
 void version( int argc, const char* argv[] )
