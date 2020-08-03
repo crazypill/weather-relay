@@ -46,11 +46,15 @@
 
 #define kCallSign "K6LOT-13"
 #define kPasscode "8347"
+#define kWidePath "WIDE2-1"
+#define kIGPath   "TCPIP*"
 
 #define kHistoryTimeout        60 * 2  // 2 minutes (to restart the app before the history rots)
 #define kMaxNumberOfRecords    200     // 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
 #define kMaxQueueItems         32
 #define kLogRollInterval       60 * 60 * 24   // (roll the log daily)
+#define kWxWideInterval        60 * 15        // send our weather out to WIDE2-1 every quarter hour
+
 
 typedef struct
 {
@@ -72,6 +76,7 @@ static time_t s_lastTelemetryTime = 0;
 static time_t s_lastStatusTime    = 0;
 static time_t s_startupTime       = 0;
 static time_t s_last_log_roll     = 0;
+static time_t s_lastWxWideTime    = 0;
 
 static float s_localOffsetInHg = 0.33f;
 static float s_localTempErrorC = 2.033333333333333;
@@ -106,10 +111,11 @@ static sig_atomic_t s_error_queue_num  = 0;
 static const char*  s_error_queue[kMaxQueueItems] = {};  // these are packets that failed to send after already being queued for later send.  These will get requeued later...
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
+static wx_thread_return_t sendToRadioWIDE_thread_entry( void* args );
 static wx_thread_return_t sendPacket_thread_entry( void* args );
 
 static int  connectToDireWolf( void );
-static int  sendToRadio( const char* p );
+static int  sendToRadio( const char* p, bool wide );    // wide = send out to WIDE2-1 instead of TCPIP*
 static int  send_to_kiss_tnc( int chan, int cmd, char *data, int dlen );
 
 static void transmit_wx_frame( const Frame* frame );
@@ -1168,9 +1174,25 @@ wx_thread_return_t sendToRadio_thread_entry( void* args )
         wx_thread_return();
     
     // also send a packet to Direwolf running locally to hit the radio path...
-    int err = sendToRadio( packetToSend );
+    int err = sendToRadio( packetToSend, false );
     if( err != 0 )
-        log_error( "failed to send via Direwolf for radio path, error: %d...\n", err );
+        log_error( "failed to radio path, error: %d...\n", err );
+    
+    free( packetToSend );
+    wx_thread_return();
+}
+
+
+wx_thread_return_t sendToRadioWIDE_thread_entry( void* args )
+{
+    char* packetToSend = (char*)args;
+    if( !packetToSend )
+        wx_thread_return();
+    
+    // also send a packet to Direwolf running locally to hit the radio path...
+    int err = sendToRadio( packetToSend, true );
+    if( err != 0 )
+        log_error( "failed to WIDE radio path, error: %d...\n", err );
     
     free( packetToSend );
     wx_thread_return();
@@ -1256,9 +1278,13 @@ void transmit_wx_frame( const Frame* frame )
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
     wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
-    
-    // !!@ add check to send packet over WIDE2-1 as well maybe every thirty minutes !!@
-//    wx_create_thread_detached( sendToRadioWIDE_thread_entry, copy_string( packetToSend ) );
+
+    if( timeGetTimeSec() > s_lastWxWideTime + kWxWideInterval )
+    {
+        // send packet over WIDE2-1 as well maybe every once in a while
+        wx_create_thread_detached( sendToRadioWIDE_thread_entry, copy_string( packetToSend ) );
+        s_lastWxWideTime = timeGetTimeSec();
+    }
 }
 
 
@@ -1359,21 +1385,58 @@ void transmit_status( const Frame* frame )
 #pragma mark -
 
 
-int sendToRadio( const char* p )
+int sendToRadio( const char* p, bool wide )
 {
     int result = 0;
     
+    // do a bit of mangling to get the WIDE2-1 in there... figure out how much extra space we need...
+    char buffer[1024] = {}; // note: largest allowable packet is 256
+    if( wide )
+    {
+        strcpy( buffer, p );
+        
+        // find the TCPIP bit
+        char* f = strstr( buffer, kIGPath );
+        if( f )
+        {
+            // stomp over it -- note, this most likely stomped on part of the message if the two paths weren't the same length
+            strcpy( f, kWidePath );
+            
+            size_t igPathLen   = strlen( kIGPath );
+            size_t widePathLen = strlen( kWidePath );
+             
+            if( igPathLen != widePathLen )
+            {
+                // fix up the remaining part of the string... we know the offset of the tcpip string and the size of it, so offset the input string to get the remaining bit
+                size_t offset = f - buffer;   // this points to TCPIP*
+                offset += igPathLen;  // now points at message data
+                f += widePathLen;
+                
+                // use that offset in the original packet to find message data to add to this fixed up message
+                strcpy( f, &p[offset] );
+            }
+        }
+        // if something went wrong, the original string was already copied to the buffer
+    }
+    else
+    {
+        strcpy( buffer, p );
+    }
+
     if( s_test_mode )
+    {
+        log_error( "packet that would be sent to radio[%d]: %s\n", wide, p );
         return result;
-    
+    }
+
     // Parse the "TNC2 monitor format" and convert to AX.25 frame.
     unsigned char frame_data[AX25_MAX_PACKET_LEN];
-    packet_t pp = ax25_from_text( (char*)p, 1 );
+    packet_t pp = ax25_from_text( buffer, 1 );
     if( pp != NULL )
     {
         int frame_len = ax25_pack( pp, frame_data );
         result = send_to_kiss_tnc( 0, KISS_CMD_DATA_FRAME, (char*)frame_data, frame_len );
-        ax25_delete (pp);
+        ax25_delete( pp );
     }
     else
     {
