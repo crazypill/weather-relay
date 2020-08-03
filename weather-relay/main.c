@@ -1277,7 +1277,6 @@ void transmit_wx_frame( const Frame* frame )
 
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
-    wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
 
     if( timeGetTimeSec() > s_lastWxWideTime + kWxWideInterval )
     {
@@ -1285,6 +1284,8 @@ void transmit_wx_frame( const Frame* frame )
         wx_create_thread_detached( sendToRadioWIDE_thread_entry, copy_string( packetToSend ) );
         s_lastWxWideTime = timeGetTimeSec();
     }
+    else
+        wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) ); // send locally to me path is to TCPIP so don't get repeated
 }
 
 
