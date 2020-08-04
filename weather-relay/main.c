@@ -465,10 +465,10 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     if( data->flags & kDataFlag_wind )
     {
         bool frameOk = true;
-        if( ms2mph( data->windSpeedMs ) > kWindHighBar )
+        if( (ms2mph( data->windSpeedMs ) > kWindHighBar) || (ms2mph( data->windSpeedMs ) < kWindLowBar) )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-            log_error( " wind speed too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
+            log_error( " wind speed out of range[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
             data->flags &= ~kDataFlag_wind;
             frameOk = false;
         }
@@ -511,10 +511,10 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     {
         bool frameOk = true;
         // I saw a 700 MPH wind gust go by which seems nuts... so trap that error
-        if( ms2mph( data->windGustMs ) > kWindHighBar )
+        if( ms2mph( data->windGustMs ) > kWindHighBar || ms2mph( data->windGustMs ) < kWindLowBar )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-            log_error( " wind gust too high[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
+            log_error( " wind gust out of range[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, ms2mph( data->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
             data->flags &= ~kDataFlag_gust;
             frameOk = false;
         }
