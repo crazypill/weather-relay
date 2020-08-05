@@ -536,7 +536,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         }
 
         // do gust temporal check now
-        if( frameOk && max->windGustMs )
+        if( frameOk )
         {
             if( fabs( windGustMph - ms2mph( max->windGustMs ) ) > kWindTemporalLimit )
             {
