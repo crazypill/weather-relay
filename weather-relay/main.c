@@ -690,6 +690,145 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 
 
 
+void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* aveFrame, Frame* outgoingFrame, uint8_t* receivedFlags )
+{
+    uint8_t crc = frame->CRC; // we need this before setting to zero to run CRC over frame to check it (original CRC is run with this set to zero, must match)
+    frame->CRC = 0;
+    frame->CRC = calculate_crc( (uint8_t*)frame, sizeof( Frame ) );
+    if( crc != frame->CRC )
+    {
+        log_error( " bad CRC on incoming wx sensor data 0x%x != 0x%x\n", crc, frame->CRC );
+        frame->flags = 0; // knock out all data as invalid
+    }
+
+    // doing this first allows us to turn off flags for bad measurements so this code skips them too-
+    updateStats( frame, minFrame, maxFrame, aveFrame );
+    
+    // reset the wind gusts each time through here so that it doesn't stick to extra frames before we get another gust message
+    outgoingFrame->windGustMs = 0;
+    
+#ifdef TRACE_INCOMING_WX
+    printTime( false );
+#endif
+    trace( " station_id: 0x%x", frame->station_id );
+    
+    // read flags
+    if( frame->flags & kDataFlag_temp )
+    {
+        trace( ", temp: %0.2f°F", c2f( frame->tempC ) );
+        outgoingFrame->tempC = frame->tempC;
+    }
+
+    if( frame->flags & kDataFlag_humidity )
+    {
+        trace( ", humidity: %d%%", frame->humidity );
+        outgoingFrame->humidity = frame->humidity;
+    }
+
+    if( frame->flags & kDataFlag_wind )
+    {
+        trace( ", wind: %0.2f mph, dir: %0.2f degrees", ms2mph( frame->windSpeedMs ), frame->windDirection );
+        outgoingFrame->windSpeedMs = frame->windSpeedMs;
+        outgoingFrame->windDirection = frame->windDirection;
+    }
+
+    if( frame->flags & kDataFlag_gust )
+    {
+        trace( ", gust: %0.2f mph", ms2mph( frame->windGustMs ) );
+        outgoingFrame->windGustMs = frame->windGustMs;
+    }
+
+    if( frame->flags & kDataFlag_rain )
+    {
+        trace( ", rain: %g", frame->rain );
+        outgoingFrame->rain = frame->rain;
+    }
+
+    if( frame->flags & kDataFlag_intTemp )
+    {
+        trace( ", int temp: %0.2f°F", c2f( frame->intTempC - s_localTempErrorC ) );
+        outgoingFrame->intTempC = frame->intTempC;
+    }
+
+    if( frame->flags & kDataFlag_pressure )
+    {
+        trace( ", pressure: %g InHg", (frame->pressure * millibar2inchHg) + s_localOffsetInHg );
+        outgoingFrame->pressure = frame->pressure;
+    }
+    
+    if( frame->flags & kDataFlag_airQuality )
+    {
+        trace( "          pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", frame->pm10_standard, frame->pm10_env, frame->pm25_standard, frame->pm25_env, frame->pm100_standard, frame->pm100_env, frame->particles_03um, frame->particles_05um, frame->particles_10um, frame->particles_25um, frame->particles_50um, frame->particles_100um );
+        outgoingFrame->pm10_standard   = frame->pm10_standard;
+        outgoingFrame->pm10_env        = frame->pm10_env;
+        outgoingFrame->pm25_standard   = frame->pm25_standard;
+        outgoingFrame->pm25_env        = frame->pm25_env;
+        outgoingFrame->pm100_standard  = frame->pm100_standard;
+        outgoingFrame->pm100_env       = frame->pm100_env;
+        outgoingFrame->particles_03um  = frame->particles_03um;
+        outgoingFrame->particles_05um  = frame->particles_05um;
+        outgoingFrame->particles_10um  = frame->particles_10um;
+        outgoingFrame->particles_25um  = frame->particles_25um;
+        outgoingFrame->particles_50um  = frame->particles_50um;
+        outgoingFrame->particles_100um = frame->particles_100um;
+    }
+
+    trace( "\n" );
+    printFullWeather( outgoingFrame, minFrame, maxFrame, aveFrame );
+
+    // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
+    // and at least 5 minutes has passed...
+    *receivedFlags |= frame->flags;
+    
+    uint8_t dataMask = kDataFlag_allMask;
+    if( s_test_mode )
+        dataMask = 0x1F; // this is just the data from the radio with no additional sensor data
+        
+    if( (*receivedFlags & dataMask) == dataMask )
+    {
+        // set the startup time to right now so that when we startup we don't send all the messages at the same time - do this only once, first time we get full weather message
+        if( !s_startupTime )
+            s_startupTime = timeGetTimeSec();
+
+        // this is where we record the data to disk FILO up to our longest window (10 minutes).
+        wxlog_frame( outgoingFrame );
+        
+        time_t current = timeGetTimeSec();
+        
+        if( current > s_lastSendTime + kSendInterval )
+        {
+            if( wxlog_get_wx_averages( outgoingFrame ) )
+                transmit_wx_frame( outgoingFrame );
+            else
+                transmit_wx_data( minFrame, maxFrame, aveFrame );
+            
+            s_lastSendTime = timeGetTimeSec();
+        }
+
+        if( (current > s_lastTelemetryTime + kSendInterval) && (current - s_startupTime > kTelemDelaySecs ) )
+        {
+            if( wxlog_get_wx_averages( outgoingFrame ) )
+                transmit_air_data( outgoingFrame );
+            else
+                transmit_air_data( aveFrame );
+            
+            s_lastTelemetryTime = timeGetTimeSec();
+        }
+        
+        if( (current > s_lastStatusTime + kStatusInterval) && (current - s_startupTime > kStatusDelaySecs) )
+        {
+            if( wxlog_get_wx_averages( outgoingFrame ) )
+                transmit_status( outgoingFrame );
+            else
+                transmit_status( aveFrame );
+
+            s_lastStatusTime = timeGetTimeSec();
+        }
+    }
+}
+
+
+
 #pragma mark -
 
 
@@ -1006,142 +1145,22 @@ int main( int argc, const char * argv[] )
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
         {
-            uint8_t crc = frame.CRC; // we need this before setting to zero to run CRC over frame to check it (original CRC is run with this set to zero, must match)
-            frame.CRC = 0;
-            frame.CRC = calculate_crc( (uint8_t*)&frame, sizeof( Frame ) );
-            if( crc != frame.CRC )
-            {
-                log_error( " bad CRC on incoming wx sensor data 0x%x != 0x%x\n", crc, frame.CRC );
-                frame.flags = 0; // knock out all data as invalid
-            }
-
-            // doing this first allows us to turn off flags for bad measurements so this code skips them too-
-            updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
-            
-            // reset the wind gusts each time through here so that it doesn't stick to extra frames before we get another gust message
-            wxFrame.windGustMs = 0;
-            
-#ifdef TRACE_INCOMING_WX
-            printTime( false );
-#endif
-            trace( " station_id: 0x%x", frame.station_id );
-            
-            // read flags
-            if( frame.flags & kDataFlag_temp )
-            {
-                trace( ", temp: %0.2f°F", c2f( frame.tempC ) );
-                wxFrame.tempC = frame.tempC;
-            }
-
-            if( frame.flags & kDataFlag_humidity )
-            {
-                trace( ", humidity: %d%%", frame.humidity );
-                wxFrame.humidity = frame.humidity;
-            }
-
-            if( frame.flags & kDataFlag_wind )
-            {
-                trace( ", wind: %0.2f mph, dir: %0.2f degrees", ms2mph( frame.windSpeedMs ), frame.windDirection );
-                wxFrame.windSpeedMs = frame.windSpeedMs;
-                wxFrame.windDirection = frame.windDirection;
-            }
-
-            if( frame.flags & kDataFlag_gust )
-            {
-                trace( ", gust: %0.2f mph", ms2mph( frame.windGustMs ) );
-                wxFrame.windGustMs = frame.windGustMs;
-            }
-
-            if( frame.flags & kDataFlag_rain )
-            {
-                trace( ", rain: %g", frame.rain );
-                wxFrame.rain = frame.rain;
-            }
-
-            if( frame.flags & kDataFlag_intTemp )
-            {
-                trace( ", int temp: %0.2f°F", c2f( frame.intTempC - s_localTempErrorC ) );
-                wxFrame.intTempC = frame.intTempC;
-            }
-
-            if( frame.flags & kDataFlag_pressure )
-            {
-                trace( ", pressure: %g InHg", (frame.pressure * millibar2inchHg) + s_localOffsetInHg );
-                wxFrame.pressure = frame.pressure;
-            }
-            
-            if( frame.flags & kDataFlag_airQuality )
-            {
-                trace( "          pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", frame.pm10_standard, frame.pm10_env, frame.pm25_standard, frame.pm25_env, frame.pm100_standard, frame.pm100_env, frame.particles_03um, frame.particles_05um, frame.particles_10um, frame.particles_25um, frame.particles_50um, frame.particles_100um );
-                wxFrame.pm10_standard = frame.pm10_standard;
-                wxFrame.pm10_env = frame.pm10_env;
-                wxFrame.pm25_standard = frame.pm25_standard;
-                wxFrame.pm25_env = frame.pm25_env;
-                wxFrame.pm100_standard = frame.pm100_standard;
-                wxFrame.pm100_env = frame.pm100_env;
-                wxFrame.particles_03um = frame.particles_03um;
-                wxFrame.particles_05um = frame.particles_05um;
-                wxFrame.particles_10um = frame.particles_10um;
-                wxFrame.particles_25um = frame.particles_25um;
-                wxFrame.particles_50um = frame.particles_50um;
-                wxFrame.particles_100um = frame.particles_100um;
-            }
-
-            trace( "\n" );
-            printFullWeather( &wxFrame, &minFrame, &maxFrame, &aveFrame );
-
-            // ok keep track of all the weather data we received, lets only send a packet once we have all the weather data
-            // and at least 5 minutes has passed...
-            receivedFlags |= frame.flags;
-            
-            uint8_t dataMask = kDataFlag_allMask;
-            if( s_test_mode )
-                dataMask = 0x1F; // this is just the data from the radio with no additional sensor data
-                
-            if( (receivedFlags & dataMask) == dataMask )
-            {
-                // set the startup time to right now so that when we startup we don't send all the messages at the same time - do this only once, first time we get full weather message
-                if( !s_startupTime )
-                    s_startupTime = timeGetTimeSec();
-
-                // this is where we record the data to disk FILO up to our longest window (10 minutes).
-                wxlog_frame( &wxFrame );
-                
-                time_t current = timeGetTimeSec();
-                
-                if( current > s_lastSendTime + kSendInterval )
-                {
-                    if( wxlog_get_wx_averages( &wxFrame ) )
-                        transmit_wx_frame( &wxFrame );
-                    else
-                        transmit_wx_data( &minFrame, &maxFrame, &aveFrame );
-                    
-                    s_lastSendTime = timeGetTimeSec();
-                }
-
-                if( (current > s_lastTelemetryTime + kSendInterval) && (current - s_startupTime > kTelemDelaySecs ) )
-                {
-                    if( wxlog_get_wx_averages( &wxFrame ) )
-                        transmit_air_data( &wxFrame );
-                    else
-                        transmit_air_data( &aveFrame );
-                    
-                    s_lastTelemetryTime = timeGetTimeSec();
-                }
-                
-                if( (current > s_lastStatusTime + kStatusInterval) && (current - s_startupTime > kStatusDelaySecs) )
-                {
-                    if( wxlog_get_wx_averages( &wxFrame ) )
-                        transmit_status( &wxFrame );
-                    else
-                        transmit_status( &aveFrame );
-
-                    s_lastStatusTime = timeGetTimeSec();
-                }
-            }
+            process_wx_frame( &frame, &minFrame, &maxFrame, &aveFrame, &wxFrame, &receivedFlags );
         }
         else if( result )
-            log_error( " bad frame size on incoming wx sensor data %d != %d\n", result, sizeof( frame )  );
+        {
+            log_error( " partial incoming wx sensor data %d (%d)\n", result, sizeof( frame )  );
+
+            // we most likely we have a partially transmitted frame, try to do another read now to get the remainder
+            sleep( 1 );
+            uint8_t* partialFrame = (uint8_t*)&frame;
+            uint8_t  lastRead = result;
+            result = read( fd, &partialFrame[lastRead], sizeof( frame ) - lastRead );
+            if( result + lastRead == sizeof( frame ) )
+                process_wx_frame( &frame, &minFrame, &maxFrame, &aveFrame, &wxFrame, &receivedFlags );
+            else
+                log_error( " bad frame size on incoming wx sensor data %d != %d\n", result, sizeof( frame )  );
+        }
         
         sleep( 1 );
     }
