@@ -530,7 +530,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( windGustMph > kWindHighBar || windGustMph < kWindLowBar )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-            log_error( " wind gust out of range[%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
+            log_error( " wind gust out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
             data->flags &= ~kDataFlag_gust;
             frameOk = false;
         }
@@ -541,7 +541,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             if( fabs( windGustMph - ms2mph( max->windGustMs ) ) > kWindTemporalLimit )
             {
                 // blow off this entire frame of data- it's probably all wrong
-                log_error( " gust temporal check failed[%0.2f°]: %0.2f, last max: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, ms2mph( max->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
+                log_error( " gust temporal check failed [%0.2f°]: %0.2f, last max: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, ms2mph( max->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
                 data->flags &= ~kDataFlag_gust;
                 frameOk = false;
             }
