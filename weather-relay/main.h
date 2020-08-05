@@ -39,12 +39,14 @@
 #define kTelemDelaySecs     15  // 15 seconds after weather tx - used to stagger messages so they don't pile up on each other
 #define kStatusDelaySecs    30
 
-#define kTempLowBar      -60.0f
-#define kTempHighBar     130.0f
-#define kHumidityLowBar  0
-#define kHumidityHighBar 100
-#define kWindLowBar      0
-#define kWindHighBar     100
+#define kTempLowBar         -60.0f
+#define kTempHighBar        130.0f
+#define kTempTemporalLimit  35.0f // °F -- !!@ these are supposed to be over an hour but we only really keep about 10 minutes of data
+#define kHumidityLowBar     0
+#define kHumidityHighBar    100
+#define kWindLowBar         0
+#define kWindHighBar        100
+#define kWindTemporalLimit  17.39130 // this is 20 knots in mph -- !!@ see note above about temporal being 10 minutes instead of hour.
 
 
 //-----------------------------------------------------------------------------------------------------------------------------
