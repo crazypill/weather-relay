@@ -106,9 +106,9 @@ static sig_atomic_t s_queue_busy = 0;
 static sig_atomic_t s_queue_num  = 0;
 static const char*  s_queue[kMaxQueueItems] = {};        // these are packets waiting to be dispatched
 
-static sig_atomic_t s_error_queue_busy = 0;
-static sig_atomic_t s_error_queue_num  = 0;
-static const char*  s_error_queue[kMaxQueueItems] = {};  // these are packets that failed to send after already being queued for later send.  These will get requeued later...
+//static sig_atomic_t s_error_bucket_busy = 0;
+//static sig_atomic_t s_error_bucket_num  = 0;
+//static const char*  s_error_bucket[kMaxQueueItems] = {};  // these are packets that failed to send after already being queued for later send.  These will get requeued later...
 
 static wx_thread_return_t sendToRadio_thread_entry( void* args );
 static wx_thread_return_t sendToRadioWIDE_thread_entry( void* args );
@@ -135,7 +135,7 @@ static void        queue_packet( const char* packetData );
 static const char* queue_get_next_packet( void );
 
 static void        queue_error_packet( const char* packetData );
-static const char* error_queue_get_next_packet( void );
+//static const char* error_bucket_get_next_packet( void );
 
 
 #pragma mark -
@@ -314,6 +314,33 @@ uint8_t imin( uint8_t a, uint8_t b )
 
 
 #pragma mark -
+
+
+
+uint8_t update_crc( uint8_t res, uint8_t val )
+{
+    for( int i = 0; i < 8; i++ )
+    {
+        uint8_t tmp = (uint8_t)((res ^ val) & 0x80);
+        res <<= 1;
+        if( 0 != tmp )
+            res ^= 0x31;
+        val <<= 1;
+    }
+    return res;
+}
+
+
+uint8_t calculate_crc( uint8_t* data, uint8_t len )
+{
+    uint8_t res = 0;
+    for( int j = 0; j < len; j++ )
+    {
+        uint8_t val = data[j];
+        res = update_crc( res, val );
+    }
+    return res;
+}
 
 
 // we are using this to track down a strange bug with the wind data spiking once in a while...
@@ -979,6 +1006,15 @@ int main( int argc, const char * argv[] )
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
         {
+            uint8_t crc = frame.CRC; // we need this before setting to zero to run CRC over frame to check it (original CRC is run with this set to zero, must match)
+            frame.CRC = 0;
+            frame.CRC = calculate_crc( (uint8_t*)&frame, sizeof( Frame ) );
+            if( crc != frame.CRC )
+            {
+                log_error( " bad CRC on incoming wx sensor data 0x%x != 0x%x\n", crc, frame.CRC );
+                frame.flags = 0; // knock out all data as invalid
+            }
+
             // doing this first allows us to turn off flags for bad measurements so this code skips them too-
             updateStats( &frame, &minFrame, &maxFrame, &aveFrame );
             
@@ -1959,19 +1995,19 @@ void queue_packet( const char* packetData )
 
 void queue_error_packet( const char* packetData )
 {
-    if( s_error_queue_num >= kMaxQueueItems )
-    {
-        log_error( "error queue is full, dropping: %s\n", packetData );
-        return;
-    }
+//    if( s_error_bucket_num >= kMaxQueueItems )
+//    {
+//        log_error( "error queue is full, dropping: %s\n", packetData );
+//        return;
+//    }
     
     // avoid a memory leak until this is completely implemented... right now we don't have any direct evidence that we need this code at all
     log_error( "error bucket: dropping packet: %s\n", packetData );
     
-//    s_error_queue_busy = true;
+//    s_error_bucket_busy = true;
 //    const char* entry = copy_string( packetData );
-//    s_error_queue[s_error_queue_num++] = entry;
-//    s_error_queue_busy = false;
+//    s_error_bucket[s_error_bucket_num++] = entry;
+//    s_error_bucket_busy = false;
 //    log_error( "error queued: %s\n", entry );
 }
 
@@ -2006,35 +2042,35 @@ const char* queue_get_next_packet( void )
 }
 
 /*
-const char* error_queue_get_next_packet( void )
+const char* error_bucket_get_next_packet( void )
 {
-    if( !s_error_queue_num || s_error_queue_busy )
+    if( !s_error_bucket_num || s_error_bucket_busy )
     {
-        printf( "error_queue_get_next_packet queue busy!\n" );
+        printf( "error_bucket_get_next_packet queue busy!\n" );
         return NULL;
     }
 
-    if( !s_error_queue_num || s_error_queue_busy )
+    if( !s_error_bucket_num || s_error_bucket_busy )
     {
-        printf( "error_queue_get_next_packet queue busy!\n" );
+        printf( "error_bucket_get_next_packet queue busy!\n" );
         return NULL;
     }
     
-    s_error_queue_busy = true;
-    const char* result = s_error_queue[0];
+    s_error_bucket_busy = true;
+    const char* result = s_error_bucket[0];
     
-    --s_error_queue_num;
-    if( s_error_queue_num < 0 )
+    --s_error_bucket_num;
+    if( s_error_bucket_num < 0 )
     {
-        printf( "error_queue_get_next_packet underflow!\n" );
-        s_error_queue_num = 0;
+        printf( "error_bucket_get_next_packet underflow!\n" );
+        s_error_bucket_num = 0;
     }
 
     // now shift the entire list
     size_t queueSize = kMaxQueueItems;
-    memmove( &s_error_queue[0], &s_error_queue[1], queueSize * sizeof( const char* ) );
-    s_error_queue[queueSize] = NULL; // last item needs to be nulled out to be safe
-    s_error_queue_busy = false;
+    memmove( &s_error_bucket[0], &s_error_bucket[1], queueSize * sizeof( const char* ) );
+    s_error_bucket[queueSize] = NULL; // last item needs to be nulled out to be safe
+    s_error_bucket_busy = false;
     return result;
 }
 */
