@@ -1149,9 +1149,10 @@ int main( int argc, const char * argv[] )
         }
         else if( result )
         {
+#ifdef DEBUG
             log_error( " partial incoming wx sensor data %d (%d)\n", result, sizeof( frame )  );
-
-            // we most likely we have a partially transmitted frame, try to do another read now to get the remainder
+#endif
+            // we most likely have received a partially transmitted frame, try to do another read now to get the remainder of it
             sleep( 1 );
             uint8_t* partialFrame = (uint8_t*)&frame;
             uint8_t  lastRead = result;
