@@ -807,6 +807,13 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
 
         if( (current > s_lastTelemetryTime + kSendInterval) && (current - s_startupTime > kTelemDelaySecs ) )
         {
+            // just double check that we aren't sending something at exactly at the same time due to drift
+            if( s_lastSendTime == s_lastTelemetryTime + kSendInterval )
+            {
+                log_error( " snoozing to prevent sending telemetry exactly at same time as temp\n" );
+                sleep( 1 );
+            }
+            
             if( wxlog_get_wx_averages( outgoingFrame ) )
                 transmit_air_data( outgoingFrame );
             else
