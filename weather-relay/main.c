@@ -1140,6 +1140,9 @@ int main( int argc, const char * argv[] )
                 }
             }
         }
+        else
+            log_error( " bad frame size on incoming wx sensor data %d != %d\n", result, sizeof( frame )  );
+        
         sleep( 1 );
     }
     
