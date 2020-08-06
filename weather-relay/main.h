@@ -16,8 +16,6 @@
 // define this to see incoming weather data from weather sensors...
 //#define TRACE_INCOMING_WX
 //#define TRACE_STATS
-//#define DEBUG_PERIODS     // shortens the time we wait to test the code
-
 
 
 
@@ -50,21 +48,19 @@
 
 
 //-----------------------------------------------------------------------------------------------------------------------------
-#ifdef DEBUG_PERIODS
+
 // for debugging otherwise we spend a lifetime waiting for data to debug with...
-#define kSendInterval    30
-#define kParamsInterval  60
-#define kStatusInterval  60
+#define kSendInterval_debug    30
+#define kParamsInterval_debug  60
+#define kStatusInterval_debug  60
 
-#define kTempPeriod    15
-#define kIntTempPeriod 15
-#define kWindPeriod    20
-#define kGustPeriod    30
-#define kBaroPeriod    15
-#define kHumiPeriod    15
-#define kAirPeriod     15
-
-#else
+#define kTempPeriod_debug    15
+#define kIntTempPeriod_debug 15
+#define kWindPeriod_debug    20
+#define kGustPeriod_debug    30
+#define kBaroPeriod_debug    15
+#define kHumiPeriod_debug    15
+#define kAirPeriod_debug     15
 
 #define kSendInterval    60 * 5        // 5 minutes
 #define kParamsInterval  60 * 60 * 2   // every two hours
@@ -78,7 +74,6 @@
 #define kHumiPeriod    60
 #define kAirPeriod     60
 
-#endif
 //-----------------------------------------------------------------------------------------------------------------------------
 
 

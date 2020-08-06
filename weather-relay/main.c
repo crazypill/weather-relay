@@ -84,6 +84,20 @@ static float s_localTempErrorC = 2.033333333333333;
 
 static bool s_debug = false;
 
+
+static time_t s_sendInterval   = kSendInterval;
+static time_t s_paramsInterval = kParamsInterval;
+static time_t s_statusInterval = kStatusInterval;
+static time_t s_tempPeriod     = kTempPeriod;
+static time_t s_intTempPeriod  = kIntTempPeriod;
+static time_t s_windPeriod     = kWindPeriod;
+static time_t s_gustPeriod     = kGustPeriod;
+static time_t s_baroPeriod     = kBaroPeriod;
+static time_t s_humiPeriod     = kHumiPeriod;
+static time_t s_airPeriod      = kAirPeriod;
+
+
+
 static const char* s_logFilePath = NULL;
 static FILE*       s_logFile     = NULL;
 
@@ -400,7 +414,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( tempF < kTempLowBar || tempF > kTempHighBar )
         {
             // blow off this entire frame of data- it's probably all wrong
-            log_error( " temp out of range %0.2f°F, time left: %ld\n", tempF, kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
+            log_error( " temp out of range %0.2f°F, time left: %ld\n", tempF, s_tempPeriod - (timeGetTimeSec() - s_lastTempTime) );
             data->flags &= ~kDataFlag_temp;
             frameOk = false;
         }
@@ -413,13 +427,13 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             if( fabs( tempF - c2f( ave->tempC ) ) > kTempTemporalLimit )
             {
                 // blow off this entire frame of data- it's probably all wrong
-                log_error( " temperature temporal check failed: %0.2f°F, ave: %0.2f°F time left: %ld\n", tempF, c2f( ave->tempC ), kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
+                log_error( " temperature temporal check failed: %0.2f°F, ave: %0.2f°F time left: %ld\n", tempF, c2f( ave->tempC ), s_tempPeriod - (timeGetTimeSec() - s_lastTempTime) );
                 data->flags &= ~kDataFlag_temp;
                 frameOk = false;
             }
         }
         
-        if( timeGetTimeSec() > s_lastTempTime + kTempPeriod )
+        if( timeGetTimeSec() > s_lastTempTime + s_tempPeriod )
         {
             ave->tempC = 0;
             s_lastTempTime = timeGetTimeSec();
@@ -434,14 +448,14 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             ave->tempC = (data->tempC + ave->tempC) * 0.5f;
 #ifdef TRACE_STATS
             printTime( false );
-            stats( " temp average: %0.2f°F, time left: %ld\n", c2f( ave->tempC ), kTempPeriod - (timeGetTimeSec() - s_lastTempTime) );
+            stats( " temp average: %0.2f°F, time left: %ld\n", c2f( ave->tempC ), s_tempPeriod - (timeGetTimeSec() - s_lastTempTime) );
 #endif
         }
     }
 
     if( data->flags & kDataFlag_intTemp )
     {
-        if( timeGetTimeSec() > s_lastIntTempTime + kIntTempPeriod )
+        if( timeGetTimeSec() > s_lastIntTempTime + s_intTempPeriod )
         {
             ave->intTempC = 0;
             s_lastIntTempTime = timeGetTimeSec();
@@ -454,7 +468,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         ave->intTempC = (data->intTempC + ave->intTempC) * 0.5f;
 #ifdef TRACE_STATS
         printTime( false );
-        stats( " int temp average: %0.2f°F, time left: %ld\n", c2f( ave->intTempC ), kIntTempPeriod - (timeGetTimeSec() - s_lastIntTempTime) );
+        stats( " int temp average: %0.2f°F, time left: %ld\n", c2f( ave->intTempC ), s_intTempPeriod - (timeGetTimeSec() - s_lastIntTempTime) );
 #endif
     }
 
@@ -465,12 +479,12 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( data->humidity < kHumidityLowBar || data->humidity > kHumidityHighBar )
         {
             // blow off this entire frame of data- it's probably all wrong
-            log_error( " humidity out of range %d%%, time left: %ld\n", data->humidity, kHumiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
+            log_error( " humidity out of range %d%%, time left: %ld\n", data->humidity, s_humiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
             data->flags &= ~kDataFlag_humidity;
             frameOk = false;
         }
 
-        if( timeGetTimeSec() > s_lastHumiTime + kHumiPeriod )
+        if( timeGetTimeSec() > s_lastHumiTime + s_humiPeriod )
         {
             ave->humidity = 0;
             s_lastHumiTime = timeGetTimeSec();
@@ -484,7 +498,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             ave->humidity = (data->humidity + ave->humidity) / 2;
 #ifdef TRACE_STATS
             printTime( false );
-            stats( " humidity average: %d%%, time left: %ld\n", ave->humidity, kHumiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
+            stats( " humidity average: %d%%, time left: %ld\n", ave->humidity, s_humiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
 #endif
         }
     }
@@ -498,7 +512,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( (windSpeedMph > kWindHighBar) || (windSpeedMph < kWindLowBar) )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-            log_error( " wind speed out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
+            log_error( " wind speed out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, s_windPeriod - (timeGetTimeSec() - s_lastWindTime) );
             data->flags &= ~kDataFlag_wind;
             frameOk = false;
         }
@@ -506,7 +520,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( data->windDirection < 0 || data->windDirection > 360 )
         {
             // blow off this entire frame of data- it's probably all wrong
-            log_error( " wind direction out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
+            log_error( " wind direction out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, s_windPeriod - (timeGetTimeSec() - s_lastWindTime) );
             data->flags &= ~kDataFlag_wind;
             frameOk = false;
         }
@@ -517,13 +531,13 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             if( fabs( windSpeedMph - ms2mph( ave->windSpeedMs ) ) > kWindTemporalLimit )
             {
                 // blow off this entire frame of data- it's probably all wrong
-                log_error( " wind temporal check failed [%0.2f°]: %0.2f, ave: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, ms2mph( ave->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
+                log_error( " wind temporal check failed [%0.2f°]: %0.2f, ave: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, ms2mph( ave->windSpeedMs ), s_windPeriod - (timeGetTimeSec() - s_lastWindTime) );
                 data->flags &= ~kDataFlag_wind;
                 frameOk = false;
             }
         }
 
-        if( timeGetTimeSec() > s_lastWindTime + kWindPeriod )
+        if( timeGetTimeSec() > s_lastWindTime + s_windPeriod )
         {
             ave->windSpeedMs = 0;
             ave->windDirection = 0;
@@ -543,7 +557,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
 #ifdef TRACE_STATS
             printTime( false );
-            stats( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), kWindPeriod - (timeGetTimeSec() - s_lastWindTime) );
+            stats( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), s_windPeriod - (timeGetTimeSec() - s_lastWindTime) );
 #endif
         }
     }
@@ -558,7 +572,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         if( windGustMph > kWindHighBar || windGustMph < kWindLowBar )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-            log_error( " wind gust out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
+            log_error( " wind gust out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, s_gustPeriod - (timeGetTimeSec() - s_lastGustTime) );
             data->flags &= ~kDataFlag_gust;
             frameOk = false;
         }
@@ -569,14 +583,14 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             if( fabs( windGustMph - ms2mph( max->windGustMs ) ) > kWindTemporalLimit )
             {
                 // blow off this entire frame of data- it's probably all wrong
-                log_error( " gust temporal check failed [%0.2f°]: %0.2f, last max: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, ms2mph( max->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
+                log_error( " gust temporal check failed [%0.2f°]: %0.2f, last max: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, ms2mph( max->windGustMs ), s_gustPeriod - (timeGetTimeSec() - s_lastGustTime) );
                 data->flags &= ~kDataFlag_gust;
                 frameOk = false;
             }
         }
         
         // we create a 10 minute window of instantaneous gust measurements
-        if( timeGetTimeSec() > s_lastGustTime + kGustPeriod )
+        if( timeGetTimeSec() > s_lastGustTime + s_gustPeriod )
         {
             max->windGustMs = 0;
             s_lastGustTime = timeGetTimeSec();
@@ -587,14 +601,14 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             max->windGustMs = fmax( data->windGustMs, max->windGustMs );
 #ifdef TRACE_STATS
             printTime( false );
-            stats( " gust max: %0.2f mph, time left: %ld\n", ms2mph( max->windGustMs ), kGustPeriod - (timeGetTimeSec() - s_lastGustTime) );
+            stats( " gust max: %0.2f mph, time left: %ld\n", ms2mph( max->windGustMs ), s_gustPeriod - (timeGetTimeSec() - s_lastGustTime) );
 #endif
         }
     }
 
     if( data->flags & kDataFlag_pressure )
     {
-        if( timeGetTimeSec() > s_lastBaroTime + kBaroPeriod )
+        if( timeGetTimeSec() > s_lastBaroTime + s_baroPeriod )
         {
             min->pressure = 0;
             s_lastBaroTime = timeGetTimeSec();
@@ -607,14 +621,14 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         min->pressure = fmin( data->pressure, min->pressure );
 #ifdef TRACE_STATS
         printTime( false );
-        stats( " pressure min: %0.2f InHg, time left: %ld\n",(min->pressure * millibar2inchHg) + s_localOffsetInHg, kBaroPeriod - (timeGetTimeSec() - s_lastBaroTime) );
+        stats( " pressure min: %0.2f InHg, time left: %ld\n",(min->pressure * millibar2inchHg) + s_localOffsetInHg, s_baroPeriod - (timeGetTimeSec() - s_lastBaroTime) );
 #endif
     }
 
 
     if( data->flags & kDataFlag_airQuality )
     {
-        if( timeGetTimeSec() > s_lastAirTime + kAirPeriod )
+        if( timeGetTimeSec() > s_lastAirTime + s_airPeriod )
         {
             ave->pm10_standard = 0;
             ave->pm25_standard = 0;
@@ -796,7 +810,7 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
         
         time_t current = timeGetTimeSec();
         
-        if( current > s_lastWxTime + kSendInterval )
+        if( current > s_lastWxTime + s_sendInterval )
         {
             if( wxlog_get_wx_averages( outgoingFrame ) )
                 transmit_wx_frame( outgoingFrame );
@@ -806,7 +820,7 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
             s_lastWxTime = timeGetTimeSec();
         }
 
-        if( (current > s_lastTelemetryTime + kSendInterval) && (current - s_startupTime > kTelemDelaySecs ) )
+        if( (current > s_lastTelemetryTime + s_sendInterval) && (current - s_startupTime > kTelemDelaySecs ) )
         {
             // just double check that we aren't sending something at exactly at the same time due to drift
             if( s_lastSentTime == current )
@@ -823,7 +837,7 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
             s_lastTelemetryTime = timeGetTimeSec();
         }
         
-        if( (current > s_lastStatusTime + kStatusInterval) && (current - s_startupTime > kStatusDelaySecs) )
+        if( (current > s_lastStatusTime + s_statusInterval) && (current - s_startupTime > kStatusDelaySecs) )
         {
             // just double check that we aren't sending something at exactly at the same time due to drift
             if( s_lastSentTime == current )
@@ -977,6 +991,16 @@ void handle_command( int argc, const char * argv[] )
                 
             case 'x':
                 s_test_mode = true;
+                s_sendInterval   = kSendInterval_debug;
+                s_paramsInterval = kParamsInterval_debug;
+                s_statusInterval = kStatusInterval_debug;
+                s_tempPeriod     = kTempPeriod_debug;
+                s_intTempPeriod  = kIntTempPeriod_debug;
+                s_windPeriod     = kWindPeriod_debug;
+                s_gustPeriod     = kGustPeriod_debug;
+                s_baroPeriod     = kBaroPeriod_debug;
+                s_humiPeriod     = kHumiPeriod_debug;
+                s_airPeriod      = kAirPeriod_debug;
                 break;
         }
     }
@@ -1137,10 +1161,8 @@ int main( int argc, const char * argv[] )
 
     trace( "%s: reading from serial port: %s...\n\n", PROGRAM_NAME, s_port_device );
     
-    
-#ifdef DEBUG_PERIODS
-    printf( "WARNING using debug periods, packets will get sent very often!\n" );
-#endif
+    if( s_test_mode )
+        printf( "WARNING using debug periods, packets will get sent very often!\n" );
     
     // this holds all the min/max/averages
     Frame minFrame = {};
@@ -1409,7 +1431,7 @@ void transmit_air_data( const Frame* frame )
         s_sequence_num = 0;
     
     // we need to see if we ever sent the parameters, units and equations...
-    if( timeGetTimeSec() > s_lastParamsTime + kParamsInterval )
+    if( timeGetTimeSec() > s_lastParamsTime + s_paramsInterval )
     {
         sprintf( packetToSend, "%s>APRS,TCPIP*::%s :PARM.0.3um,0.5um,1.0um,2.5um,5.0um", kCallSign, kCallSign );
         if( s_debug )
@@ -1922,32 +1944,32 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
         time_t timeIndexSecs = current - s_wxlog[i].timeStampSecs;  // timestamps go in decreasing order
         
         // different data has different averaging windows or min/max windows - accumulate directly inside the wxFrame (except for air stuff which might not fit in 16 bits while accumulating)
-        if( timeIndexSecs < kTempPeriod )
+        if( timeIndexSecs < s_tempPeriod )
         {
             wxFrame->tempC += s_wxlog[i].frame.tempC;
             ++tempCount;
         }
 
-        if( timeIndexSecs < kIntTempPeriod )
+        if( timeIndexSecs < s_intTempPeriod )
         {
             wxFrame->intTempC += s_wxlog[i].frame.intTempC;
             ++intTempCount;
         }
 
-        if( timeIndexSecs < kHumiPeriod )
+        if( timeIndexSecs < s_humiPeriod )
         {
             humidity += s_wxlog[i].frame.humidity;
             ++humidityCount;
         }
 
-        if( timeIndexSecs < kWindPeriod )
+        if( timeIndexSecs < s_windPeriod )
         {
             wxFrame->windDirection += s_wxlog[i].frame.windDirection;
             wxFrame->windSpeedMs   += s_wxlog[i].frame.windSpeedMs;
             ++windCount;
         }
 
-        if( timeIndexSecs < kAirPeriod )
+        if( timeIndexSecs < s_airPeriod )
         {
             pm10_standard  += s_wxlog[i].frame.pm10_standard;
             pm25_standard  += s_wxlog[i].frame.pm25_standard;
@@ -1967,10 +1989,10 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
         }
         
         // these two don't have counts because they only do min/max
-        if( timeIndexSecs < kGustPeriod )
+        if( timeIndexSecs < s_gustPeriod )
             wxFrame->windGustMs = fmax( s_wxlog[i].frame.windGustMs, wxFrame->windGustMs );
 
-        if( timeIndexSecs < kBaroPeriod )
+        if( timeIndexSecs < s_baroPeriod )
             wxFrame->pressure = fmin( s_wxlog[i].frame.pressure, wxFrame->pressure );
     }
 
