@@ -63,7 +63,8 @@ typedef struct
 } wxrecord;
 
 
-static time_t s_lastSendTime      = 0;
+static time_t s_lastSentTime      = 0;
+static time_t s_lastWxTime        = 0;
 static time_t s_lastWindTime      = 0;
 static time_t s_lastGustTime      = 0;
 static time_t s_lastBaroTime      = 0;
@@ -795,22 +796,22 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
         
         time_t current = timeGetTimeSec();
         
-        if( current > s_lastSendTime + kSendInterval )
+        if( current > s_lastWxTime + kSendInterval )
         {
             if( wxlog_get_wx_averages( outgoingFrame ) )
                 transmit_wx_frame( outgoingFrame );
             else
                 transmit_wx_data( minFrame, maxFrame, aveFrame );
             
-            s_lastSendTime = timeGetTimeSec();
+            s_lastWxTime = timeGetTimeSec();
         }
 
         if( (current > s_lastTelemetryTime + kSendInterval) && (current - s_startupTime > kTelemDelaySecs ) )
         {
             // just double check that we aren't sending something at exactly at the same time due to drift
-            if( s_lastSendTime == s_lastTelemetryTime + kSendInterval )
+            if( s_lastSentTime == current )
             {
-                log_error( " snoozing to prevent sending telemetry exactly at same time as temp\n" );
+                log_error( " snoozing to prevent sending telemetry exactly at same time as previous send\n" );
                 sleep( 1 );
             }
             
@@ -824,6 +825,13 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
         
         if( (current > s_lastStatusTime + kStatusInterval) && (current - s_startupTime > kStatusDelaySecs) )
         {
+            // just double check that we aren't sending something at exactly at the same time due to drift
+            if( s_lastSentTime == current )
+            {
+                log_error( " snoozing to prevent sending status exactly at same time as previous send\n" );
+                sleep( 1 );
+            }
+
             if( wxlog_get_wx_averages( outgoingFrame ) )
                 transmit_status( outgoingFrame );
             else
@@ -1380,6 +1388,8 @@ void transmit_wx_frame( const Frame* frame )
     }
     else
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) ); // send locally to me path is to TCPIP so don't get repeated
+    
+    s_lastSentTime = timeGetTimeSec();
 }
 
 
@@ -1451,6 +1461,8 @@ void transmit_air_data( const Frame* frame )
             fclose( s_seqFile );
         }
     }
+
+    s_lastSentTime = timeGetTimeSec();
 }
 
 
@@ -1474,6 +1486,8 @@ void transmit_status( const Frame* frame )
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
     wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+
+    s_lastSentTime = timeGetTimeSec();
 }
 
 
