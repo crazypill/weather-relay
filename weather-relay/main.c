@@ -139,6 +139,8 @@ static void transmit_air_data( const Frame* frame );
 static void transmit_status( const Frame* frame );
 static bool validate_wx_frame( const Frame* frame );
 
+static void print_wx_for_www( const Frame* frame );
+
 static bool wxlog_startup( void );
 static bool wxlog_shutdown( void );
 static bool wxlog_frame( const Frame* wxFrame );
@@ -400,6 +402,27 @@ bool validate_wx_frame( const Frame* frame )
 
     return true;
 }
+
+
+
+void print_wx_for_www( const Frame* frame )
+{
+//    snprintf( wx.windDirection, 4, "%03d", (int)(round(frame->windDirection)) );
+//    snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame->windSpeedMs))) );
+//    snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(frame->windGustMs))) );
+
+    FILE* www_file = fopen( "/var/www/html/wx.html", "w" ); // obviously only will work on RPi with Apache running...
+    if( www_file )
+    {
+        fprintf( www_file, "Temp: %d F, H: %d%%, %.2f InHg\n", (int)(round(c2f(frame->tempC))), frame->humidity, frame->pressure * millibar2inchHg );
+        fclose( www_file );
+    }
+}
+
+
+
+#pragma mark -
+
 
 
 // this does a few things, it averages data until we have enough history to do it properly.
@@ -1399,6 +1422,8 @@ void transmit_wx_frame( const Frame* frame )
     if( s_debug )
         printf( "%s\n\n", packetToSend );
 
+    print_wx_for_www( frame );
+
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
 
@@ -1410,6 +1435,7 @@ void transmit_wx_frame( const Frame* frame )
     }
     else
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) ); // send locally to me path is to TCPIP so don't get repeated
+    
     
     s_lastSentTime = timeGetTimeSec();
 }
