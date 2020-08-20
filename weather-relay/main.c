@@ -414,7 +414,7 @@ void print_wx_for_www( const Frame* frame )
     FILE* www_file = fopen( "/var/www/html/wx.html", "w" ); // obviously only will work on RPi with Apache running...
     if( www_file )
     {
-        fprintf( www_file, "Temp: %dF H: %3d%%       %.2f InHg\n", (int)(round(c2f(frame->tempC))), frame->humidity, frame->pressure * millibar2inchHg ); // this will change, just having fun!!@
+        fprintf( www_file, "Temp:%3d*F H:%3d%%       %.2f InHg\n", (int)(round(c2f(frame->tempC))), frame->humidity, frame->pressure * millibar2inchHg ); // this will change, just having fun!!@
         fclose( www_file );
     }
 }
