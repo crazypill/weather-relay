@@ -414,7 +414,14 @@ void print_wx_for_www( const Frame* frame )
     FILE* www_file = fopen( "/var/www/html/wx.html", "w" ); // obviously only will work on RPi with Apache running...
     if( www_file )
     {
-        fprintf( www_file, "Temp:%3d*F H:%3d%%       %.2f InHg\n", (int)(round(c2f(frame->tempC))), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg ); // this will change, just having fun!!@
+//        fprintf( www_file, "Temp:%3d*F H:%3d%%       %.2f InHg\n", (int)(round(c2f(frame->tempC))), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg ); // this will change, just having fun!!@
+        // time, temp, humidity, pressure, wind direction, wind, gust
+
+//        time_t t = time(NULL);
+//        struct tm tm = *localtime(&t);
+//        fprintf( s_logFile, "%d-%02d-%02d %02d:%02d:%02d: %s", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, buf );
+
+        fprintf( www_file, "%s, %g, %d, %g, %g, %g, %g\n", "5:10 PM", c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ) );
         fclose( www_file );
     }
 }
