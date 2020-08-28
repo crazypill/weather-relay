@@ -54,6 +54,7 @@
 #define kMaxQueueItems         32
 #define kLogRollInterval       60 * 60 * 24   // (roll the log daily)
 #define kWxWideInterval        60 * 15        // send our weather out to WIDE2-1 every quarter hour
+#define kTelemetryWideInterval 60 * 15        // send our telemetry out to WIDE2-1 every quarter hour
 
 
 typedef struct
@@ -78,6 +79,8 @@ static time_t s_lastStatusTime    = 0;
 static time_t s_startupTime       = 0;
 static time_t s_last_log_roll     = 0;
 static time_t s_lastWxWideTime    = 0;
+static time_t s_lastTelemetryWideTime = 0;
+
 
 static float s_localOffsetInHg = 0.33f;
 static float s_localTempErrorC = 2.033333333333333;
@@ -1459,6 +1462,7 @@ void transmit_air_data( const Frame* frame )
         s_sequence_num = 0;
     
     // we need to see if we ever sent the parameters, units and equations...
+    // these never go out over wide...
     if( timeGetTimeSec() > s_lastParamsTime + s_paramsInterval )
     {
         sprintf( packetToSend, "%s>APRS,TCPIP*::%s :PARM.0.3um,0.5um,1.0um,2.5um,5.0um", kCallSign, kCallSign );
@@ -1498,7 +1502,15 @@ void transmit_air_data( const Frame* frame )
 
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
-    wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+    
+    if( timeGetTimeSec() > s_lastTelemetryWideTime + kTelemetryWideInterval )
+    {
+        // send packet over WIDE2-1 as well maybe every once in a while
+        wx_create_thread_detached( sendToRadioWIDE_thread_entry, copy_string( packetToSend ) );
+        s_lastTelemetryWideTime = timeGetTimeSec();
+    }
+    else
+        wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
     
     if( s_seqFilePath )
     {
