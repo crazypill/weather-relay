@@ -1529,7 +1529,7 @@ void transmit_status( const Frame* frame )
     
     time_t     t   = time( NULL );
     struct tm* now = gmtime(&t);  // APRS uses GMT
-    sprintf( packetToSend, "%s>APRS,TCPIP*:>%.2d%.2d%.2dzwx-relay temp %0.2fF", kCallSign, now->tm_mday, now->tm_hour, now->tm_min, c2f( frame->intTempC - s_localTempErrorC ) );
+    sprintf( packetToSend, "%s>APRS,TCPIP*:>%.2d%.2d%.2dzwx-relay %0.2fF", kCallSign, now->tm_mday, now->tm_hour, now->tm_min, c2f( frame->intTempC - s_localTempErrorC ) );
     if( s_debug )
         printf( "%s\n\n", packetToSend );
 
