@@ -447,14 +447,18 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             frameOk = false;
         }
         
-        // look at the average temp and see if the current temp is greater than 35°F/hr
-        // !!@ we skip the per hour part and just look to see if any entry is that much different than the one before it...
-        if( frameOk && (fabs( tempF - c2f( ave->tempC ) ) > kTempTemporalLimit) )
+        // do temporal check now
+        if( ave->tempC )
         {
-            // blow off this entire frame of data- it's probably all wrong
-            log_error( " temperature temporal check failed: %0.2f°F, ave: %0.2f°F time left: %ld\n", tempF, c2f( ave->tempC ), s_tempPeriod - (timeGetTimeSec() - s_lastTempTime) );
-            data->flags &= ~kDataFlag_temp;
-            frameOk = false;
+            // look at the average temp and see if the current temp is greater than 35°F/hr
+            // !!@ we skip the per hour part and just look to see if any entry is that much different than the one before it...
+            if( fabs( tempF - c2f( ave->tempC ) ) > kTempTemporalLimit )
+            {
+                // blow off this entire frame of data- it's probably all wrong
+                log_error( " temperature temporal check failed: %0.2f°F, ave: %0.2f°F time left: %ld\n", tempF, c2f( ave->tempC ), s_tempPeriod - (timeGetTimeSec() - s_lastTempTime) );
+                data->flags &= ~kDataFlag_temp;
+                frameOk = false;
+            }
         }
         
         if( timeGetTimeSec() > s_lastTempTime + s_tempPeriod )
