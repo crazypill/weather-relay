@@ -536,7 +536,8 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     {
         bool frameOk = true;
         float windSpeedMph = ms2mph( data->windSpeedMs );
-        
+        float aveWindMph   = ms2mph( ave->windSpeedMs );
+
         if( (windSpeedMph > kWindHighBar) || (windSpeedMph < kWindLowBar) )
         {
             // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
@@ -555,10 +556,10 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         }
 
         // do wind temporal check now
-        if( frameOk && (fabs( windSpeedMph - ms2mph( ave->windSpeedMs ) ) > kWindTemporalLimit) )
+        if( frameOk && (fabs( windSpeedMph - aveWindMph ) > kWindTemporalLimit) )
         {
             // blow off this entire frame of data- it's probably all wrong
-            log_error( " wind temporal check failed [%0.2f°]: %0.2f, ave: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, ms2mph( ave->windSpeedMs ), s_windPeriod - (timeGetTimeSec() - s_lastWindTime) );
+            log_error( " wind temporal check failed [%0.2f°]: %0.2f, ave: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, aveWindMph, s_windPeriod - (timeGetTimeSec() - s_lastWindTime) );
             data->flags &= ~kDataFlag_wind;
             frameOk = false;
         }
