@@ -447,18 +447,14 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             frameOk = false;
         }
         
-        // do temporal check now
-        if( ave->tempC )
+        // look at the average temp and see if the current temp is greater than 35°F/hr
+        // !!@ we skip the per hour part and just look to see if any entry is that much different than the one before it...
+        if( frameOk && (fabs( tempF - c2f( ave->tempC ) ) > kTempTemporalLimit) )
         {
-            // look at the average temp and see if the current temp is greater than 35°F/hr
-            // !!@ we skip the per hour part and just look to see if any entry is that much different than the one before it...
-            if( fabs( tempF - c2f( ave->tempC ) ) > kTempTemporalLimit )
-            {
-                // blow off this entire frame of data- it's probably all wrong
-                log_error( " temperature temporal check failed: %0.2f°F, ave: %0.2f°F time left: %ld\n", tempF, c2f( ave->tempC ), s_tempPeriod - (timeGetTimeSec() - s_lastTempTime) );
-                data->flags &= ~kDataFlag_temp;
-                frameOk = false;
-            }
+            // blow off this entire frame of data- it's probably all wrong
+            log_error( " temperature temporal check failed: %0.2f°F, ave: %0.2f°F time left: %ld\n", tempF, c2f( ave->tempC ), s_tempPeriod - (timeGetTimeSec() - s_lastTempTime) );
+            data->flags &= ~kDataFlag_temp;
+            frameOk = false;
         }
         
         if( timeGetTimeSec() > s_lastTempTime + s_tempPeriod )
@@ -544,8 +540,9 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             data->flags &= ~kDataFlag_wind;
             frameOk = false;
         }
-
-        if( data->windDirection < 0 || data->windDirection > 360 )
+        
+        // check frameOk each time so we don't spew more than one error-  it's not relevant
+        if( frameOk && (data->windDirection < 0 || data->windDirection > 360) )
         {
             // blow off this entire frame of data- it's probably all wrong
             log_error( " wind direction out of range [%0.2f°]: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, s_windPeriod - (timeGetTimeSec() - s_lastWindTime) );
@@ -554,15 +551,12 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         }
 
         // do wind temporal check now
-        if( ave->windSpeedMs )
+        if( frameOk && (fabs( windSpeedMph - ms2mph( ave->windSpeedMs ) ) > kWindTemporalLimit) )
         {
-            if( fabs( windSpeedMph - ms2mph( ave->windSpeedMs ) ) > kWindTemporalLimit )
-            {
-                // blow off this entire frame of data- it's probably all wrong
-                log_error( " wind temporal check failed [%0.2f°]: %0.2f, ave: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, ms2mph( ave->windSpeedMs ), s_windPeriod - (timeGetTimeSec() - s_lastWindTime) );
-                data->flags &= ~kDataFlag_wind;
-                frameOk = false;
-            }
+            // blow off this entire frame of data- it's probably all wrong
+            log_error( " wind temporal check failed [%0.2f°]: %0.2f, ave: %0.2f mph, time left: %ld\n", data->windDirection, windSpeedMph, ms2mph( ave->windSpeedMs ), s_windPeriod - (timeGetTimeSec() - s_lastWindTime) );
+            data->flags &= ~kDataFlag_wind;
+            frameOk = false;
         }
 
         if( timeGetTimeSec() > s_lastWindTime + s_windPeriod )
@@ -606,15 +600,12 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         }
 
         // do gust temporal check now
-        if( frameOk )
+        if( frameOk && (fabs( windGustMph - ms2mph( max->windGustMs ) ) > kWindTemporalLimit) )
         {
-            if( fabs( windGustMph - ms2mph( max->windGustMs ) ) > kWindTemporalLimit )
-            {
-                // blow off this entire frame of data- it's probably all wrong
-                log_error( " gust temporal check failed [%0.2f°]: %0.2f, last max: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, ms2mph( max->windGustMs ), s_gustPeriod - (timeGetTimeSec() - s_lastGustTime) );
-                data->flags &= ~kDataFlag_gust;
-                frameOk = false;
-            }
+            // blow off this entire frame of data- it's probably all wrong
+            log_error( " gust temporal check failed [%0.2f°]: %0.2f, last max: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, ms2mph( max->windGustMs ), s_gustPeriod - (timeGetTimeSec() - s_lastGustTime) );
+            data->flags &= ~kDataFlag_gust;
+            frameOk = false;
         }
         
         // we create a 10 minute window of instantaneous gust measurements
