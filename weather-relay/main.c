@@ -419,7 +419,20 @@ void print_wx_for_www( const Frame* frame )
     {
         time_t t = time( NULL );
         struct tm tm = *localtime( &t );
-        fprintf( www_file, "%02d:%02d:%02d, %g, %d, %g, %g, %g, %g\n", tm.tm_hour, tm.tm_min, tm.tm_sec, c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ) );
+        fprintf( www_file, "%02d:%02d:%02d, %g, %d, %g, %g, %g, %g, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", tm.tm_hour, tm.tm_min, tm.tm_sec, c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ),
+                frame->pm10_standard,       // Standard PM1.0
+                frame->pm25_standard,       // Standard PM2.5
+                frame->pm100_standard,      // Standard PM10.0
+                frame->pm10_env,            // Environmental PM1.0
+                frame->pm25_env,            // Environmental PM2.5
+                frame->pm100_env,           // Environmental PM10.0
+                frame->particles_03um,      // 0.3um Particle Count
+                frame->particles_05um,      // 0.5um Particle Count
+                frame->particles_10um,      // 1.0um Particle Count
+                frame->particles_25um,      // 2.5um Particle Count
+                frame->particles_50um,      // 5.0um Particle Count
+                frame->particles_100um      // 10.0um Particle Count
+                );
         fclose( www_file );
     }
 }
