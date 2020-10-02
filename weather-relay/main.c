@@ -63,16 +63,6 @@ typedef struct
     Frame  frame;
 } wxrecord;
 
-typedef struct
-{
-  const char* category;
-  int   loAQI;
-  int   hiAQI;
-  float loBreak;
-  float hiBreak;
-} break_element_t;
-
-
 
 static time_t s_lastSentTime      = 0;
 static time_t s_lastWxTime        = 0;
@@ -169,44 +159,6 @@ static const char* queue_get_next_packet( void );
 static void        queue_error_packet( const char* packetData );
 //static const char* error_bucket_get_next_packet( void );
 
-
-#define kCatGood          "Good"
-#define kCatModerate      "Moderate"
-#define kCatUnhealthySens "Kinda Unhealthy"
-#define kCatUnhealthy     "Unhealthy"
-#define kCatVeryUnhealthy "Very Unhealthy"
-#define kCatHazardous     "Hazardous"
-#define kCatHazardous2    "Really Hazardous"
-#define kCatHazardous3    "HAZARDOUS!!"
-
-
-// obtained from here: https://aqs.epa.gov/aqsweb/documents/codetables/aqi_breakpoints.csv
-static const break_element_t s_break_list_pm25[] =
-{
-  { kCatGood,            0,  50,    0.0, 12.0    },
-  { kCatModerate,       51, 100,   12.1, 35.4    },
-  { kCatUnhealthySens, 101, 150,   35.5, 55.4    },
-  { kCatUnhealthy,     151, 200,   55.5, 150.4   },
-  { kCatVeryUnhealthy, 201, 300,  150.5, 250.4   },
-  { kCatHazardous,     301, 400,  250.5, 350.4   },
-  { kCatHazardous2,    401, 500,  350.5, 500.4   },
-  { kCatHazardous3,    501, 999,  500.5, 99999.9 }
-};
-
-static const int kNumBreaklistElements = 8;
-
-
-const break_element_t* concentrationToAQI( float concentration, const break_element_t breaklist[] )
-{
-    // look up the concentration
-    for( int i = 0; i < kNumBreaklistElements; i++ )
-    {
-        if( concentration >= breaklist[i].loBreak && concentration <= breaklist[i].hiBreak )
-            return &breaklist[i];
-    }
-    
-    return NULL;
-}
 
 
 #pragma mark -
@@ -465,13 +417,6 @@ void print_wx_for_www( const Frame* frame )
 //    snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame->windSpeedMs))) );
 //    snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(frame->windGustMs))) );
 
-    const break_element_t* entry = concentrationToAQI( s_last_aqi, s_break_list_pm25 );
-    
-    // now do the actual AQI calculation
-    float aqi = 0.0f;
-    if( entry )
-        aqi = (entry->hiAQI - entry->loAQI) / (entry->hiBreak - entry->loBreak) * (s_last_aqi - entry->loBreak) + entry->loAQI;
-    
     FILE* www_file = fopen( "/var/www/html/wx.html", "w" ); // obviously only will work on RPi with Apache running...
     if( www_file )
     {
@@ -490,7 +435,7 @@ void print_wx_for_www( const Frame* frame )
                 frame->particles_25um,      // 2.5um Particle Count
                 frame->particles_50um,      // 5.0um Particle Count
                 frame->particles_100um,     // 10.0um Particle Count
-                (int16_t)(aqi + 0.5f)       // PM2.5 AQI over 24hrs
+                s_last_aqi                  // PM2.5 over 24hrs - not an index yet
                 );
         fclose( www_file );
     }
