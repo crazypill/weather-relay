@@ -49,9 +49,9 @@
 #define kWidePath "WIDE2-1"
 #define kIGPath   "TCPIP*"
 
-#define kHistoryTimeout        60 * 2  // 2 minutes (to restart the app before the history rots)
-#define kMaxNumberOfRecords    200     // 10 minutes (600 seconds) we need 600 / 5 sec = 120 wxrecords minimum.  Let's round up to 200.
-#define kMaxQueueItems         32
+#define kHistoryTimeout        60 * 2         // 2 minutes (to restart the app before the history rots)
+#define kMaxNumberOfRecords    20000          // 24 hours (86400 seconds) we need 86400 / 5 sec = 17280 wxrecords minimum.  Let's round up to 20k.
+#define kMaxQueueItems         64
 #define kLogRollInterval       60 * 60 * 24   // (roll the log daily)
 #define kWxWideInterval        60 * 15        // send our weather out to WIDE2-1 every quarter hour
 #define kTelemetryWideInterval 60 * 15        // send our telemetry out to WIDE2-1 every quarter hour
@@ -98,6 +98,7 @@ static time_t s_gustPeriod     = kGustPeriod;
 static time_t s_baroPeriod     = kBaroPeriod;
 static time_t s_humiPeriod     = kHumiPeriod;
 static time_t s_airPeriod      = kAirPeriod;
+static time_t s_aqiPeriod      = kAQIPeriod;
 
 
 
@@ -119,6 +120,7 @@ static uint16_t    s_sequence_num = 0;
 static size_t      s_wx_count     = 0;
 static size_t      s_wx_size_secs = 0;
 static bool        s_test_mode    = false;
+static int16_t     s_last_aqi     = 0;
 
 static sig_atomic_t s_queue_busy = 0;
 static sig_atomic_t s_queue_num  = 0;
@@ -156,6 +158,70 @@ static const char* queue_get_next_packet( void );
 
 static void        queue_error_packet( const char* packetData );
 //static const char* error_bucket_get_next_packet( void );
+
+
+//RTC_DATA_ATTR size_t  rtc_graph_aqi_pm25_count = 0;
+//RTC_DATA_ATTR int16_t rtc_graph_aqi_pm25[kMaxAQIDataPoints] = {0};
+
+typedef struct
+{
+  const char* category;
+  int   loAQI;
+  int   hiAQI;
+  float loBreak;
+  float hiBreak;
+} break_element_t;
+
+static const char* const kCatGood          = "Good";
+static const char* const kCatModerate      = "Moderate";
+static const char* const kCatUnhealthySens = "Kinda Unhealthy";
+static const char* const kCatUnhealthy     = "Unhealthy";
+static const char* const kCatVeryUnhealthy = "Very Unhealthy";
+static const char* const kCatHazardous     = "Hazardous";
+static const char* const kCatHazardous2    = "Really Hazardous";
+static const char* const kCatHazardous3    = "HAZARDOUS!!";
+
+
+// obtained from here: https://aqs.epa.gov/aqsweb/documents/codetables/aqi_breakpoints.csv
+static const break_element_t s_break_list_pm10[] =
+{
+  { kCatGood,            0,  50,    0.0,  54.0   },
+  { kCatModerate,       51, 100,   55.0, 154.0   },
+  { kCatUnhealthySens, 101, 150,  155.0, 254.0   },
+  { kCatUnhealthy,     151, 200,  255.0, 354.0   },
+  { kCatVeryUnhealthy, 201, 300,  355.0, 424.0   },
+  { kCatHazardous,     301, 400,  425.0, 504.0   },
+  { kCatHazardous2,    401, 500,  505.0, 604.0   },
+  { kCatHazardous3,    501, 999,  605.0, 99999.0 }
+};
+
+
+static const break_element_t s_break_list_pm25[] =
+{
+  { kCatGood,            0,  50,    0.0, 12.0    },
+  { kCatModerate,       51, 100,   12.1, 35.4    },
+  { kCatUnhealthySens, 101, 150,   35.5, 55.4    },
+  { kCatUnhealthy,     151, 200,   55.5, 150.4   },
+  { kCatVeryUnhealthy, 201, 300,  150.5, 250.4   },
+  { kCatHazardous,     301, 400,  250.5, 350.4   },
+  { kCatHazardous2,    401, 500,  350.5, 500.4   },
+  { kCatHazardous3,    501, 999,  500.5, 99999.9 }
+};
+
+static const int kNumBreaklistElements = 8;
+
+
+const break_element_t* concentrationToAQI( float concentration, const break_element_t breaklist[] )
+{
+    // look up the concentration
+    for( int i = 0; i < kNumBreaklistElements; i++ )
+    {
+        if( concentration >= breaklist[i].loBreak && concentration <= breaklist[i].hiBreak )
+            return &breaklist[i];
+    }
+    
+    return NULL;
+}
 
 
 #pragma mark -
@@ -414,12 +480,19 @@ void print_wx_for_www( const Frame* frame )
 //    snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame->windSpeedMs))) );
 //    snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(frame->windGustMs))) );
 
+    const break_element_t* entry = concentrationToAQI( s_last_aqi, s_break_list_pm25 );
+    
+    // now do the actual AQI calculation
+    float aqi = 0.0f;
+    if( entry )
+        aqi = (entry->hiAQI - entry->loAQI) / (entry->hiBreak - entry->loBreak) * (s_last_aqi - entry->loBreak) + entry->loAQI;
+    
     FILE* www_file = fopen( "/var/www/html/wx.html", "w" ); // obviously only will work on RPi with Apache running...
     if( www_file )
     {
         time_t t = time( NULL );
         struct tm tm = *localtime( &t );
-        fprintf( www_file, "%02d:%02d:%02d, %g, %d, %g, %g, %g, %g, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", tm.tm_hour, tm.tm_min, tm.tm_sec, c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ),
+        fprintf( www_file, "%02d:%02d:%02d, %g, %d, %g, %g, %g, %g, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", tm.tm_hour, tm.tm_min, tm.tm_sec, c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ),
                 frame->pm10_standard,       // Standard PM1.0
                 frame->pm25_standard,       // Standard PM2.5
                 frame->pm100_standard,      // Standard PM10.0
@@ -431,7 +504,8 @@ void print_wx_for_www( const Frame* frame )
                 frame->particles_10um,      // 1.0um Particle Count
                 frame->particles_25um,      // 2.5um Particle Count
                 frame->particles_50um,      // 5.0um Particle Count
-                frame->particles_100um      // 10.0um Particle Count
+                frame->particles_100um,     // 10.0um Particle Count
+                (int16_t)(aqi + 0.5f)       // PM2.5 AQI over 24hrs
                 );
         fclose( www_file );
     }
@@ -1038,6 +1112,7 @@ void handle_command( int argc, const char * argv[] )
                 s_baroPeriod     = kBaroPeriod_debug;
                 s_humiPeriod     = kHumiPeriod_debug;
                 s_airPeriod      = kAirPeriod_debug;
+                s_aqiPeriod      = kAQIPeriod_debug;
                 break;
         }
     }
@@ -1966,6 +2041,7 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
     size_t windCount     = 0;
     size_t humidityCount = 0;
     size_t airCount      = 0;
+    size_t aqiCount      = 0;
     
     // accumulator for humidity
     uint32_t humidity = 0;
@@ -1983,6 +2059,8 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
     uint32_t particles_25um  = 0;
     uint32_t particles_50um  = 0;
     uint32_t particles_100um = 0;
+    uint32_t pm25_aqi       = 0;
+
     
     // start with really high pressure as we want the low of the period
     wxFrame->pressure = 2000; // that'll crush you
@@ -2036,6 +2114,13 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
             particles_100um += s_wxlog[i].frame.particles_100um;
             ++airCount;
         }
+
+        if( timeIndexSecs < s_aqiPeriod )
+        {
+            pm25_aqi += s_wxlog[i].frame.pm25_standard;
+            ++aqiCount;
+        }
+
         
         // these two don't have counts because they only do min/max
         if( timeIndexSecs < s_gustPeriod )
@@ -2051,6 +2136,8 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
 #endif
     
     // guard against divide by zero and also ensure we have an instantaneous value rather than zero if no average
+    if( !aqiCount )
+        aqiCount = 1;
     if( !airCount )
         airCount = 1;
     if( !tempCount )
@@ -2081,7 +2168,10 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
     wxFrame->particles_25um  = particles_25um / airCount;
     wxFrame->particles_50um  = particles_50um / airCount;
     wxFrame->particles_100um = particles_100um / airCount;
-
+    
+    // kinda a hack but I don't want to mess with the Frame struct size
+    s_last_aqi = pm25_aqi / aqiCount;
+    
 #ifdef TRACE_AVERAGES
     printCurrentWeather( wxFrame, false );
 #endif

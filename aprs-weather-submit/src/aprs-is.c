@@ -25,6 +25,7 @@ with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.html>.
 #include <strings.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/time.h>
 #include <sys/termios.h>
 #include <unistd.h>
 #include <stdint.h>

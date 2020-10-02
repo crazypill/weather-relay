@@ -61,6 +61,7 @@
 #define kBaroPeriod_debug    15
 #define kHumiPeriod_debug    15
 #define kAirPeriod_debug     15
+#define kAQIPeriod_debug     15
 
 #define kSendInterval    60 * 5        // 5 minutes
 #define kParamsInterval  60 * 60 * 2   // every two hours
@@ -73,11 +74,12 @@
 #define kBaroPeriod    60       // low for the minute period
 #define kHumiPeriod    60
 #define kAirPeriod     60
+#define kAQIPeriod     60 * 60 * 24
 
 //-----------------------------------------------------------------------------------------------------------------------------
 
 
-#define kLongestInterval kGustPeriod
+#define kLongestInterval kAQIPeriod
 
 #ifdef TRACE_INCOMING_WX
 #define trace printf

@@ -229,7 +229,7 @@ notNull (const char* const val)
  *                          (struct APRSPacket).
  * @param ret               A constant pointer to a string that will hold the
  *                          return value.
- * @param compressedPacket  The constant COMPRESSED_PACKET or UNCOMPRESSED_PACKET.
+ * @param compressPacket        The constant COMPRESSED_PACKET or UNCOMPRESSED_PACKET.
  * @param suppressUserAgent If !=0, don't put the Linux flag ('X') nor the app
  *                          name and version in the comment field.
  * @since 0.1
