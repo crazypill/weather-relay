@@ -868,10 +868,7 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
             if( wxlog_get_wx_averages( outgoingFrame ) )
                 transmit_wx_frame( outgoingFrame );
             else
-            {
-                s_last_aqi = s_average_aqi;
                 transmit_wx_data( minFrame, maxFrame, aveFrame );
-            }
             
             s_lastWxTime = timeGetTimeSec();
         }
@@ -1402,6 +1399,8 @@ void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame
     wx.particles_25um  = aveFrame->particles_25um;
     wx.particles_50um  = aveFrame->particles_50um;
     wx.particles_100um = aveFrame->particles_100um;
+
+    s_last_aqi = s_average_aqi;
 
     transmit_wx_frame( &wx );
 }
