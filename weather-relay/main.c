@@ -1389,6 +1389,20 @@ void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame
     wx.tempC         = aveFrame->tempC;
     wx.humidity      = aveFrame->humidity;
     wx.pressure      = minFrame->pressure;
+    
+    wx.pm10_standard   = aveFrame->pm10_standard;
+    wx.pm10_env        = aveFrame->pm10_env;
+    wx.pm25_standard   = aveFrame->pm25_standard;
+    wx.pm25_env        = aveFrame->pm25_env;
+    wx.pm100_standard  = aveFrame->pm100_standard;
+    wx.pm100_env       = aveFrame->pm100_env;
+    wx.particles_03um  = aveFrame->particles_03um;
+    wx.particles_05um  = aveFrame->particles_05um;
+    wx.particles_10um  = aveFrame->particles_10um;
+    wx.particles_25um  = aveFrame->particles_25um;
+    wx.particles_50um  = aveFrame->particles_50um;
+    wx.particles_100um = aveFrame->particles_100um;
+
     transmit_wx_frame( &wx );
 }
 
