@@ -63,6 +63,16 @@ typedef struct
     Frame  frame;
 } wxrecord;
 
+typedef struct
+{
+  const char* category;
+  int   loAQI;
+  int   hiAQI;
+  float loBreak;
+  float hiBreak;
+} break_element_t;
+
+
 
 static time_t s_lastSentTime      = 0;
 static time_t s_lastWxTime        = 0;
@@ -160,42 +170,17 @@ static void        queue_error_packet( const char* packetData );
 //static const char* error_bucket_get_next_packet( void );
 
 
-//RTC_DATA_ATTR size_t  rtc_graph_aqi_pm25_count = 0;
-//RTC_DATA_ATTR int16_t rtc_graph_aqi_pm25[kMaxAQIDataPoints] = {0};
-
-typedef struct
-{
-  const char* category;
-  int   loAQI;
-  int   hiAQI;
-  float loBreak;
-  float hiBreak;
-} break_element_t;
-
-static const char* const kCatGood          = "Good";
-static const char* const kCatModerate      = "Moderate";
-static const char* const kCatUnhealthySens = "Kinda Unhealthy";
-static const char* const kCatUnhealthy     = "Unhealthy";
-static const char* const kCatVeryUnhealthy = "Very Unhealthy";
-static const char* const kCatHazardous     = "Hazardous";
-static const char* const kCatHazardous2    = "Really Hazardous";
-static const char* const kCatHazardous3    = "HAZARDOUS!!";
+#define kCatGood          "Good"
+#define kCatModerate      "Moderate"
+#define kCatUnhealthySens "Kinda Unhealthy"
+#define kCatUnhealthy     "Unhealthy"
+#define kCatVeryUnhealthy "Very Unhealthy"
+#define kCatHazardous     "Hazardous"
+#define kCatHazardous2    "Really Hazardous"
+#define kCatHazardous3    "HAZARDOUS!!"
 
 
 // obtained from here: https://aqs.epa.gov/aqsweb/documents/codetables/aqi_breakpoints.csv
-static const break_element_t s_break_list_pm10[] =
-{
-  { kCatGood,            0,  50,    0.0,  54.0   },
-  { kCatModerate,       51, 100,   55.0, 154.0   },
-  { kCatUnhealthySens, 101, 150,  155.0, 254.0   },
-  { kCatUnhealthy,     151, 200,  255.0, 354.0   },
-  { kCatVeryUnhealthy, 201, 300,  355.0, 424.0   },
-  { kCatHazardous,     301, 400,  425.0, 504.0   },
-  { kCatHazardous2,    401, 500,  505.0, 604.0   },
-  { kCatHazardous3,    501, 999,  605.0, 99999.0 }
-};
-
-
 static const break_element_t s_break_list_pm25[] =
 {
   { kCatGood,            0,  50,    0.0, 12.0    },
