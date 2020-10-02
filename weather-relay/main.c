@@ -73,6 +73,7 @@ static time_t s_lastTempTime      = 0;
 static time_t s_lastIntTempTime   = 0;
 static time_t s_lastHumiTime      = 0;
 static time_t s_lastAirTime       = 0;
+static time_t s_lastAQITime       = 0;
 static time_t s_lastParamsTime    = 0;
 static time_t s_lastTelemetryTime = 0;
 static time_t s_lastStatusTime    = 0;
@@ -121,6 +122,7 @@ static size_t      s_wx_count     = 0;
 static size_t      s_wx_size_secs = 0;
 static bool        s_test_mode    = false;
 static int16_t     s_last_aqi     = 0;
+static int16_t     s_average_aqi  = 0;
 
 static sig_atomic_t s_queue_busy = 0;
 static sig_atomic_t s_queue_num  = 0;
@@ -686,6 +688,16 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             s_lastAirTime = timeGetTimeSec();
         }
 
+        if( timeGetTimeSec() > s_lastAQITime + s_aqiPeriod )
+        {
+            s_average_aqi = 0;
+            s_lastAQITime = timeGetTimeSec();
+        }
+
+        if( s_average_aqi == 0 )
+            s_average_aqi = data->pm25_standard;
+        s_average_aqi = (data->pm25_standard + s_average_aqi) / 2;
+        
         // check for no data before calculating mean
         if( ave->pm10_standard == 0 )
             ave->pm10_standard = data->pm10_standard;
@@ -856,7 +868,10 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
             if( wxlog_get_wx_averages( outgoingFrame ) )
                 transmit_wx_frame( outgoingFrame );
             else
+            {
+                s_last_aqi = s_average_aqi;
                 transmit_wx_data( minFrame, maxFrame, aveFrame );
+            }
             
             s_lastWxTime = timeGetTimeSec();
         }
