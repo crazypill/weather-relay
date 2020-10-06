@@ -2022,7 +2022,7 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
     uint32_t particles_25um  = 0;
     uint32_t particles_50um  = 0;
     uint32_t particles_100um = 0;
-    uint32_t pm25_aqi       = 0;
+    uint32_t pm25_aqi        = 0;
 
     
     // start with really high pressure as we want the low of the period
