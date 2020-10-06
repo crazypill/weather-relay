@@ -480,19 +480,19 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             }
         }
         
-        if( timeGetTimeSec() > s_lastTempTime + s_tempPeriod )
-        {
-            ave->tempC = 0;
-            s_lastTempTime = timeGetTimeSec();
-        }
-
         if( frameOk )
         {
+            if( timeGetTimeSec() > s_lastTempTime + s_tempPeriod )
+            {
+                ave->tempC = 0;
+                s_lastTempTime = timeGetTimeSec();
+            }
+
             // check for no data before calculating mean
             if( ave->tempC == 0.0 )
                 ave->tempC = data->tempC;
-
-            ave->tempC = (data->tempC + ave->tempC) * 0.5f;
+            else
+                ave->tempC = (data->tempC + ave->tempC) * 0.5f;
 #ifdef TRACE_STATS
             printTime( false );
             stats( " temp average: %0.2f°F, time left: %ld\n", c2f( ave->tempC ), s_tempPeriod - (timeGetTimeSec() - s_lastTempTime) );
@@ -531,18 +531,19 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             frameOk = false;
         }
 
-        if( timeGetTimeSec() > s_lastHumiTime + s_humiPeriod )
-        {
-            ave->humidity = 0;
-            s_lastHumiTime = timeGetTimeSec();
-        }
-
         if( frameOk )
         {
+            if( timeGetTimeSec() > s_lastHumiTime + s_humiPeriod )
+            {
+                ave->humidity = 0;
+                s_lastHumiTime = timeGetTimeSec();
+            }
+
             // check for no data before calculating mean
             if( ave->humidity == 0 )
                 ave->humidity = data->humidity;
-            ave->humidity = (data->humidity + ave->humidity) / 2;
+            else
+                ave->humidity = (data->humidity + ave->humidity) / 2;
 #ifdef TRACE_STATS
             printTime( false );
             stats( " humidity average: %d%%, time left: %ld\n", ave->humidity, s_humiPeriod - (timeGetTimeSec() - s_lastHumiTime) );
@@ -583,24 +584,26 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             frameOk = false;
         }
 
-        if( timeGetTimeSec() > s_lastWindTime + s_windPeriod )
-        {
-            ave->windSpeedMs = 0;
-            ave->windDirection = 0;
-            s_lastWindTime = timeGetTimeSec();
-        }
-
         if( frameOk )
         {
+            if( timeGetTimeSec() > s_lastWindTime + s_windPeriod )
+            {
+                ave->windSpeedMs = 0;
+                ave->windDirection = 0;
+                s_lastWindTime = timeGetTimeSec();
+            }
+
             // check for no data before calculating mean
             if( ave->windSpeedMs == 0.0 )
                 ave->windSpeedMs = data->windSpeedMs;
+            else
+                ave->windSpeedMs = (data->windSpeedMs + ave->windSpeedMs) * 0.5f;
 
             if( ave->windDirection == 0.0 )
                 ave->windDirection = data->windDirection;
-
-            ave->windSpeedMs = (data->windSpeedMs + ave->windSpeedMs) * 0.5f;
-            ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
+            else
+                ave->windDirection = (data->windDirection + ave->windDirection) * 0.5f;
+            
 #ifdef TRACE_STATS
             printTime( false );
             stats( " wind average[%0.2f°]: %0.2f mph, time left: %ld\n", ave->windDirection, ms2mph( ave->windSpeedMs ), s_windPeriod - (timeGetTimeSec() - s_lastWindTime) );
@@ -632,15 +635,15 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             frameOk = false;
         }
         
-        // we create a 10 minute window of instantaneous gust measurements
-        if( timeGetTimeSec() > s_lastGustTime + s_gustPeriod )
-        {
-            max->windGustMs = 0;
-            s_lastGustTime = timeGetTimeSec();
-        }
-        
         if( frameOk )
         {
+            // we create a 10 minute window of instantaneous gust measurements
+            if( timeGetTimeSec() > s_lastGustTime + s_gustPeriod )
+            {
+                max->windGustMs = 0;
+                s_lastGustTime = timeGetTimeSec();
+            }
+
             max->windGustMs = fmax( data->windGustMs, max->windGustMs );
 #ifdef TRACE_STATS
             printTime( false );
@@ -660,8 +663,8 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         // check for no data before calculating min
         if( min->pressure == 0.0 )
             min->pressure = data->pressure;
-
-        min->pressure = fmin( data->pressure, min->pressure );
+        else
+            min->pressure = fmin( data->pressure, min->pressure );
 #ifdef TRACE_STATS
         printTime( false );
         stats( " pressure min: %0.2f InHg, time left: %ld\n",(min->pressure * millibar2inchHg) + s_localOffsetInHg, s_baroPeriod - (timeGetTimeSec() - s_lastBaroTime) );
