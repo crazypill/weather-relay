@@ -1380,6 +1380,8 @@ wx_thread_return_t sendToRadioWIDE_thread_entry( void* args )
 void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame* aveFrame )
 {
     Frame wx;
+    memset( &wx, 0, sizeof( wx ) );
+    
     wx.windDirection = aveFrame->windDirection;
     wx.windSpeedMs   = aveFrame->windSpeedMs;
     wx.windGustMs    = maxFrame->windGustMs;
@@ -1399,7 +1401,8 @@ void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame
     wx.particles_25um  = aveFrame->particles_25um;
     wx.particles_50um  = aveFrame->particles_50um;
     wx.particles_100um = aveFrame->particles_100um;
-
+    
+    // transfer over running aqi average too
     s_last_aqi = s_average_aqi;
 
     transmit_wx_frame( &wx );
