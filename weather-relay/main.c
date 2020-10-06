@@ -1219,13 +1219,15 @@ int main( int argc, const char * argv[] )
         printf( "WARNING using debug periods, packets will get sent very often!\n" );
     
     // this holds all the min/max/averages
-    Frame minFrame = {};
-    Frame maxFrame = {};
-    Frame aveFrame = {};
-
-    // primary weather frame that is used to create APRS message
-    Frame wxFrame;
-    memset( &wxFrame, 0, sizeof( Frame ) );
+    Frame minFrame;
+    Frame maxFrame;
+    Frame aveFrame;
+    Frame wxFrame;      // primary weather frame that is used to create APRS message
+    
+    memset( &minFrame, 0, sizeof( Frame ) );
+    memset( &maxFrame, 0, sizeof( Frame ) );
+    memset( &aveFrame, 0, sizeof( Frame ) );
+    memset( &wxFrame,  0, sizeof( Frame ) );
 
     uint8_t receivedFlags = 0;
     ssize_t result = 0;
@@ -1380,7 +1382,7 @@ wx_thread_return_t sendToRadioWIDE_thread_entry( void* args )
 void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame* aveFrame )
 {
     Frame wx;
-    memset( &wx, 0, sizeof( wx ) );
+    memset( &wx, 0, sizeof( Frame ) );
     
     wx.windDirection = aveFrame->windDirection;
     wx.windSpeedMs   = aveFrame->windSpeedMs;
