@@ -138,7 +138,7 @@ wx_thread_return_t rain_socket_thread( void* args )
                     else
                     {
 #ifdef DEBUG
-                        fprintf( stderr, "rain_socket: connect from host %s, port %hu.\n", inet_ntoa( clientname.sin_addr ), ntohs( clientname.sin_port ) );
+                        fprintf( stderr, "rain_socket: connection from %s, port %hu.\n", inet_ntoa( clientname.sin_addr ), ntohs( clientname.sin_port ) );
 #endif
                     }
                     FD_SET( new, &active_fd_set );

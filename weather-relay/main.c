@@ -420,6 +420,14 @@ bool validate_wx_frame( const Frame* frame )
         return false;
     }
 
+    if( frame->rain < kRainLowBar || frame->rain > kRainHighBar )
+    {
+        // blow off this entire frame of data
+        log_error( " rain out of range: %0.2f mm\n", frame->rain );
+        return false;
+    }
+
+    
     return true;
 }
 
@@ -780,10 +788,34 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         trace( ", rain: %0.2f mm, %0.2f inches", ave->rain, millimeter2inch( ave->rain ) );
     }
 
-//    if( data->flags & kDataFlag_rain )
-//        printf( "rain:       %0.2f mm\n", data->rain );
-}
+    if( data->flags & kDataFlag_rain )
+    {
+        bool frameOk = true;
 
+        if( data->rain < kRainLowBar || data->rain > kRainHighBar )
+        {
+            data->flags &= ~kDataFlag_rain;
+            log_error( " rain out of range: %0.2f mm\n", data->rain );
+            frameOk = false;
+        }
+
+        if( frameOk && fabs( data->rain - ave->rain ) > kRainTemporalLimit )
+        {
+            // blow off this entire frame of data- it's probably all wrong
+            log_error( " rain temporal check failed: %0.2f mm, ave: %0.2f mm\n", data->rain, ave->rain );
+            data->flags &= ~kDataFlag_rain;
+            frameOk = false;
+        }
+
+        if( frameOk )
+        {
+#ifdef TRACE_STATS
+            printTime( false );
+            stats( " rain: %0.2f mm\n", data->rain );
+#endif
+        }
+    }
+}
 
 
 void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* aveFrame, Frame* outgoingFrame, uint8_t* receivedFlags )
