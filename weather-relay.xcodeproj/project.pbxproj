@@ -15,6 +15,7 @@
 		FAB4A15524C4152A00F7BE22 /* stubs.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A14C24C4152A00F7BE22 /* stubs.c */; };
 		FAB4A15624C4152A00F7BE22 /* fcs_calc.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A15024C4152A00F7BE22 /* fcs_calc.c */; };
 		FAB4A15724C4152A00F7BE22 /* kiss_frame.c in Sources */ = {isa = PBXBuildFile; fileRef = FAB4A15324C4152A00F7BE22 /* kiss_frame.c */; };
+		FAC1A19C2591A2AA00BAD5D9 /* rain_socket.c in Sources */ = {isa = PBXBuildFile; fileRef = FAC1A19B2591A2A900BAD5D9 /* rain_socket.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -56,6 +57,8 @@
 		FAB4A15124C4152A00F7BE22 /* ax25_pad.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ax25_pad.h; sourceTree = SOURCE_ROOT; };
 		FAB4A15224C4152A00F7BE22 /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = version.h; sourceTree = SOURCE_ROOT; };
 		FAB4A15324C4152A00F7BE22 /* kiss_frame.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kiss_frame.c; sourceTree = SOURCE_ROOT; };
+		FAC1A19B2591A2A900BAD5D9 /* rain_socket.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = rain_socket.c; sourceTree = "<group>"; };
+		FAD951F72592C7BD007726DC /* rain_socket.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = rain_socket.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +96,8 @@
 			children = (
 				FA38C41024C6BAD900EC7882 /* main.h */,
 				FA38C40924C41C6B00EC7882 /* main.c */,
+				FAD951F72592C7BD007726DC /* rain_socket.h */,
+				FAC1A19B2591A2A900BAD5D9 /* rain_socket.c */,
 				FA38C40C24C5174500EC7882 /* wx_thread.c */,
 				FA38C40D24C5174500EC7882 /* wx_thread.h */,
 				FAB4A14824C4152A00F7BE22 /* audio.h */,
@@ -188,6 +193,7 @@
 				FA38C40E24C5174600EC7882 /* wx_thread.c in Sources */,
 				FAB4A15424C4152A00F7BE22 /* ax25_pad.c in Sources */,
 				FAB4A15524C4152A00F7BE22 /* stubs.c in Sources */,
+				FAC1A19C2591A2AA00BAD5D9 /* rain_socket.c in Sources */,
 				FAB4A12D24C2772900F7BE22 /* aprs-wx.c in Sources */,
 				FAB4A12E24C2772900F7BE22 /* aprs-is.c in Sources */,
 				FA38C40A24C41C6B00EC7882 /* main.c in Sources */,

@@ -34,6 +34,7 @@
 
 #include "ax25_pad.h"
 #include "kiss_frame.h"
+#include "rain_socket.h"
 
 
 // don't use old history if it's too far away from now...
@@ -89,17 +90,20 @@ static float s_localTempErrorC = 2.033333333333333;
 static bool s_debug = false;
 
 
-static time_t s_sendInterval   = kSendInterval;
-static time_t s_paramsInterval = kParamsInterval;
-static time_t s_statusInterval = kStatusInterval;
-static time_t s_tempPeriod     = kTempPeriod;
-static time_t s_intTempPeriod  = kIntTempPeriod;
-static time_t s_windPeriod     = kWindPeriod;
-static time_t s_gustPeriod     = kGustPeriod;
-static time_t s_baroPeriod     = kBaroPeriod;
-static time_t s_humiPeriod     = kHumiPeriod;
-static time_t s_airPeriod      = kAirPeriod;
-static time_t s_aqiPeriod      = kAQIPeriod;
+static time_t s_sendInterval     = kSendInterval;
+static time_t s_paramsInterval   = kParamsInterval;
+static time_t s_statusInterval   = kStatusInterval;
+static time_t s_tempPeriod       = kTempPeriod;
+static time_t s_intTempPeriod    = kIntTempPeriod;
+static time_t s_windPeriod       = kWindPeriod;
+static time_t s_gustPeriod       = kGustPeriod;
+static time_t s_baroPeriod       = kBaroPeriod;
+static time_t s_humiPeriod       = kHumiPeriod;
+static time_t s_airPeriod        = kAirPeriod;
+static time_t s_aqiPeriod        = kAQIPeriod;
+static time_t s_rain24HrPeriod   = kRain24HrPeriod;
+static time_t s_rainLastHrPeriod = kRainLastHrPeriod;
+
 
 
 
@@ -152,6 +156,8 @@ static bool wxlog_startup( void );
 static bool wxlog_shutdown( void );
 static bool wxlog_frame( const Frame* wxFrame );
 static bool wxlog_get_wx_averages( Frame* wxFrame );
+static bool wxlog_get_rain_counts( int* lastHour100sInch, int* last24Hours100sInch, int* sinceMidnight100sInch );
+
 
 static void dump_frames( void );
 
@@ -201,6 +207,12 @@ void signalHandler( int sig )
     switch( sig )
     {
         case SIGHUP:
+            // reset rain counter here
+            printf( "SIGHUP\n" );
+            break;
+
+
+        case SIGINFO:
             dump_frames();
             break;
             
@@ -262,11 +274,11 @@ void buffer_input_flush()
 void printTime( int printNewline )
 {
     time_t t = time( NULL );
-    struct tm tm = *localtime(&t);
+    struct tm tm = *localtime( &t );
     if( printNewline )
-        printf("%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+        printf( "%d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec );
     else
-        printf("%d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+        printf( "%d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec );
 }
 
 
@@ -284,7 +296,7 @@ void printFullWeather( const Frame* inst, const Frame* min, const Frame* max, co
     if( !s_debug )
         return;
     
-    log_error( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %g\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( inst->intTempC - s_localTempErrorC ), 0.0 );
+    log_error( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %0.2f mm\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( inst->intTempC - s_localTempErrorC ), inst->rain );
     log_error( " avg wind[%06.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %2d%%, min pressure: %0.3f InHg  ave int temp: %0.2f°F\n",            ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( ave->intTempC - s_localTempErrorC ) );
     log_error( " pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d),  3um: %03d,  5um: %03d,  10um: %03d,  25um: %03d,  50um: %03d,  100um: %03d\n", inst->pm10_standard, inst->pm10_env, inst->pm25_standard, inst->pm25_env, inst->pm100_standard, inst->pm100_env, inst->particles_03um, inst->particles_05um, inst->particles_10um, inst->particles_25um, inst->particles_50um, inst->particles_100um );
 }
@@ -296,7 +308,7 @@ void printCurrentWeather( const Frame* frame, bool alwaysPrint )
     if( !alwaysPrint && !s_debug && !s_test_mode )
         return;
 
-    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %g\n", frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), 0.0 );
+    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %0.2f mm\n", frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), frame->rain );
 }
 
 
@@ -755,8 +767,21 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         log_error( "averages pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d), 3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, 100um: %03d\n", ave->pm10_standard, ave->pm10_env, ave->pm25_standard, ave->pm25_env, ave->pm100_standard, ave->pm100_env, ave->particles_03um, ave->particles_05um, ave->particles_10um, ave->particles_25um, ave->particles_50um, ave->particles_100um );
 #endif
     }
-//    if( data.flags & kDataFlag_rain )
-//        printf( "rain:       %g\n", data.rain );
+
+    // check to see if we have rain counts
+    int rain_count = rain_socket_raw_count();
+    if( rain_count )
+    {
+        // !!@ add checks for spurious values that fail temporal checks...
+        
+        data->flags |= kDataFlag_rain;
+        data->rain = rawRainCount2mm( rain_count );
+        ave->rain = data->rain;
+        trace( ", rain: %0.2f mm, %0.2f inches", ave->rain, millimeter2inch( ave->rain ) );
+    }
+
+//    if( data->flags & kDataFlag_rain )
+//        printf( "rain:       %0.2f mm\n", data->rain );
 }
 
 
@@ -809,12 +834,6 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
         outgoingFrame->windGustMs = frame->windGustMs;
     }
 
-    if( frame->flags & kDataFlag_rain )
-    {
-        trace( ", rain: %g", frame->rain );
-        outgoingFrame->rain = frame->rain;
-    }
-
     if( frame->flags & kDataFlag_intTemp )
     {
         trace( ", int temp: %0.2f°F", c2f( frame->intTempC - s_localTempErrorC ) );
@@ -842,6 +861,12 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
         outgoingFrame->particles_25um  = frame->particles_25um;
         outgoingFrame->particles_50um  = frame->particles_50um;
         outgoingFrame->particles_100um = frame->particles_100um;
+    }
+
+    if( frame->flags & kDataFlag_rain )
+    {
+        trace( ", rain: %g", frame->rain );
+        outgoingFrame->rain = frame->rain;
     }
 
     trace( "\n" );
@@ -1047,17 +1072,19 @@ void handle_command( int argc, const char * argv[] )
                 
             case 'x':
                 s_test_mode = true;
-                s_sendInterval   = kSendInterval_debug;
-                s_paramsInterval = kParamsInterval_debug;
-                s_statusInterval = kStatusInterval_debug;
-                s_tempPeriod     = kTempPeriod_debug;
-                s_intTempPeriod  = kIntTempPeriod_debug;
-                s_windPeriod     = kWindPeriod_debug;
-                s_gustPeriod     = kGustPeriod_debug;
-                s_baroPeriod     = kBaroPeriod_debug;
-                s_humiPeriod     = kHumiPeriod_debug;
-                s_airPeriod      = kAirPeriod_debug;
-                s_aqiPeriod      = kAQIPeriod_debug;
+                s_sendInterval     = kSendInterval_debug;
+                s_paramsInterval   = kParamsInterval_debug;
+                s_statusInterval   = kStatusInterval_debug;
+                s_tempPeriod       = kTempPeriod_debug;
+                s_intTempPeriod    = kIntTempPeriod_debug;
+                s_windPeriod       = kWindPeriod_debug;
+                s_gustPeriod       = kGustPeriod_debug;
+                s_baroPeriod       = kBaroPeriod_debug;
+                s_humiPeriod       = kHumiPeriod_debug;
+                s_airPeriod        = kAirPeriod_debug;
+                s_aqiPeriod        = kAQIPeriod_debug;
+                s_rain24HrPeriod   = kRain24HrPeriod_debug;
+                s_rainLastHrPeriod = kRainLastHrPeriod_debug;
                 break;
         }
     }
@@ -1132,6 +1159,7 @@ int main( int argc, const char * argv[] )
     int err = ignoreSIGPIPE();
     if( err == 0 )
     {
+        signal( SIGINFO, signalHandler );
         signal( SIGINT,  signalHandler );
         signal( SIGTERM, signalHandler );
         signal( SIGHUP,  signalHandler );
@@ -1217,9 +1245,12 @@ int main( int argc, const char * argv[] )
         return PORT_ERROR;
 
     trace( "%s: reading from serial port: %s...\n\n", PROGRAM_NAME, s_port_device );
-    
+
     if( s_test_mode )
         printf( "WARNING using debug periods, packets will get sent very often!\n" );
+    
+    // start up our rain socket...
+    wx_create_thread_detached( rain_socket_thread, NULL );
     
     // this holds all the min/max/averages
     Frame minFrame;
@@ -1393,6 +1424,7 @@ void transmit_wx_data( const Frame* minFrame, const Frame* maxFrame, const Frame
     wx.tempC         = aveFrame->tempC;
     wx.humidity      = aveFrame->humidity;
     wx.pressure      = minFrame->pressure;
+    wx.rain          = aveFrame->rain;
     
     wx.pm10_standard   = aveFrame->pm10_standard;
     wx.pm10_env        = aveFrame->pm10_env;
@@ -1468,6 +1500,31 @@ void transmit_wx_frame( const Frame* frame )
     formatTruncationCheck = snprintf( wx.pressure, 6, "%.5d", (int)(round(inHg2millibars((frame->pressure * millibar2inchHg) + s_localOffsetInHg) * 10)) );
     assert( formatTruncationCheck >= 0 );
 
+    // do rain here...
+    int lastHour100sInch      = 0;
+    int last24Hours100sInch   = 0;
+    int sinceMidnight100sInch = 0;
+    if( wxlog_get_rain_counts( &lastHour100sInch, &last24Hours100sInch, &sinceMidnight100sInch ) )
+    {
+        if( lastHour100sInch )
+        {
+            formatTruncationCheck = snprintf( wx.rainfallLastHour, 4, "%03d", lastHour100sInch );
+            assert( formatTruncationCheck >= 0 );
+        }
+        
+        if( last24Hours100sInch )
+        {
+            formatTruncationCheck = snprintf( wx.rainfallLast24Hours, 4, "%03d", last24Hours100sInch );
+            assert( formatTruncationCheck >= 0 );
+        }
+        
+        if( sinceMidnight100sInch )
+        {
+            formatTruncationCheck = snprintf( wx.rainfallSinceMidnight, 4, "%03d", sinceMidnight100sInch );
+            assert( formatTruncationCheck >= 0 );
+        }
+    }
+    
     memset( packetToSend, 0, sizeof( packetToSend ) );
     printAPRSPacket( &wx, packetToSend, packetFormat, 0, false );
     
@@ -2143,6 +2200,53 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
 #endif
     return true;
 }
+
+
+bool wxlog_get_rain_counts( int* lastHour100sInch, int* last24Hours100sInch, int* sinceMidnight100sInch )
+{
+    if( !lastHour100sInch || !last24Hours100sInch || !sinceMidnight100sInch )
+        return false;
+
+    *lastHour100sInch      = 0;
+    *last24Hours100sInch   = 0;
+    *sinceMidnight100sInch = 0;
+
+    float current_rain_mm = s_wxlog[0].frame.rain;
+
+    // figure out a period based on when midnight passed (we do this by looking at the current hour and minute and second)
+    time_t t = time( NULL );
+    struct tm tm = *localtime( &t );
+    time_t secondsSinceMidnight = (tm.tm_hour * 60 * 60) + (tm.tm_min * 60) + tm.tm_sec;  // hour is in 24 hour format, phew!
+
+    // short-circuit if possible: the smallest time period is last hour (although, we could be a few minutes from midnight so check that)
+    time_t smallestPeriod = secondsSinceMidnight < s_rainLastHrPeriod ? secondsSinceMidnight : s_rainLastHrPeriod;
+    if( s_wx_size_secs < smallestPeriod )
+        return false;
+
+    time_t current = timeGetTimeSec();
+    
+    // go thru all records, they are in order of newest to oldest
+    for( int i = 0; i < s_wx_count; i++ )
+    {
+        time_t timeIndexSecs = current - s_wxlog[i].timeStampSecs;  // timestamps go in decreasing order
+        
+        // if we land on a zero rainfall, the measurement is not valid as there is no basis for the measurement.  The code currently always assumes the starting rain is non-zero.
+        if( s_wxlog[i].frame.rain != 0.0f )
+        {
+            if( (s_wx_size_secs >= s_rainLastHrPeriod) && (timeIndexSecs < s_rainLastHrPeriod) )
+                *lastHour100sInch = millimeter2inch(current_rain_mm - s_wxlog[i].frame.rain) * 100;
+
+            if( (s_wx_size_secs >= s_rain24HrPeriod) && (timeIndexSecs < s_rain24HrPeriod) )
+                *last24Hours100sInch = millimeter2inch(current_rain_mm - s_wxlog[i].frame.rain) * 100;
+            
+            if( (s_wx_size_secs >= secondsSinceMidnight) && (timeIndexSecs < secondsSinceMidnight) )
+                *sinceMidnight100sInch = millimeter2inch(current_rain_mm - s_wxlog[i].frame.rain) * 100;
+        }
+    }
+    
+    return true;
+}
+
 
 
 #pragma mark -

@@ -29,9 +29,11 @@
 #define pascal2inchHg    0.0002953
 #define millibar2inchHg  0.02953
 
-#define c2f( a )           (((a) * 1.8000) + 32)
-#define ms2mph( a )         ((a) * 2.23694)
-#define inHg2millibars( a ) ((a) * 33.8639)
+#define c2f( a )             (((a) * 1.8000) + 32)
+#define ms2mph( a )          ((a) * 2.23694)
+#define inHg2millibars( a )  ((a) * 33.8639)
+#define millimeter2inch( a ) ((a) * 0.0393700787402)
+#define rawRainCount2mm( a ) ((a) * 0.5)
 
 // https://www.daculaweather.com/stuff/CWOP_Guide.pdf has all the intervals, etc...
 #define kTelemDelaySecs     15  // 15 seconds after weather tx - used to stagger messages so they don't pile up on each other
@@ -54,27 +56,33 @@
 #define kParamsInterval_debug  60
 #define kStatusInterval_debug  60
 
-#define kTempPeriod_debug    15
-#define kIntTempPeriod_debug 15
-#define kWindPeriod_debug    20
-#define kGustPeriod_debug    30
-#define kBaroPeriod_debug    15
-#define kHumiPeriod_debug    15
-#define kAirPeriod_debug     15
-#define kAQIPeriod_debug     15
+#define kTempPeriod_debug       15
+#define kIntTempPeriod_debug    15
+#define kWindPeriod_debug       20
+#define kGustPeriod_debug       30
+#define kBaroPeriod_debug       15
+#define kHumiPeriod_debug       15
+#define kAirPeriod_debug        15
+#define kAQIPeriod_debug        15
+#define kRain24HrPeriod_debug   15
+#define kRainLastHrPeriod_debug 5
+
 
 #define kSendInterval    60 * 5        // 5 minutes
 #define kParamsInterval  60 * 60 * 2   // every two hours
 #define kStatusInterval  60 * 10 + 15  // every ten minutes + 15 seconds offset
 
-#define kTempPeriod    60 * 5   // 5 minute average
-#define kIntTempPeriod 60 * 5   // 5 minute average
-#define kWindPeriod    60 * 2   // 2 minute average
-#define kGustPeriod    60 * 10  // 10 minute max wind gust
-#define kBaroPeriod    60       // low for the minute period
-#define kHumiPeriod    60
-#define kAirPeriod     60
-#define kAQIPeriod     60 * 60 * 24
+#define kTempPeriod       60 * 5   // 5 minute average
+#define kIntTempPeriod    60 * 5   // 5 minute average
+#define kWindPeriod       60 * 2   // 2 minute average
+#define kGustPeriod       60 * 10  // 10 minute max wind gust
+#define kBaroPeriod       60       // low for the minute period
+#define kHumiPeriod       60
+#define kAirPeriod        60
+#define kAQIPeriod        60 * 60 * 24
+#define kRain24HrPeriod   60 * 60 * 24
+#define kRainLastHrPeriod 60 * 60
+
 
 //-----------------------------------------------------------------------------------------------------------------------------
 
