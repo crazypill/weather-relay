@@ -98,7 +98,7 @@ void rain_sensor_thread_quit( void )
 }
 
 
-int rain_sensor_raw_count()
+int rain_sensor_raw_count( void )
 {
     return s_raw_rain_count;
 }

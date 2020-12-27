@@ -14,7 +14,7 @@
 
 wx_thread_return_t rain_sensor_thread( void* args );
 void               rain_sensor_thread_quit( void );
-int                rain_sensor_raw_count();
+int                rain_sensor_raw_count( void );
 
 
 
