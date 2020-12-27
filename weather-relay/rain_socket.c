@@ -19,6 +19,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 
+#include "main.h"
 #include "wx_thread.h"
 #include "TXDecoderFrame.h"
 
@@ -100,12 +101,13 @@ wx_thread_return_t rain_socket_thread( void* args )
     sock = make_socket( PORT );
     if( listen( sock, 1 ) < 0 )
     {
+        log_error( "rain_socket failed to listen: %d\n", errno );
         perror( "rain_socket listen" );
         exit( EXIT_FAILURE );
     }
 
-    printf( "rain_socket listening on port %u\n", PORT );
-    
+    log_error( "rain_socket listening on port %u\n", PORT );
+
     // Initialize the set of active sockets
     FD_ZERO( &active_fd_set );
     FD_SET( sock, &active_fd_set );
@@ -116,9 +118,9 @@ wx_thread_return_t rain_socket_thread( void* args )
         read_fd_set = active_fd_set;
         if( select( FD_SETSIZE, &read_fd_set, NULL, NULL, &timeout ) < 0 )
         {
+            log_error( "rain_socket failed select(): %d\n", errno );
             perror ("select");
             continue;
-//          exit( EXIT_FAILURE );
         }
 
         // Service all the sockets with input pending.
@@ -133,6 +135,7 @@ wx_thread_return_t rain_socket_thread( void* args )
                     int new = accept( sock, (struct sockaddr *)&clientname, &size );
                     if( new < 0 )
                     {
+                        log_error( "rain_socket failed accept(): %d\n", errno );
                         perror( "accept" );
                     }
                     else
