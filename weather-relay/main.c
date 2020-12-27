@@ -48,7 +48,7 @@
 
 // define this to accept input from an internet socket (that an ESP32 connects to).  I've simplified this code to just use the USB serial as the interface
 // so this code isn't really necessary anymore-
-#define USE_RAIN_SOCKET
+//#define USE_RAIN_SOCKET
 
 #define kCallSign "K6LOT-13"
 #define kPasscode "8347"
