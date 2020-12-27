@@ -1642,6 +1642,13 @@ void transmit_air_data( const Frame* frame )
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
         sleep( 1 ); // avoid rate limiting
 
+        sprintf( packetToSend, "%s>APRS,TCPIP*::%s :BITS.10101010,Lab Air Quality", kCallSign, kCallSign );
+        if( s_debug )
+            printf( "%s\n", packetToSend );
+        wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
+        wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
+        sleep( 1 ); // avoid rate limiting
+        
         s_lastParamsTime = timeGetTimeSec();
     }
     
