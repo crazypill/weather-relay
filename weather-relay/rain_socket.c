@@ -18,6 +18,7 @@
 #include <sys/select.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <signal.h>
 
 #include "main.h"
 #include "wx_thread.h"
