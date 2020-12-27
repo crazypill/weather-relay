@@ -69,7 +69,7 @@ wx_thread_return_t rain_sensor_thread( void* args )
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
             process_rain_frame( &frame );
-        else if( result )
+        else if( result < sizeof( frame ) )
         {
 #ifdef DEBUG
             log_error( " partial incoming rain sensor data %d (%d)\n", result, sizeof( frame )  );
@@ -82,7 +82,7 @@ wx_thread_return_t rain_sensor_thread( void* args )
             if( result + lastRead == sizeof( frame ) )
                 process_rain_frame( &frame );
             else
-                log_error( " bad frame size on incoming wx sensor data %d != %d\n", result, sizeof( frame )  );
+                log_error( " bad frame size on incoming rain sensor data %d != %d\n", result, sizeof( frame )  );
         }
         
         sleep( 1 );
