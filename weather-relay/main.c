@@ -46,6 +46,10 @@
 //#define TRACE_INSERTS
 //#define TRACE_AVERAGES
 
+// define this to accept input from an internet socket (that an ESP32 connects to).  I've simplified this code to just use the USB serial as the interface
+// so this code isn't really necessary anymore-
+#define USE_RAIN_SOCKET
+
 #define kCallSign "K6LOT-13"
 #define kPasscode "8347"
 #define kWidePath "WIDE2-1"
@@ -1250,8 +1254,11 @@ int main( int argc, const char * argv[] )
     int fd = open_serial_port( s_port_device, B9600 );
     
     // start up our rain sensor relay...
-//    wx_create_thread_detached( rain_socket_thread, NULL );
+#ifdef USE_RAIN_SOCKET
+    wx_create_thread_detached( rain_socket_thread, NULL );
+#else
     wx_create_thread_detached( rain_sensor_thread, (void*)s_rain_device );
+#endif
 
     // this holds all the min/max/averages
     Frame minFrame;
