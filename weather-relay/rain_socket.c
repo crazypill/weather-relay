@@ -79,7 +79,7 @@ int read_from_client( int filedes )
     s_raw_rain_count = frame.raw_rain_count;
     
 #ifdef DEBUG
-    fprintf( stderr, "rain_socket: raw rain message: %d\n", frame.raw_rain_count );
+    fprintf( stderr, "rain_socket: raw rain message: %d\n\n", frame.raw_rain_count );
 #endif
     
     return 0;
@@ -138,7 +138,7 @@ wx_thread_return_t rain_socket_thread( void* args )
                     else
                     {
 #ifdef DEBUG
-                        fprintf( stderr, "rain_socket: connection from %s, port %hu.\n", inet_ntoa( clientname.sin_addr ), ntohs( clientname.sin_port ) );
+                        fprintf( stderr, "\nrain_socket: connection from %s, port %hu.\n", inet_ntoa( clientname.sin_addr ), ntohs( clientname.sin_port ) );
 #endif
                     }
                     FD_SET( new, &active_fd_set );

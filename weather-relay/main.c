@@ -150,7 +150,7 @@ static void transmit_air_data( const Frame* frame );
 static void transmit_status( const Frame* frame );
 static bool validate_wx_frame( const Frame* frame );
 
-static void print_wx_for_www( const Frame* frame );
+static void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours100sInch, int sinceMidnight100sInch );
 
 static bool wxlog_startup( void );
 static bool wxlog_shutdown( void );
@@ -433,7 +433,7 @@ bool validate_wx_frame( const Frame* frame )
 
 
 
-void print_wx_for_www( const Frame* frame )
+void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours100sInch, int sinceMidnight100sInch )
 {
 //    snprintf( wx.windDirection, 4, "%03d", (int)(round(frame->windDirection)) );
 //    snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame->windSpeedMs))) );
@@ -444,21 +444,24 @@ void print_wx_for_www( const Frame* frame )
     {
         time_t t = time( NULL );
         struct tm tm = *localtime( &t );
-        fprintf( www_file, "%02d:%02d:%02d, %g, %d, %g, %g, %g, %g, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", tm.tm_hour, tm.tm_min, tm.tm_sec, c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ),
-                frame->pm10_standard,       // Standard PM1.0
-                frame->pm25_standard,       // Standard PM2.5
-                frame->pm100_standard,      // Standard PM10.0
-                frame->pm10_env,            // Environmental PM1.0
-                frame->pm25_env,            // Environmental PM2.5
-                frame->pm100_env,           // Environmental PM10.0
-                frame->particles_03um,      // 0.3um Particle Count
-                frame->particles_05um,      // 0.5um Particle Count
-                frame->particles_10um,      // 1.0um Particle Count
-                frame->particles_25um,      // 2.5um Particle Count
-                frame->particles_50um,      // 5.0um Particle Count
-                frame->particles_100um,     // 10.0um Particle Count
-                s_last_aqi                  // PM2.5 over 24hrs - not an index yet
-                );
+        fprintf( www_file, "%02d:%02d:%02d, %g, %d, %g, %g, %g, %g, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", tm.tm_hour, tm.tm_min, tm.tm_sec, c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ),
+                 frame->pm10_standard,       // Standard PM1.0
+                 frame->pm25_standard,       // Standard PM2.5
+                 frame->pm100_standard,      // Standard PM10.0
+                 frame->pm10_env,            // Environmental PM1.0
+                 frame->pm25_env,            // Environmental PM2.5
+                 frame->pm100_env,           // Environmental PM10.0
+                 frame->particles_03um,      // 0.3um Particle Count
+                 frame->particles_05um,      // 0.5um Particle Count
+                 frame->particles_10um,      // 1.0um Particle Count
+                 frame->particles_25um,      // 2.5um Particle Count
+                 frame->particles_50um,      // 5.0um Particle Count
+                 frame->particles_100um,     // 10.0um Particle Count
+                 s_last_aqi,                 // PM2.5 over 24hrs - not an index yet
+                 lastHour100sInch,           // rain for the last hour
+                 last24Hours100sInch,        // rain for the last 24 hours
+                 sinceMidnight100sInch       // rain since midnight
+               );
         fclose( www_file );
     }
 }
@@ -778,41 +781,44 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 
     // check to see if we have rain counts
     int rain_count = rain_socket_raw_count();
+    float rain_in_mm = rawRainCount2mm( rain_count );
+
     if( rain_count )
-    {
-        // !!@ add checks for spurious values that fail temporal checks...
-        
         data->flags |= kDataFlag_rain;
-        data->rain = rawRainCount2mm( rain_count );
-        ave->rain = data->rain;
-        trace( ", rain: %0.2f mm, %0.2f inches", ave->rain, millimeter2inch( ave->rain ) );
-    }
 
     if( data->flags & kDataFlag_rain )
     {
         bool frameOk = true;
 
-        if( data->rain < kRainLowBar || data->rain > kRainHighBar )
+        if( rain_in_mm < kRainLowBar || rain_in_mm > kRainHighBar )
         {
             data->flags &= ~kDataFlag_rain;
-            log_error( " rain out of range: %0.2f mm\n", data->rain );
+            log_error( " rain out of range: %0.2f mm\n", rain_in_mm );
             frameOk = false;
         }
 
-        if( frameOk && fabs( data->rain - ave->rain ) > kRainTemporalLimit )
+        if( frameOk && ave->rain && (fabs( rain_in_mm - ave->rain ) > kRainTemporalLimit) )
         {
             // blow off this entire frame of data- it's probably all wrong
-            log_error( " rain temporal check failed: %0.2f mm, ave: %0.2f mm\n", data->rain, ave->rain );
+            log_error( " rain temporal check failed: %0.2f mm, ave: %0.2f mm\n", rain_in_mm, ave->rain );
             data->flags &= ~kDataFlag_rain;
             frameOk = false;
         }
 
         if( frameOk )
         {
+            data->rain = rain_in_mm;
+            ave->rain = data->rain;
+
 #ifdef TRACE_STATS
             printTime( false );
-            stats( " rain: %0.2f mm\n", data->rain );
+            stats( " rain: %0.2f mm, %0.2f inches", data->rain, millimeter2inch( data->rain ) );
 #endif
+        }
+        else
+        {
+            // use last measurement instead of a zero
+            data->rain = ave->rain;
         }
     }
 }
@@ -1566,7 +1572,7 @@ void transmit_wx_frame( const Frame* frame )
     if( s_debug )
         printf( "%s\n\n", packetToSend );
 
-    print_wx_for_www( frame );
+    print_wx_for_www( frame, lastHour100sInch, last24Hours100sInch, sinceMidnight100sInch );
 
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
@@ -2266,13 +2272,13 @@ bool wxlog_get_rain_counts( int* lastHour100sInch, int* last24Hours100sInch, int
         if( s_wxlog[i].frame.rain != 0.0f )
         {
             if( (s_wx_size_secs >= s_rainLastHrPeriod) && (timeIndexSecs < s_rainLastHrPeriod) )
-                *lastHour100sInch = millimeter2inch(current_rain_mm - s_wxlog[i].frame.rain) * 100;
+                *lastHour100sInch = (int)round( millimeter2inch( current_rain_mm - s_wxlog[i].frame.rain ) * 100 );
 
             if( (s_wx_size_secs >= s_rain24HrPeriod) && (timeIndexSecs < s_rain24HrPeriod) )
-                *last24Hours100sInch = millimeter2inch(current_rain_mm - s_wxlog[i].frame.rain) * 100;
+                *last24Hours100sInch = (int)round( millimeter2inch( current_rain_mm - s_wxlog[i].frame.rain ) * 100 );
             
             if( (s_wx_size_secs >= secondsSinceMidnight) && (timeIndexSecs < secondsSinceMidnight) )
-                *sinceMidnight100sInch = millimeter2inch(current_rain_mm - s_wxlog[i].frame.rain) * 100;
+                *sinceMidnight100sInch = (int)round( millimeter2inch( current_rain_mm - s_wxlog[i].frame.rain ) * 100 );
         }
     }
     
