@@ -207,12 +207,6 @@ void signalHandler( int sig )
     switch( sig )
     {
         case SIGHUP:
-            // reset rain counter here
-            printf( "SIGHUP\n" );
-            break;
-
-
-        case SIGINFO:
             dump_frames();
             break;
             
@@ -1197,7 +1191,6 @@ int main( int argc, const char * argv[] )
     int err = ignoreSIGPIPE();
     if( err == 0 )
     {
-        signal( SIGINFO, signalHandler );
         signal( SIGINT,  signalHandler );
         signal( SIGTERM, signalHandler );
         signal( SIGHUP,  signalHandler );
