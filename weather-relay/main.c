@@ -35,6 +35,7 @@
 #include "ax25_pad.h"
 #include "kiss_frame.h"
 #include "rain_socket.h"
+#include "rain_sensor.h"
 
 
 // don't use old history if it's too far away from now...
@@ -118,6 +119,7 @@ static FILE*       s_wxlogFile     = NULL;
 static wxrecord*   s_wxlog         = NULL;
 
 static const char* s_port_device  = PORT_DEVICE;
+static const char* s_rain_device  = RAIN_DEVICE;
 static const char* s_kiss_server  = "localhost";
 static uint16_t    s_kiss_port    = 8001;
 static uint8_t     s_num_retries  = 10;
@@ -1236,53 +1238,15 @@ int main( int argc, const char * argv[] )
     
     wxlog_startup();
 
-    // open the serial port
-    bool blocking = false;
-
-    // Settings structure old and new
-    struct termios newtio;
-
-    int fd = open( s_port_device, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
-    if( fd < 0 )
-    {
-        log_error( " failed to open serial port: %s\n", s_port_device );
-        return PORT_ERROR;
-    }
-
-    bzero( &newtio, sizeof( newtio ) );
-
-    if( cfsetispeed( &newtio, B9600 ) != 0 )
-        return PORT_ERROR;
-    if( cfsetospeed( &newtio, B9600 ) != 0 )
-        return PORT_ERROR;
-
-    newtio.c_cflag &= ~PARENB;
-    newtio.c_cflag &= ~CSTOPB;
-    newtio.c_cflag &= ~CSIZE;
-    newtio.c_cflag |= CS8 | CLOCAL | CREAD;
-    newtio.c_cflag &= ~CRTSCTS;
-
-    // Hardware control of port
-    newtio.c_cc[VTIME] = blocking ? 1 : 0; // Read-timout 100ms when blocking
-    newtio.c_cc[VMIN] = 0;
-
-    tcflush( fd, TCIFLUSH );
-
-    // Acquire new port settings
-    if( tcsetattr( fd, TCSANOW, &newtio ) != 0 )
-        puts( strerror( errno ) );
-
-    if( fd == -1 )
-        return PORT_ERROR;
-
-    trace( "%s: reading from serial port: %s...\n\n", PROGRAM_NAME, s_port_device );
-
     if( s_test_mode )
         printf( "WARNING using debug periods, packets will get sent very often!\n" );
     
-    // start up our rain socket...
-    wx_create_thread_detached( rain_socket_thread, NULL );
+    int fd = open_serial_port( s_port_device, B9600 );
     
+    // start up our rain sensor relay...
+//    wx_create_thread_detached( rain_socket_thread, NULL );
+    wx_create_thread_detached( rain_sensor_thread, (void*)s_rain_device );
+
     // this holds all the min/max/averages
     Frame minFrame;
     Frame maxFrame;
@@ -1328,6 +1292,54 @@ int main( int argc, const char * argv[] )
     return EXIT_SUCCESS;
 }
 
+
+
+int open_serial_port( const char* serial_port_device, int port_speed )
+{
+    if( !serial_port_device )
+        return PORT_ERROR;
+    
+    // open the serial port
+    bool blocking = false;
+
+    // Settings structure old and new
+    struct termios newtio;
+
+    int fd = open( serial_port_device, O_RDWR | O_NOCTTY | (blocking ? 0 : O_NDELAY) );
+    if( fd < 0 )
+    {
+        log_error( " failed to open serial port: %s, speed: %d\n", serial_port_device, port_speed );
+        return PORT_ERROR;
+    }
+
+    bzero( &newtio, sizeof( newtio ) );
+    if( cfsetispeed( &newtio, port_speed ) != 0 )
+        return PORT_ERROR;
+    if( cfsetospeed( &newtio, port_speed ) != 0 )
+        return PORT_ERROR;
+
+    newtio.c_cflag &= ~PARENB;
+    newtio.c_cflag &= ~CSTOPB;
+    newtio.c_cflag &= ~CSIZE;
+    newtio.c_cflag |= CS8 | CLOCAL | CREAD;
+    newtio.c_cflag &= ~CRTSCTS;
+
+    // Hardware control of port
+    newtio.c_cc[VTIME] = blocking ? 1 : 0; // Read-timout 100ms when blocking
+    newtio.c_cc[VMIN] = 0;
+
+    tcflush( fd, TCIFLUSH );
+
+    // Acquire new port settings
+    if( tcsetattr( fd, TCSANOW, &newtio ) != 0 )
+        puts( strerror( errno ) );
+
+    if( fd == -1 )
+        return PORT_ERROR;
+
+    trace( "%s: reading from serial port: %s...\n\n", PROGRAM_NAME, serial_port_device );
+    return fd;
+}
 
 
 #pragma mark -

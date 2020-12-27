@@ -2,7 +2,7 @@
 //  rain_socket.h
 //  weather-relay
 //
-//  Created by Alex Lelievre on 7/20/20.
+//  Created by Alex Lelievre on 12/22/20.
 //  Copyright © 2020 Far Out Labs. All rights reserved.
 //
 
@@ -14,7 +14,7 @@
 
 wx_thread_return_t rain_socket_thread( void* args );
 void               rain_socket_thread_quit( void );
-int                rain_socket_raw_count();
+int                rain_socket_raw_count( void );
 
 
 

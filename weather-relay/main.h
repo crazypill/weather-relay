@@ -21,6 +21,7 @@
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"  // blue usb->serial adapter, use command line interface instead of changing this. this is here to remind me of the port name.
 #define PORT_DEVICE   "/dev/serial0"
+#define RAIN_DEVICE   "/dev/ttyUSB0"
 #define PORT_ERROR    -1
 #define PROGRAM_NAME  "folabs-wx-relay"
 #define VERSION       "100"
@@ -116,6 +117,7 @@
 bool debug_mode( void );
 void log_error( const char* format, ... );
 void log_unix_error( const char* prefix );
+int open_serial_port( const char* serial_port_device, int port_speed );
 
 #endif // !_H_main
 

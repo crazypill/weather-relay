@@ -169,7 +169,7 @@ void rain_socket_thread_quit( void )
 }
 
 
-int rain_socket_raw_count()
+int rain_socket_raw_count( void )
 {
     return s_raw_rain_count;
 }
