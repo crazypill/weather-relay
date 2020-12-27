@@ -1020,7 +1020,8 @@ void help( int argc, const char* argv[] )
             -k, --kiss                 Set the server we want to use, defaults to localhost.\n\
             -p, --port                 Set the port we want to use, defaults to 8001.\n\
             -s, --seq                  Set the starting sequence number.\n\
-            -e, --device               Set the serial device to use (defaults to /dev/serial0).\n\
+            -e, --device               Set the serial device to use for the wx radio (defaults to /dev/serial0).\n\
+            -r, --rain                 Set the serial device to use for the rain sensor radio (defaults to /dev/ttyUSB0).\n\
          Required parameters:\n\
             -f, --file                 Set the sequence file to use.\n\
         " );
@@ -1046,6 +1047,7 @@ void handle_command( int argc, const char * argv[] )
         {"file",                    required_argument, 0, 'f'},
         {"wxlog",                   required_argument, 0, 'w'},
         {"device",                  required_argument, 0, 'e'},
+        {"rain",                    required_argument, 0, 'r'},
 
         {0, 0, 0, 0}
         };
@@ -1103,7 +1105,11 @@ void handle_command( int argc, const char * argv[] )
             case 'e':
                 s_port_device = optarg;
                 break;
-                
+
+            case 'r':
+                s_rain_device = optarg;
+                break;
+
             case 'x':
                 s_test_mode = true;
                 s_sendInterval     = kSendInterval_debug;
