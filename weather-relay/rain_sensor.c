@@ -69,7 +69,7 @@ wx_thread_return_t rain_sensor_thread( void* args )
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
             process_rain_frame( &frame );
-        else if( result < sizeof( frame ) )
+        else if( result )
         {
 #ifdef DEBUG
             log_error( " partial incoming rain sensor data %d (%d)\n", result, sizeof( frame )  );
