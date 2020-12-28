@@ -1195,6 +1195,10 @@ void log_unix_error( const char* prefix )
 }
 
 
+bool debug_mode( void )
+{
+    return s_debug;
+}
 
 #pragma mark -
 
