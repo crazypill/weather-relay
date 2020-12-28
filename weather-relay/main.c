@@ -780,7 +780,12 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
     }
 
     // check to see if we have rain counts
+#ifdef USE_RAIN_SOCKET
     int rain_count = rain_socket_raw_count();
+#else
+    int rain_count = rain_sensor_raw_count();
+#endif
+
     float rain_in_mm = rawRainCount2mm( rain_count );
 
     if( rain_count )
