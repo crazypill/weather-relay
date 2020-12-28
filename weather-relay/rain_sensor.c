@@ -37,9 +37,8 @@ void process_rain_frame( RainFrame* frame )
     
     s_raw_rain_count = frame->raw_rain_count;
     
-#ifdef DEBUG
-    fprintf( stderr, "rain_sensor: raw rain message: %d\n\n", frame->raw_rain_count );
-#endif
+    if( debug_mode() )
+        log_error( "rain_sensor: raw rain message: %d\n\n", frame->raw_rain_count );
 }
 
 
@@ -58,8 +57,8 @@ wx_thread_return_t rain_sensor_thread( void* args )
         log_error( "rain_sensor_thread failed to open serial port: %s...\n", (const char*)args );
         wx_thread_return();
     }
-    else
-        log_error( "rain_sensor_thread started: %s...\n", (const char*)args );
+
+    log_error( "rain_sensor_thread running: %s...\n", (const char*)args );
 
     ssize_t result = 0;
     while( !s_quit )
@@ -71,9 +70,9 @@ wx_thread_return_t rain_sensor_thread( void* args )
             process_rain_frame( &frame );
         else if( result )
         {
-#ifdef DEBUG
-            log_error( " partial incoming rain sensor data %d (%d)\n", result, sizeof( frame )  );
-#endif
+            if( debug_mode() )
+                log_error( " partial incoming rain sensor data %d (%d)\n", result, sizeof( frame )  );
+
             // we most likely have received a partially transmitted frame, try to do another read now to get the remainder of it
             sleep( 1 );
             uint8_t* partialFrame = (uint8_t*)&frame;
