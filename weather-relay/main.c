@@ -67,7 +67,7 @@ typedef struct
 {
     time_t timeStampSecs;
     Frame  frame;
-} wxrecord;
+} __attribute__ ((__packed__)) wxrecord;
 
 
 static time_t s_lastSentTime      = 0;
@@ -296,7 +296,7 @@ void printFullWeather( const Frame* inst, const Frame* min, const Frame* max, co
     if( !s_debug )
         return;
     
-    log_error( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %0.2f mm\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( inst->intTempC - s_localTempErrorC ), inst->rain );
+    log_error( "     wind[%06.2f°]: %0.2f mph,     gust: %0.2f mph --     temp: %0.2f°F,     humidity: %2d%%,     pressure: %0.3f InHg,     int temp: %0.2f°F, rain: %0.2f inches\n", inst->windDirection, ms2mph( inst->windSpeedMs ), ms2mph( inst->windGustMs ), c2f( inst->tempC ), inst->humidity, (inst->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( inst->intTempC - s_localTempErrorC ), inst->rain );
     log_error( " avg wind[%06.2f°]: %0.2f mph, max gust: %0.2f mph -- ave temp: %0.2f°F, ave humidity: %2d%%, min pressure: %0.3f InHg  ave int temp: %0.2f°F\n",            ave->windDirection, ms2mph( ave->windSpeedMs ), ms2mph( max->windGustMs ), c2f( ave->tempC ), ave->humidity, (min->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( ave->intTempC - s_localTempErrorC ) );
     log_error( " pm10: %03d (%03d), pm25: %03d (%03d), pm100: %03d (%03d),  3um: %03d,  5um: %03d,  10um: %03d,  25um: %03d,  50um: %03d,  100um: %03d\n", inst->pm10_standard, inst->pm10_env, inst->pm25_standard, inst->pm25_env, inst->pm100_standard, inst->pm100_env, inst->particles_03um, inst->particles_05um, inst->particles_10um, inst->particles_25um, inst->particles_50um, inst->particles_100um );
 }
@@ -308,7 +308,7 @@ void printCurrentWeather( const Frame* frame, bool alwaysPrint )
     if( !alwaysPrint && !s_debug && !s_test_mode )
         return;
 
-    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %0.2f mm\n", frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), frame->rain );
+    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %0.2f inches\n", frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), frame->rain );
 }
 
 
@@ -416,16 +416,17 @@ bool validate_wx_frame( const Frame* frame )
     if( ms2mph( frame->windGustMs ) > kWindHighBar || ms2mph( frame->windGustMs ) < kWindLowBar  )
     {
         // blow off this entire frame of data- it's probably all wrong (except for baro and int temp)
-        log_error( " wind gust out of range [%0.2f°]: %0.2f mph\n", frame->windDirection, ms2mph( frame->windGustMs ) );
+        log_error( "validate_wx_frame: wind gust out of range [%0.2f°]: %0.2f mph\n", frame->windDirection, ms2mph( frame->windGustMs ) );
         return false;
     }
-
-    if( frame->rain < kRainLowBar || frame->rain > kRainHighBar )
-    {
-        // blow off this entire frame of data
-        log_error( " rain out of range: %0.2f mm\n", frame->rain );
-        return false;
-    }
+    
+    // not needed, also we should convert this check to inches if we do need it in the future
+//    if( frame->rain < kRainLowBar || frame->rain > kRainHighBar )
+//    {
+//        // blow off this entire frame of data
+//        log_error( "validate_wx_frame: rain out of range: %0.2f inches\n", frame->rain );
+//        return false;
+//    }
 
     
     return true;
@@ -812,12 +813,12 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 
         if( frameOk )
         {
-            data->rain = rain_in_mm;
+            data->rain = rawRainCount2inches( rain_count );
             ave->rain = data->rain;
 
 #ifdef TRACE_STATS
             printTime( false );
-            stats( " rain: %0.2f mm, %0.2f inches", data->rain, millimeter2inch( data->rain ) );
+            stats( " rain: %0.2f mm, %0.2f inches", rain_in_mm, data->rain );
 #endif
         }
         else
@@ -908,7 +909,7 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
 
     if( frame->flags & kDataFlag_rain )
     {
-        trace( ", rain: %g", frame->rain );
+        trace( ", rain: %g inches", frame->rain );
         outgoingFrame->rain = frame->rain;
     }
 
@@ -2283,7 +2284,7 @@ bool wxlog_get_rain_counts( int* lastHour100sInch, int* last24Hours100sInch, int
     *last24Hours100sInch   = 0;
     *sinceMidnight100sInch = 0;
 
-    float current_rain_mm = s_wxlog[0].frame.rain;
+    float current_rain_inches = s_wxlog[0].frame.rain;
 
     // figure out a period based on when midnight passed (we do this by looking at the current hour and minute and second)
     time_t t = time( NULL );
@@ -2306,13 +2307,13 @@ bool wxlog_get_rain_counts( int* lastHour100sInch, int* last24Hours100sInch, int
         if( s_wxlog[i].frame.rain != 0.0f )
         {
             if( (s_wx_size_secs >= s_rainLastHrPeriod) && (timeIndexSecs < s_rainLastHrPeriod) )
-                *lastHour100sInch = (int)round( millimeter2inch( current_rain_mm - s_wxlog[i].frame.rain ) * 100 );
+                *lastHour100sInch = (int)round( (current_rain_inches - s_wxlog[i].frame.rain) * 100 );
 
             if( (s_wx_size_secs >= s_rain24HrPeriod) && (timeIndexSecs < s_rain24HrPeriod) )
-                *last24Hours100sInch = (int)round( millimeter2inch( current_rain_mm - s_wxlog[i].frame.rain ) * 100 );
+                *last24Hours100sInch = (int)round( (current_rain_inches - s_wxlog[i].frame.rain) * 100 );
             
             if( (s_wx_size_secs >= secondsSinceMidnight) && (timeIndexSecs < secondsSinceMidnight) )
-                *sinceMidnight100sInch = (int)round( millimeter2inch( current_rain_mm - s_wxlog[i].frame.rain ) * 100 );
+                *sinceMidnight100sInch = (int)round( (current_rain_inches - s_wxlog[i].frame.rain) * 100 );
         }
     }
     

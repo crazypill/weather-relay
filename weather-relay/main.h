@@ -30,11 +30,12 @@
 #define pascal2inchHg    0.0002953
 #define millibar2inchHg  0.02953
 
-#define c2f( a )             (((a) * 1.8000) + 32)
-#define ms2mph( a )          ((a) * 2.23694)
-#define inHg2millibars( a )  ((a) * 33.8639)
-#define millimeter2inch( a ) ((a) * 0.0393700787402)
-#define rawRainCount2mm( a ) ((a) * 0.5)
+#define c2f( a )                 (((a) * 1.8000) + 32)
+#define ms2mph( a )              ((a) * 2.23694)
+#define inHg2millibars( a )      ((a) * 33.8639)
+#define millimeter2inch( a )     ((a) * 0.0393700787402)
+#define rawRainCount2mm( a )     ((a) * 0.5)
+#define rawRainCount2inches( a ) ((a) * 0.02)
 
 // https://www.daculaweather.com/stuff/CWOP_Guide.pdf has all the intervals, etc...
 #define kTelemDelaySecs     15  // 15 seconds after weather tx - used to stagger messages so they don't pile up on each other
