@@ -51,7 +51,8 @@
 #define kWindTemporalLimit  17.39130 // this is 20 knots in mph -- !!@ see note above about temporal being 10 minutes instead of hour.
 #define kRainLowBar         0
 #define kRainHighBar        9999
-#define kRainTemporalLimit  50.0     // this is in millimeters of rain collected, you can't just go from 1 mm to 50 mm ya know?
+#define kRainTemporalLimit        50.0     // this is in millimeters of rain collected, you can't just go from 1 mm to 50 mm ya know?
+#define kRainTemporalLimitInches  2.0
 
 
 //-----------------------------------------------------------------------------------------------------------------------------

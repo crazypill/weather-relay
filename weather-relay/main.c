@@ -812,6 +812,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 #endif
 
     float rain_in_mm = rawRainCount2mm( rain_count );
+    float rain_in_inches = rawRainCount2inches( rain_count );
 
     if( rain_count )
         data->flags |= kDataFlag_rain;
@@ -827,18 +828,17 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             frameOk = false;
         }
 
-        float ave_rain_in_mm = millimeter2inch( ave->rain );
-        if( frameOk && ave_rain_in_mm && (fabs( rain_in_mm - ave_rain_in_mm ) > kRainTemporalLimit) )
+        if( frameOk && ave->rain && (fabs( rain_in_inches - ave->rain ) > kRainTemporalLimitInches) )
         {
             // blow off this entire frame of data- it's probably all wrong
-            log_error( " rain temporal check failed: %0.2f mm, ave: %0.2f mm\n", rain_in_mm, ave_rain_in_mm );
+            log_error( " rain temporal check failed: %0.2f inches, ave: %0.2f inches\n", rain_in_inches, ave->rain );
             data->flags &= ~kDataFlag_rain;
             frameOk = false;
         }
 
         if( frameOk )
         {
-            data->rain = rawRainCount2inches( rain_count );
+            data->rain = rain_in_inches;
             ave->rain = data->rain;
 
 #ifdef TRACE_STATS
