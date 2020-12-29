@@ -217,12 +217,6 @@ void signalHandler( int sig )
             break;
             
         case SIGINT:
-            wxlog_shutdown();
-            if( s_logFile )
-                fclose( s_logFile );
-            exit( EXIT_SUCCESS );
-            break;
-            
         case SIGTERM:
             wxlog_shutdown();
             if( s_logFile )
