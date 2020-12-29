@@ -164,8 +164,8 @@ static bool wxlog_frame( const Frame* wxFrame );
 static bool wxlog_get_wx_averages( Frame* wxFrame );
 static bool wxlog_get_rain_counts( int* lastHour100sInch, int* last24Hours100sInch, int* sinceMidnight100sInch );
 
-
 static void dump_frames( void );
+static void dump_frames_to_disk( void );
 
 static void        queue_packet( const char* packetData );
 static const char* queue_get_next_packet( void );
@@ -213,7 +213,9 @@ void signalHandler( int sig )
     switch( sig )
     {
         case SIGHUP:
-            dump_frames();
+            if( s_debug )
+                dump_frames();
+            dump_frames_to_disk();
             break;
             
         case SIGINT:
@@ -296,13 +298,18 @@ void printFullWeather( const Frame* inst, const Frame* min, const Frame* max, co
 }
 
 
-void printCurrentWeather( const Frame* frame, bool alwaysPrint )
+void printCurrentWeather( const Frame* frame, bool alwaysPrint, FILE* outfile )
 {
     // only show this stuff if in debug mode
     if( !alwaysPrint && !s_debug && !s_test_mode )
         return;
 
-    printf( "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %0.2f inches\n", frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), frame->rain );
+    const char* format_string = "Wind[%06.2f°]: %0.2f mph, gust: %0.2f mph, temp: %0.2f°F, humidity: %2d%%, pressure: %0.3f InHg, int temp: %0.2f°F, rain: %0.2f inches\n";
+    
+    if( outfile )
+        fprintf( outfile, format_string, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), frame->rain );
+    else
+        printf( format_string, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ), c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, c2f( frame->intTempC - s_localTempErrorC ), frame->rain );
 }
 
 
@@ -318,9 +325,32 @@ void dump_frames( void )
     {
         struct tm tm = *localtime( &s_wxlog[i].timeStampSecs );
         printf( "%d-%02d-%02d %02d:%02d:%02d.%03d: ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, i );
-        printCurrentWeather( &s_wxlog[i].frame, true );
+        printCurrentWeather( &s_wxlog[i].frame, true, NULL );
     }
 }
+
+
+void dump_frames_to_disk( void )
+{
+    if( !s_wxlog )
+        return;
+    
+    FILE* wxfile = fopen( "/var/www/html/wx.dump.txt", "w" );
+    if( !wxfile )
+        return;
+    
+    fprintf( wxfile, "dumping %zu frames:\n", s_wx_count );
+    
+    for( int i = 0; i < s_wx_count; i++ )
+    {
+        struct tm tm = *localtime( &s_wxlog[i].timeStampSecs );
+        fprintf( wxfile, "%d-%02d-%02d %02d:%02d:%02d.%03d: ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, i );
+        printCurrentWeather( &s_wxlog[i].frame, true, wxfile );
+    }
+    
+    fclose( wxfile );
+}
+
 
 
 time_t timeGetTimeSec()
@@ -1520,7 +1550,7 @@ void transmit_wx_frame( const Frame* frame )
         printTime( false );
         printf( " Sending weather info to APRS-IS...  next update @ " );
         printTimePlus5();   // total hack and will display times such as 13:64 ?! (which is really 14:04)
-        printCurrentWeather( frame, false );
+        printCurrentWeather( frame, false, NULL );
     }
 
     APRSPacket wx;
@@ -2107,7 +2137,7 @@ bool wxlog_frame( const Frame* wxFrame )
 #ifdef TRACE_INSERTS
     printTime( false );
     printf( " -> record[%03zu]: window: %3ld secs, ", s_wx_count, s_wx_size_secs );
-    printCurrentWeather( &s_wxlog->frame, false );
+    printCurrentWeather( &s_wxlog->frame, false, NULL );
 #endif
     
     return true;
@@ -2263,7 +2293,7 @@ bool wxlog_get_wx_averages( Frame* wxFrame )
     s_last_aqi = pm25_aqi / aqiCount;
     
 #ifdef TRACE_AVERAGES
-    printCurrentWeather( wxFrame, false );
+    printCurrentWeather( wxFrame, false, NULL );
 #endif
     return true;
 }
