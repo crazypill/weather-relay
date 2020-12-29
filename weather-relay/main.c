@@ -1571,19 +1571,19 @@ void transmit_wx_frame( const Frame* frame )
     int sinceMidnight100sInch = 0;
     if( wxlog_get_rain_counts( &lastHour100sInch, &last24Hours100sInch, &sinceMidnight100sInch ) )
     {
-        if( lastHour100sInch )
+//        if( lastHour100sInch )
         {
             formatTruncationCheck = snprintf( wx.rainfallLastHour, 4, "%03d", lastHour100sInch );
             assert( formatTruncationCheck >= 0 );
         }
         
-        if( last24Hours100sInch )
+//        if( last24Hours100sInch )
         {
             formatTruncationCheck = snprintf( wx.rainfallLast24Hours, 4, "%03d", last24Hours100sInch );
             assert( formatTruncationCheck >= 0 );
         }
         
-        if( sinceMidnight100sInch )
+//        if( sinceMidnight100sInch )
         {
             formatTruncationCheck = snprintf( wx.rainfallSinceMidnight, 4, "%03d", sinceMidnight100sInch );
             assert( formatTruncationCheck >= 0 );
