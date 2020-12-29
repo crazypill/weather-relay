@@ -24,7 +24,7 @@
 #define RAIN_DEVICE   "/dev/ttyUSB0"
 #define PORT_ERROR    -1
 #define PROGRAM_NAME  "folabs-wx-relay"
-#define VERSION       "100"
+#define VERSION       "110"
 
 
 #define pascal2inchHg    0.0002953
