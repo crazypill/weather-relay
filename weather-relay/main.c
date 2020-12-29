@@ -827,10 +827,11 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             frameOk = false;
         }
 
-        if( frameOk && ave->rain && (fabs( rain_in_mm - ave->rain ) > kRainTemporalLimit) )
+        float ave_rain_in_mm = millimeter2inch( ave->rain );
+        if( frameOk && ave_rain_in_mm && (fabs( rain_in_mm - ave_rain_in_mm ) > kRainTemporalLimit) )
         {
             // blow off this entire frame of data- it's probably all wrong
-            log_error( " rain temporal check failed: %0.2f mm, ave: %0.2f mm\n", rain_in_mm, ave->rain );
+            log_error( " rain temporal check failed: %0.2f mm, ave: %0.2f mm\n", rain_in_mm, ave_rain_in_mm );
             data->flags &= ~kDataFlag_rain;
             frameOk = false;
         }
