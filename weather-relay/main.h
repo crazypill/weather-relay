@@ -21,7 +21,8 @@
 
 //#define PORT_DEVICE "/dev/cu.usbserial-0001"  // blue usb->serial adapter, use command line interface instead of changing this. this is here to remind me of the port name.
 #define PORT_DEVICE   "/dev/serial0"
-#define RAIN_DEVICE   "/dev/ttyUSB0"
+//#define RAIN_DEVICE   "/dev/ttyUSB0"   // this is how the ESP32 shows up on the RPi
+#define RAIN_DEVICE   "/dev/ttyACM0"        // this is on the Feather M0+RFM69 board
 #define PORT_ERROR    -1
 #define PROGRAM_NAME  "folabs-wx-relay"
 #define VERSION       "110"
