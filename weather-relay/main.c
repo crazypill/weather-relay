@@ -960,14 +960,21 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
         
         time_t current = timeGetTimeSec();
         
-        if( current > s_lastWxTime + s_sendInterval )
+        if( (current > s_lastStatusTime + s_statusInterval) && (current - s_startupTime > kStatusDelaySecs) )
         {
+            // just double check that we aren't sending something at exactly at the same time due to drift
+            if( s_lastSentTime == current )
+            {
+                log_error( " snoozing to prevent sending status exactly at same time as previous send\n" );
+                sleep( 1 );
+            }
+
             if( wxlog_get_wx_averages( outgoingFrame ) )
-                transmit_wx_frame( outgoingFrame );
+                transmit_status( outgoingFrame );
             else
-                transmit_wx_data( minFrame, maxFrame, aveFrame );
-            
-            s_lastWxTime = timeGetTimeSec();
+                transmit_status( aveFrame );
+
+            s_lastStatusTime = timeGetTimeSec();
         }
 
         if( (current > s_lastTelemetryTime + s_sendInterval) && (current - s_startupTime > kTelemDelaySecs ) )
@@ -986,22 +993,15 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
             
             s_lastTelemetryTime = timeGetTimeSec();
         }
-        
-        if( (current > s_lastStatusTime + s_statusInterval) && (current - s_startupTime > kStatusDelaySecs) )
+
+        if( current > s_lastWxTime + s_sendInterval )
         {
-            // just double check that we aren't sending something at exactly at the same time due to drift
-            if( s_lastSentTime == current )
-            {
-                log_error( " snoozing to prevent sending status exactly at same time as previous send\n" );
-                sleep( 1 );
-            }
-
             if( wxlog_get_wx_averages( outgoingFrame ) )
-                transmit_status( outgoingFrame );
+                transmit_wx_frame( outgoingFrame );
             else
-                transmit_status( aveFrame );
-
-            s_lastStatusTime = timeGetTimeSec();
+                transmit_wx_data( minFrame, maxFrame, aveFrame );
+            
+            s_lastWxTime = timeGetTimeSec();
         }
     }
 }
