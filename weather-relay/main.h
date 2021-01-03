@@ -39,8 +39,9 @@
 #define rawRainCount2inches( a ) ((a) * 0.02)
 
 // https://www.daculaweather.com/stuff/CWOP_Guide.pdf has all the intervals, etc...
-#define kTelemDelaySecs     15  // 15 seconds after weather tx - used to stagger messages so they don't pile up on each other
-#define kStatusDelaySecs    30
+#define kTelemDelaySecs     0
+#define kStatusDelaySecs    20
+#define kWxDelaySecs        40
 
 #define kTempLowBar         -60.0f
 #define kTempHighBar        130.0f

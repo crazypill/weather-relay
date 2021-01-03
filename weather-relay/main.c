@@ -994,7 +994,7 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
             s_lastTelemetryTime = timeGetTimeSec();
         }
 
-        if( current > s_lastWxTime + s_sendInterval )
+        if( (current > s_lastWxTime + s_sendInterval) && (current - s_startupTime > kWxDelaySecs) )
         {
             if( wxlog_get_wx_averages( outgoingFrame ) )
                 transmit_wx_frame( outgoingFrame );
