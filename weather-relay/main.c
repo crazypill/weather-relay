@@ -674,8 +674,8 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             frameOk = false;
         }
 
-        // do gust temporal check now
-        if( frameOk && (fabs( windGustMph - ms2mph( max->windGustMs ) ) > kWindTemporalLimit) )
+        // do gust temporal check now - if the gust rapidly goes to zero, that's ok, just not the other way...
+        if( frameOk && (windGustMph - ms2mph( max->windGustMs ) > kWindTemporalLimit) )
         {
             // blow off this entire frame of data- it's probably all wrong
             log_error( " gust temporal check failed [%0.2f°]: %0.2f, last max: %0.2f mph, time left: %ld\n", data->windDirection, windGustMph, ms2mph( max->windGustMs ), s_gustPeriod - (timeGetTimeSec() - s_lastGustTime) );
