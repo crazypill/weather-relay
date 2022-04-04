@@ -247,7 +247,7 @@ void printAPRSPacket (APRSPacket* restrict const p, char* restrict const ret, ch
 		 * Add 33 as per the spec, and you get 67, the ASCII code for 'C'.
 		 *                                                           ?
 		 *                              header_________ timestamp____ pos_wc_s_Tt__*/
-		int ret = snprintf(result, 48, "%s>APRS,TCPIP*:@%.2d%.2d%.2dz/%s%s_%c%cCt%s",
+		int ret = snprintf(result, 50, "%s>APNFOL,TCPIP*:@%.2d%.2d%.2dz/%s%s_%c%cCt%s",
 			p->callsign, now->tm_mday, now->tm_hour, now->tm_min,
 			p->latitude, p->longitude, p->windDirection[0], p->windSpeed[0],
 			p->temperature);
@@ -255,7 +255,7 @@ void printAPRSPacket (APRSPacket* restrict const p, char* restrict const ret, ch
 	}
 	else {
 		/*                              header_________ timestamp____pos__wc_ s_t__*/
-		int ret = snprintf(result, 65, "%s>APRS,TCPIP*:@%.2d%.2d%.2dz%s/%s_%s/%sg%st%s",
+		int ret = snprintf(result, 67, "%s>APNFOL,TCPIP*:@%.2d%.2d%.2dz%s/%s_%s/%sg%st%s",
 			p->callsign, now->tm_mday, now->tm_hour, now->tm_min,
             p->latitude, p->longitude,
             p->windDirection, p->windSpeed, notNull(p->gust) ? p->gust : "000",

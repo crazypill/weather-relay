@@ -1661,28 +1661,28 @@ void transmit_air_data( const Frame* frame )
     // these never go out over wide...
     if( timeGetTimeSec() > s_lastParamsTime + s_paramsInterval )
     {
-        sprintf( packetToSend, "%s>APRS,TCPIP*::%s :PARM.0.3um,0.5um,1.0um,2.5um,5.0um", kCallSign, kCallSign );
+        sprintf( packetToSend, "%s>APNFOL,TCPIP*::%s :PARM.0.3um,0.5um,1.0um,2.5um,5.0um", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
         sleep( 1 ); // avoid rate limiting
         
-        sprintf( packetToSend, "%s>APRS,TCPIP*::%s :UNIT.pm/0.1L,pm/0.1L,pm/0.1L,pm/0.1L,pm/0.1L", kCallSign, kCallSign );
+        sprintf( packetToSend, "%s>APNFOL,TCPIP*::%s :UNIT.pm/0.1L,pm/0.1L,pm/0.1L,pm/0.1L,pm/0.1L", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
         sleep( 1 ); // avoid rate limiting
 
-        sprintf( packetToSend, "%s>APRS,TCPIP*::%s :EQNS.0,256,0,0,256,0,0,256,0,0,256,0,0,256,0", kCallSign, kCallSign );
+        sprintf( packetToSend, "%s>APNFOL,TCPIP*::%s :EQNS.0,256,0,0,256,0,0,256,0,0,256,0,0,256,0", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
         sleep( 1 ); // avoid rate limiting
 
-        sprintf( packetToSend, "%s>APRS,TCPIP*::%s :BITS.10101010,Lab Air Quality", kCallSign, kCallSign );
+        sprintf( packetToSend, "%s>APNFOL,TCPIP*::%s :BITS.10101010,Lab Air Quality", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
@@ -1692,7 +1692,7 @@ void transmit_air_data( const Frame* frame )
         s_lastParamsTime = timeGetTimeSec();
     }
     
-    sprintf( packetToSend, "%s>APRS,TCPIP*:T#%03d,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d%d%d%d%d%d%d%d", kCallSign, s_sequence_num++,
+    sprintf( packetToSend, "%s>APNFOL,TCPIP*:T#%03d,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d%d%d%d%d%d%d%d", kCallSign, s_sequence_num++,
               frame->particles_03um / 256.0,
               frame->particles_05um / 256.0,
               frame->particles_10um / 256.0,
@@ -1744,7 +1744,7 @@ void transmit_status( const Frame* frame )
     
     time_t     t   = time( NULL );
     struct tm* now = gmtime(&t);  // APRS uses GMT
-    sprintf( packetToSend, "%s>APRS,TCPIP*:>%.2d%.2d%.2dzwx-relay %0.1fF", kCallSign, now->tm_mday, now->tm_hour, now->tm_min, c2f( frame->intTempC - s_localTempErrorC ) );
+    sprintf( packetToSend, "%s>APNFOL,TCPIP*:>%.2d%.2d%.2dzwx-relay %0.1fF", kCallSign, now->tm_mday, now->tm_hour, now->tm_min, c2f( frame->intTempC - s_localTempErrorC ) );
     if( s_debug )
         printf( "%s\n\n", packetToSend );
 
