@@ -50,6 +50,10 @@
 // so this code isn't really necessary anymore-
 //#define USE_RAIN_SOCKET
 
+// use this to go back to sending out APRS for the destination instead of our new one
+//#define REPLACE_DESTINATION
+
+
 #define kCallSign    "K6LOT-13"
 #define kPasscode    "8347"
 #define kWidePath2   "WIDE2-2"
@@ -1802,7 +1806,8 @@ int sendToRadio( const char* p, bool wide )
             strcpy( f, &p[offset] );
         }
     }
-    
+
+#ifdef REPLACE_DESTINATION
     // now replace the destination part
     f = strstr( buffer, kDestination );
     if( f )
@@ -1824,6 +1829,7 @@ int sendToRadio( const char* p, bool wide )
             strcpy( f, &p[offset] );
         }
     }
+#endif
     
     // if something went wrong, the original string was already copied to the buffer
 
