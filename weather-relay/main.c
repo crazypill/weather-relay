@@ -50,10 +50,11 @@
 // so this code isn't really necessary anymore-
 //#define USE_RAIN_SOCKET
 
-#define kCallSign "K6LOT-13"
-#define kPasscode "8347"
-#define kWidePath "WIDE2-1"
-#define kIGPath   "TCPIP*"
+#define kCallSign  "K6LOT-13"
+#define kPasscode  "8347"
+#define kWidePath2 "WIDE2-2"
+#define kWidePath  "WIDE2-1"
+#define kIGPath    "TCPIP*"
 
 #define kHistoryTimeout        60 * 2         // 2 minutes (to restart the app before the history rots)
 #define kMaxNumberOfRecords    20000          // 24 hours (86400 seconds) we need 86400 / 5 sec = 17280 wxrecords minimum.  Let's round up to 20k.
@@ -1765,37 +1766,31 @@ int sendToRadio( const char* p, bool wide )
     
     // do a bit of mangling to get the WIDE2-1 in there... figure out how much extra space we need...
     char buffer[1024] = {}; // note: largest allowable packet is 256
-    if( wide )
+    strcpy( buffer, p );
+    
+    // find the TCPIP bit
+    char* f = strstr( buffer, kIGPath );
+    if( f )
     {
-        strcpy( buffer, p );
+        // stomp over it -- note, this most likely stomped on part of the message if the two paths weren't the same length
+        const char* widePath = wide ? kWidePath2 : kWidePath;
+        strcpy( f, widePath );
         
-        // find the TCPIP bit
-        char* f = strstr( buffer, kIGPath );
-        if( f )
+        size_t igPathLen   = strlen( kIGPath );
+        size_t widePathLen = strlen( widePath );
+         
+        if( igPathLen != widePathLen )
         {
-            // stomp over it -- note, this most likely stomped on part of the message if the two paths weren't the same length
-            strcpy( f, kWidePath );
+            // fix up the remaining part of the string... we know the offset of the tcpip string and the size of it, so offset the input string to get the remaining bit
+            size_t offset = f - buffer;   // this points to TCPIP*
+            offset += igPathLen;  // now points at message data
+            f += widePathLen;
             
-            size_t igPathLen   = strlen( kIGPath );
-            size_t widePathLen = strlen( kWidePath );
-             
-            if( igPathLen != widePathLen )
-            {
-                // fix up the remaining part of the string... we know the offset of the tcpip string and the size of it, so offset the input string to get the remaining bit
-                size_t offset = f - buffer;   // this points to TCPIP*
-                offset += igPathLen;  // now points at message data
-                f += widePathLen;
-                
-                // use that offset in the original packet to find message data to add to this fixed up message
-                strcpy( f, &p[offset] );
-            }
+            // use that offset in the original packet to find message data to add to this fixed up message
+            strcpy( f, &p[offset] );
         }
-        // if something went wrong, the original string was already copied to the buffer
     }
-    else
-    {
-        strcpy( buffer, p );
-    }
+    // if something went wrong, the original string was already copied to the buffer
 
     if( s_test_mode )
     {
