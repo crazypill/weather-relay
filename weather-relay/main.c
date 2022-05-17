@@ -50,11 +50,13 @@
 // so this code isn't really necessary anymore-
 //#define USE_RAIN_SOCKET
 
-#define kCallSign  "K6LOT-13"
-#define kPasscode  "8347"
-#define kWidePath2 "WIDE2-2"
-#define kWidePath  "WIDE2-1"
-#define kIGPath    "TCPIP*"
+#define kCallSign    "K6LOT-13"
+#define kPasscode    "8347"
+#define kWidePath2   "WIDE2-2"
+#define kWidePath    "WIDE2-1"
+#define kIGPath      "TCPIP*"
+#define kDestination "APNFOL"
+#define kRadioDest   "APRS"
 
 #define kHistoryTimeout        60 * 2         // 2 minutes (to restart the app before the history rots)
 #define kMaxNumberOfRecords    20000          // 24 hours (86400 seconds) we need 86400 / 5 sec = 17280 wxrecords minimum.  Let's round up to 20k.
@@ -174,6 +176,16 @@ static const char* queue_get_next_packet( void );
 static void        queue_error_packet( const char* packetData );
 //static const char* error_bucket_get_next_packet( void );
 
+static int  ignoreSIGPIPE( void );
+static int  getErrno( int result );
+static void signalHandler( int sig );
+
+static void  nullprint( const char* format, ... );
+static char* copy_string( const char* stringToCopy );
+static void  printTime( int printNewline );
+static void  printTimePlus5( void );
+//static void buffer_input_flush( void );
+
 
 
 #pragma mark -
@@ -191,7 +203,7 @@ int getErrno( int result )
 }
 
 
-int ignoreSIGPIPE()
+int ignoreSIGPIPE( void )
 {
     int err;
     struct sigaction signalState;
@@ -259,13 +271,13 @@ char* copy_string( const char* stringToCopy )
 }
 
 
-void buffer_input_flush()
-{
-    int c;
-     // This will eat up all other characters
-    while( (c = getchar()) != EOF && c != '\n' )
-        ;
-}
+//void buffer_input_flush()
+//{
+//    int c;
+//     // This will eat up all other characters
+//    while( (c = getchar()) != EOF && c != '\n' )
+//        ;
+//}
 
 
 void printTime( int printNewline )
@@ -354,7 +366,7 @@ void dump_frames_to_disk( void )
 
 
 
-time_t timeGetTimeSec()
+time_t timeGetTimeSec( void )
 {
     time_t rawtime = 0;
     return time( &rawtime );
@@ -1790,6 +1802,29 @@ int sendToRadio( const char* p, bool wide )
             strcpy( f, &p[offset] );
         }
     }
+    
+    // now replace the destination part
+    f = strstr( buffer, kDestination );
+    if( f )
+    {
+        // stomp over it -- note, this most likely stomped on part of the message if the two paths weren't the same length
+        strcpy( f, kRadioDest );
+        
+        size_t destLen      = strlen( kDestination );
+        size_t radioDestLen = strlen( kRadioDest );
+         
+        if( destLen != radioDestLen )
+        {
+            // fix up the remaining part of the string... we know the offset of the tcpip string and the size of it, so offset the input string to get the remaining bit
+            size_t offset = f - buffer;
+            offset += destLen;  // now points at message data
+            f += radioDestLen;
+            
+            // use that offset in the original packet to find message data to add to this fixed up message
+            strcpy( f, &p[offset] );
+        }
+    }
+    
     // if something went wrong, the original string was already copied to the buffer
 
     if( s_test_mode )

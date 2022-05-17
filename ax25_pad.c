@@ -2605,8 +2605,8 @@ unsigned short ax25_dedupe_crc (packet_t pp)
 	}
 
 	crc = 0xffff;
-	crc = crc16((unsigned char *)src, strlen(src), crc);
-	crc = crc16((unsigned char *)dest, strlen(dest), crc);
+	crc = crc16((unsigned char *)src, (int)strlen(src), crc);
+	crc = crc16((unsigned char *)dest, (int)strlen(dest), crc);
 	crc = crc16(pinfo, info_len, crc);
 
 	return (crc);
@@ -2705,7 +2705,7 @@ void ax25_safe_print (char *pstr, int len, int ascii_only)
 
 
 	if (len < 0) 
-	  len = strlen(pstr);
+	  len = (int)strlen(pstr);
 
 	if (len > MAXSAFE)
 	  len = MAXSAFE;
