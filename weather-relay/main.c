@@ -1621,6 +1621,13 @@ void transmit_wx_frame( const Frame* frame )
     int sinceMidnight100sInch = 0;
     if( wxlog_get_rain_counts( &lastHour100sInch, &last24Hours100sInch, &sinceMidnight100sInch ) )
     {
+        if( lastHour100sInch < 0 )
+            lastHour100sInch = 0;
+        if( last24Hours100sInch < 0 )
+            last24Hours100sInch = 0;
+        if( sinceMidnight100sInch < 0 )
+            sinceMidnight100sInch = 0;
+
         formatTruncationCheck = snprintf( wx.rainfallLastHour, 4, "%03d", lastHour100sInch );
         assert( formatTruncationCheck >= 0 );
 
