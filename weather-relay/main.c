@@ -36,7 +36,7 @@
 #include "kiss_frame.h"
 #include "rain_socket.h"
 #include "rain_sensor.h"
-
+#include "co2_sensor.h"
 
 // don't use old history if it's too far away from now...
 #define TIME_OUT_OLD_DATA
@@ -163,7 +163,7 @@ static void transmit_air_data( const Frame* frame );
 static void transmit_status( const Frame* frame );
 static bool validate_wx_frame( const Frame* frame );
 
-static void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours100sInch, int sinceMidnight100sInch );
+static void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours100sInch, int sinceMidnight100sInch, int co2_level );
 
 static bool wxlog_startup( void );
 static bool wxlog_shutdown( void );
@@ -475,7 +475,7 @@ bool validate_wx_frame( const Frame* frame )
 
 
 
-void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours100sInch, int sinceMidnight100sInch )
+void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours100sInch, int sinceMidnight100sInch, int co2_level )
 {
 //    snprintf( wx.windDirection, 4, "%03d", (int)(round(frame->windDirection)) );
 //    snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame->windSpeedMs))) );
@@ -486,7 +486,7 @@ void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours
     {
         time_t t = time( NULL );
         struct tm tm = *localtime( &t );
-        fprintf( www_file, "%02d:%02d:%02d, %g, %d, %g, %g, %g, %g, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", tm.tm_hour, tm.tm_min, tm.tm_sec, c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ),
+        fprintf( www_file, "%02d:%02d:%02d, %g, %d, %g, %g, %g, %g, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", tm.tm_hour, tm.tm_min, tm.tm_sec, c2f( frame->tempC ), frame->humidity, (frame->pressure * millibar2inchHg) + s_localOffsetInHg, frame->windDirection, ms2mph( frame->windSpeedMs ), ms2mph( frame->windGustMs ),
                  frame->pm10_standard,       // Standard PM1.0
                  frame->pm25_standard,       // Standard PM2.5
                  frame->pm100_standard,      // Standard PM10.0
@@ -502,7 +502,8 @@ void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours
                  s_last_aqi,                 // PM2.5 over 24hrs - not an index yet
                  lastHour100sInch,           // rain for the last hour
                  last24Hours100sInch,        // rain for the last 24 hours
-                 sinceMidnight100sInch       // rain since midnight
+                 sinceMidnight100sInch,      // rain since midnight
+                 co2_level                   // current co2 reading
                );
         fclose( www_file );
     }
@@ -1647,7 +1648,10 @@ void transmit_wx_frame( const Frame* frame )
     if( s_debug )
         printf( "%s\n\n", packetToSend );
 
-    print_wx_for_www( frame, lastHour100sInch, last24Hours100sInch, sinceMidnight100sInch );
+    // pickup CO2 reading here
+    float co2 = co2_read_sensor( NULL, NULL );
+    
+    print_wx_for_www( frame, lastHour100sInch, last24Hours100sInch, sinceMidnight100sInch, (int)co2 );
 
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
@@ -1671,11 +1675,14 @@ void transmit_air_data( const Frame* frame )
 {
     char packetToSend[BUFSIZE];
 
+    // pickup CO2 reading here as well
+    float co2 = co2_read_sensor( NULL, NULL );
+    
     if( s_debug )
     {
         printTime( false );
         printf( " Sending air quality info to APRS-IS...\n" );
-        printf( "3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d\n", frame->particles_03um, frame->particles_05um, frame->particles_10um, frame->particles_25um, frame->particles_50um );
+        printf( "3um: %03d, 5um: %03d, 10um: %03d, 25um: %03d, 50um: %03d, co2: %03d\n", frame->particles_03um, frame->particles_05um, frame->particles_10um, frame->particles_25um, frame->particles_50um, (int)co2 );
     }
     
     if( s_sequence_num >= 999 )
@@ -1685,14 +1692,14 @@ void transmit_air_data( const Frame* frame )
     // these never go out over wide...
     if( timeGetTimeSec() > s_lastParamsTime + s_paramsInterval )
     {
-        sprintf( packetToSend, "%s>APNFOL,TCPIP*::%s :PARM.0.3um,0.5um,1.0um,2.5um,5.0um", kCallSign, kCallSign );
+        sprintf( packetToSend, "%s>APNFOL,TCPIP*::%s :PARM.0.3um,0.5um,1.0um,2.5um,CO2", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
         wx_create_thread_detached( sendToRadio_thread_entry, copy_string( packetToSend ) );
         sleep( 1 ); // avoid rate limiting
         
-        sprintf( packetToSend, "%s>APNFOL,TCPIP*::%s :UNIT.pm/0.1L,pm/0.1L,pm/0.1L,pm/0.1L,pm/0.1L", kCallSign, kCallSign );
+        sprintf( packetToSend, "%s>APNFOL,TCPIP*::%s :UNIT.pm/0.1L,pm/0.1L,pm/0.1L,pm/0.1L,ppm", kCallSign, kCallSign );
         if( s_debug )
             printf( "%s\n", packetToSend );
         wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
@@ -1721,7 +1728,7 @@ void transmit_air_data( const Frame* frame )
               frame->particles_05um / 256.0,
               frame->particles_10um / 256.0,
               frame->particles_25um / 256.0,
-              frame->particles_50um / 256.0,
+              co2 / 256.0,
               1,0,1,0,1,0,1,0 );
 
     if( s_debug )
