@@ -7,3 +7,9 @@ On APRS this software shows up as wx-relay or folabs-wx-relayXXX, XXX being the 
 This code expects to be talking to this firmware https://github.com/crazypill/tx31u-receiver.  That firmware runs on a Feather M0 + RFM69.  It is designed to pickup signals from a WS-1516 compatible 915Mhz weather sensors (specifically the TX31U+ transmitter from LaCrosse).
 
 ![](https://raw.githubusercontent.com/crazypill/weather-relay/master/folabs-wx-relay.jpg)
+
+Here is the full system (the top unit is a Raspberry Pi, bottom is the air particle sensor and wx receiver).  One matchbox is the rain sensor receiver and the other matchbox contains a SCD30 CO2 sensor.
+
+![](https://raw.githubusercontent.com/crazypill/weather-relay/master/folabs-wx-relay-full.jpeg)
+
+
