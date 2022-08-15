@@ -25,7 +25,7 @@
 #define RAIN_DEVICE   "/dev/ttyACM0"        // this is on the Feather M0+RFM69 board
 #define PORT_ERROR    -1
 #define PROGRAM_NAME  "folabs-wx-relay"
-#define VERSION       "111"
+#define VERSION       "120"
 
 
 #define pascal2inchHg    0.0002953
