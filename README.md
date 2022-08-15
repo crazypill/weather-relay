@@ -8,7 +8,7 @@ This code expects to be talking to this firmware https://github.com/crazypill/tx
 
 ![](https://raw.githubusercontent.com/crazypill/weather-relay/master/folabs-wx-relay.jpg)
 
-Here is the full system (the top unit is a Raspberry Pi, bottom is the air particle sensor and wx receiver).  One matchbox is the rain sensor receiver and the other matchbox contains a SCD30 CO2 sensor.
+Here is the full system (the top unit is a Raspberry Pi, bottom is the air particle sensor and wx receiver seen above).  One matchbox is the rain sensor receiver and the other matchbox contains a SCD30 CO2 sensor.
 
 ![](https://raw.githubusercontent.com/crazypill/weather-relay/master/folabs-wx-relay-full.jpeg)
 
