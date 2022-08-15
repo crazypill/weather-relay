@@ -46,7 +46,7 @@ static uint8_t crc8( const uint8_t* data, int len )
 static bool co2_lazy_init( void )
 {
     if( s_sensor_fd < 0 )
-        s_sensor_fd = wiringPiI2CSetup( 0x61 );
+        s_sensor_fd = wiringPiI2CSetup( SCD30_I2CADDR_DEFAULT );
     if( s_sensor_fd < 0 )
         return false;
     
