@@ -93,7 +93,7 @@ float co2_read_sensor( float* tempPtr, float* humidityPtr )
     uint32_t temp = (buffer[6] << 24)  | (buffer[7] << 16)  | (buffer[9] << 8)  | buffer[10];
     uint32_t hum  = (buffer[12] << 24) | (buffer[13] << 16) | (buffer[15] << 8) | buffer[16];
     
-    // coerse values into floats instead of using memcpy
+    // coerce values into floats instead of using memcpy
     float CO2         = *((float*)&co2);
     float temperature = *((float*)&temp);
     float humidity    = *((float*)&hum);
