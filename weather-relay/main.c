@@ -475,7 +475,7 @@ bool validate_wx_frame( const Frame* frame )
 
 
 
-void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours100sInch, int sinceMidnight100sInch, int co2_level )
+void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours100sInch, int sinceMidnight100sInch, int32_t co2_level )
 {
 //    snprintf( wx.windDirection, 4, "%03d", (int)(round(frame->windDirection)) );
 //    snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame->windSpeedMs))) );
@@ -1651,7 +1651,7 @@ void transmit_wx_frame( const Frame* frame )
     // pickup CO2 reading here
     float co2 = co2_read_sensor( NULL, NULL );
     
-    print_wx_for_www( frame, lastHour100sInch, last24Hours100sInch, sinceMidnight100sInch, (int)co2 );
+    print_wx_for_www( frame, lastHour100sInch, last24Hours100sInch, sinceMidnight100sInch, (int32_t)co2 );
 
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
