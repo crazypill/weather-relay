@@ -105,7 +105,10 @@ float co2_read_sensor( float* tempPtr, float* humidityPtr )
         *tempPtr = temperature;
     if( humidityPtr )
         *humidityPtr = humidity;
-    
+
+    if( CO2 == 0.0 )
+        log_error( "co2 sensor returning 0...\n" );
+
     return CO2;
 }
 
