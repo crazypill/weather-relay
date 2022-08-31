@@ -63,7 +63,10 @@ float co2_read_sensor( float* tempPtr, float* humidityPtr )
     buffer[1] = SCD30_CMD_READ_MEASUREMENT & 0xFF;
     
     if( !co2_lazy_init() )
+    {
+        log_error( "co2 sensor failed to initialize sensor...\n" );
         return 0.0f;
+    }
     
     write( s_sensor_fd, buffer, 2 );
     usleep( 4 * 1000 );  // 4 milliseconds
