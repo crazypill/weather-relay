@@ -481,6 +481,10 @@ void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours
 //    snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame->windSpeedMs))) );
 //    snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(frame->windGustMs))) );
 
+    if( co2_level <= 0 )
+        log_error( "print_wx_for_www: co2_level is zero... %d\n", co2_level );
+
+    
     FILE* www_file = fopen( "/var/www/html/wx.html", "w" ); // obviously only will work on RPi with Apache running...
     if( www_file )
     {
@@ -1651,7 +1655,7 @@ void transmit_wx_frame( const Frame* frame )
     // pickup CO2 reading here
     float co2 = co2_read_sensor( NULL, NULL );
     
-    print_wx_for_www( frame, lastHour100sInch, last24Hours100sInch, sinceMidnight100sInch, (int32_t)(co2 + 0.5f) );
+    print_wx_for_www( frame, lastHour100sInch, last24Hours100sInch, sinceMidnight100sInch, (int32_t)co2 );
 
     // we need to create copies of the packet buffer and send that instead as we don't know the life of those other threads we light off...
     wx_create_thread_detached( sendPacket_thread_entry, copy_string( packetToSend ) );
