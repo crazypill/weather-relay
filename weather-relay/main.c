@@ -481,8 +481,8 @@ void print_wx_for_www( const Frame* frame, int lastHour100sInch, int last24Hours
 //    snprintf( wx.windSpeed, 4, "%03d", (int)(round(ms2mph(frame->windSpeedMs))) );
 //    snprintf( wx.gust, 4, "%03d", (int)(round(ms2mph(frame->windGustMs))) );
 
-    if( co2_level <= 0 )
-        log_error( "print_wx_for_www: co2_level is zero... %d\n", co2_level );
+//    if( co2_level <= 0 )
+//        log_error( "print_wx_for_www: co2_level is zero... %d\n", co2_level );
 
     
     FILE* www_file = fopen( "/var/www/html/wx.html", "w" ); // obviously only will work on RPi with Apache running...
@@ -1654,6 +1654,9 @@ void transmit_wx_frame( const Frame* frame )
 
     // pickup CO2 reading here
     float co2 = co2_read_sensor( NULL, NULL );
+    
+    if( (int32_t)co2 <= 0 )
+        log_error( "transmit_wx_frame: co2_level is zero... %g\n", co2 );
     
     print_wx_for_www( frame, lastHour100sInch, last24Hours100sInch, sinceMidnight100sInch, (int32_t)co2 );
 
