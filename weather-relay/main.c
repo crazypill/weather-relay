@@ -1656,7 +1656,7 @@ void transmit_wx_frame( const Frame* frame )
     float co2 = co2_read_sensor( NULL, NULL );
     
     if( (int32_t)co2 <= 0 )
-        log_error( "transmit_wx_frame: co2_level is zero... %g\n", co2 );
+        log_error( "transmit_wx_frame: co2_level is zero... %g, 0x%lx\n", co2, co2 );
     
     print_wx_for_www( frame, lastHour100sInch, last24Hours100sInch, sinceMidnight100sInch, (int32_t)co2 );
 
