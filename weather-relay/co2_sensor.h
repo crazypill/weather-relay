@@ -22,7 +22,7 @@
 #define SCD30_CMD_SOFT_RESET                   0xD304 ///< Soft reset!
 #define SCD30_CMD_READ_REVISION                0xD100 ///< Firmware revision number
 
-
+bool     co2_sensor_data_ready( void );
 float    co2_read_sensor( float* temp, float* humidity );
 uint16_t co2_read_register( uint16_t reg_address );
 bool     co2_send_command( uint16_t command );

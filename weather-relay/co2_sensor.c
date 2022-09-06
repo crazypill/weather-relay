@@ -54,6 +54,12 @@ static bool co2_lazy_init( void )
 }
 
 
+bool co2_sensor_data_ready( void )
+{
+    return co2_read_register( SCD30_CMD_GET_DATA_READY ) == 1;
+}
+
+
 float co2_read_sensor( float* tempPtr, float* humidityPtr )
 {
     ssize_t result;
@@ -66,6 +72,13 @@ float co2_read_sensor( float* tempPtr, float* humidityPtr )
     {
         log_error( "co2 sensor failed to initialize sensor...\n" );
         return 0.0f;
+    }
+        
+    // wait a second if the data isn't ready and try again
+    while( !co2_sensor_data_ready() )
+    {
+        log_error( "co2 sensor data not ready...\n" );
+        sleep( 1 );
     }
     
     write( s_sensor_fd, buffer, 2 );
@@ -96,6 +109,9 @@ float co2_read_sensor( float* tempPtr, float* humidityPtr )
     uint32_t temp = (buffer[6] << 24)  | (buffer[7] << 16)  | (buffer[9] << 8)  | buffer[10];
     uint32_t hum  = (buffer[12] << 24) | (buffer[13] << 16) | (buffer[15] << 8) | buffer[16];
     
+    if( co2 == 0xE0000000 )
+        log_error( "co2 sensor bad value: 0x%lx, buffer[0]: 0x%x\n", co2, buffer[0] );
+
     // coerce values into floats instead of using memcpy
     float CO2         = *((float*)&co2);
     float temperature = *((float*)&temp);
