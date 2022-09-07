@@ -74,10 +74,10 @@ float co2_read_sensor( float* tempPtr, float* humidityPtr )
         return 0.0f;
     }
         
-    // wait a second if the data isn't ready and try again
+    // wait a second if the data isn't ready and try again - note: there is no timeout, we could in theory get stuck here forever !!@
     while( !co2_sensor_data_ready() )
     {
-        log_error( "co2 sensor data not ready...\n" );
+//        log_error( "co2 sensor data not ready...\n" );
         sleep( 1 );
     }
     
@@ -109,9 +109,6 @@ float co2_read_sensor( float* tempPtr, float* humidityPtr )
     uint32_t temp = (buffer[6] << 24)  | (buffer[7] << 16)  | (buffer[9] << 8)  | buffer[10];
     uint32_t hum  = (buffer[12] << 24) | (buffer[13] << 16) | (buffer[15] << 8) | buffer[16];
     
-    if( co2 == 0xE0000000 )
-        log_error( "co2 sensor bad value: 0x%lx, buffer[0]: 0x%x\n", co2, buffer[0] );
-
     // coerce values into floats instead of using memcpy
     float CO2         = *((float*)&co2);
     float temperature = *((float*)&temp);
