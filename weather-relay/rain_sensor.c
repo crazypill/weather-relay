@@ -63,7 +63,7 @@ wx_thread_return_t rain_sensor_thread( void* args )
     ssize_t result = 0;
     while( !s_quit )
     {
-        RainFrame frame;
+        RainFrame frame = {};
 
         result = read( fd, &frame, sizeof( frame ) );
         if( result == sizeof( frame ) )
