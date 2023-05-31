@@ -863,6 +863,8 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             data->rain = rain_in_inches;
             ave->rain = data->rain;
 
+            log_error( "  recording ave rain: %0.2f inches\n", ave->rain ); // temporary to see what's going on with the weird rain measurements lately...
+
 #ifdef TRACE_STATS
             printTime( false );
             stats( " rain: %0.2f mm, %0.2f inches", rain_in_mm, data->rain );
@@ -977,7 +979,7 @@ void process_wx_frame( Frame* frame, Frame* minFrame, Frame* maxFrame, Frame* av
         if( !s_startupTime )
             s_startupTime = timeGetTimeSec();
 
-        // this is where we record the data to disk FILO up to our longest window (10 minutes).
+        // this is where we record the data to disk FILO up to our longest window
         wxlog_frame( outgoingFrame );
         
         time_t current = timeGetTimeSec();
