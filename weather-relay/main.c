@@ -862,8 +862,10 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         {
             data->rain = rain_in_inches;
             ave->rain = data->rain;
-
-            log_error( "  recording ave rain: %0.2f inches\n", ave->rain ); // temporary to see what's going on with the weird rain measurements lately...
+            
+            // temporary to see what's going on with the weird rain measurements lately... !!@
+            if( ave->rain )
+                log_error( "  recording ave rain: %0.2f inches\n", ave->rain );
 
 #ifdef TRACE_STATS
             printTime( false );
