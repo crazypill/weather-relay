@@ -96,7 +96,8 @@ static time_t s_lastWxWideTime    = 0;
 static time_t s_lastTelemetryWideTime = 0;
 
 
-static float s_localOffsetInHg = 0.33f;
+//static float s_localOffsetInHg = 0.33f;
+static float s_localOffsetInHg = 0.33f + 0.15f;         // added 0.15 offset on 8/20 during hurricane's low pressure
 static float s_localTempErrorC = 2.033333333333333;
 
 static bool s_debug = false;
@@ -1290,15 +1291,13 @@ int main( int argc, const char * argv[] )
         if( !s_logFile )
             log_error( "  failed to open log file: %s\n", s_logFilePath );
         if( s_debug )
-        {
             printf( "logging errors to: %s\n", s_logFilePath );
-            
-            time_t t = time(NULL);
-            struct tm tm = *localtime(&t);
-            
-            if( s_logFile )
-                fprintf( s_logFile, "%d-%02d-%02d %02d:%02d:%02d: %s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C, kiss: %s:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC, s_kiss_server, s_kiss_port );
-        }
+
+        time_t t = time(NULL);
+        struct tm tm = *localtime(&t);
+        
+        if( s_logFile )
+            fprintf( s_logFile, "%d-%02d-%02d %02d:%02d:%02d: %s, version %s -- pressure offset: %0.2f InHg, interior temp offset: %0.2f °C, kiss: %s:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, PROGRAM_NAME, VERSION, s_localOffsetInHg, s_localTempErrorC, s_kiss_server, s_kiss_port );
     }
 
     // look for sequence file if we have a path and do not have a sequence number override
