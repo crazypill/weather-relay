@@ -97,7 +97,7 @@ static time_t s_lastTelemetryWideTime = 0;
 
 
 //static float s_localOffsetInHg = 0.33f;
-static float s_localOffsetInHg = 0.33f + 0.15f;         // added 0.15 offset on 8/20 during hurricane's low pressure
+static float s_localOffsetInHg = 0.33f + 0.10f;         // added 0.10 offset on 8/20 during hurricane's low pressure
 static float s_localTempErrorC = 2.033333333333333;
 
 static bool s_debug = false;
