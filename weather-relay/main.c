@@ -2382,19 +2382,18 @@ bool wxlog_get_rain_counts( int* lastHour100sInch, int* last24Hours100sInch, int
     for( int i = 0; i < s_wx_count; i++ )
     {
         time_t timeIndexSecs = current - s_wxlog[i].timeStampSecs;  // timestamps go in decreasing order
-        
-        // if we land on a zero rainfall, the measurement is not valid as there is no basis for the measurement.  The code currently always assumes the starting rain is non-zero.
-        if( s_wxlog[i].frame.rain != 0.0f )
-        {
-            if( (s_wx_size_secs >= s_rainLastHrPeriod) && (timeIndexSecs < s_rainLastHrPeriod) )
-                *lastHour100sInch = (int)round( (current_rain_inches - s_wxlog[i].frame.rain) * 100 );
+        int    rain_inches   = (int)round( (current_rain_inches - s_wxlog[i].frame.rain) * 100 );
+        if( rain_inches < 0 )
+            rain_inches = 0;
 
-            if( (s_wx_size_secs >= s_rain24HrPeriod) && (timeIndexSecs < s_rain24HrPeriod) )
-                *last24Hours100sInch = (int)round( (current_rain_inches - s_wxlog[i].frame.rain) * 100 );
-            
-            if( (s_wx_size_secs >= secondsSinceMidnight) && (timeIndexSecs < secondsSinceMidnight) )
-                *sinceMidnight100sInch = (int)round( (current_rain_inches - s_wxlog[i].frame.rain) * 100 );
-        }
+        if( (s_wx_size_secs >= s_rainLastHrPeriod) && (timeIndexSecs < s_rainLastHrPeriod) )
+            *lastHour100sInch = rain_inches;
+
+        if( (s_wx_size_secs >= s_rain24HrPeriod) && (timeIndexSecs < s_rain24HrPeriod) )
+            *last24Hours100sInch = rain_inches;
+        
+        if( (s_wx_size_secs >= secondsSinceMidnight) && (timeIndexSecs < secondsSinceMidnight) )
+            *sinceMidnight100sInch = rain_inches;
     }
     
     return true;
