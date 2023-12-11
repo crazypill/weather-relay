@@ -64,7 +64,8 @@ float co2_read_sensor( float* tempPtr, float* humidityPtr )
 {
     ssize_t result;
     uint8_t buffer[18];
-    
+    uint8_t timeout = 0;
+
     buffer[0] = (SCD30_CMD_READ_MEASUREMENT >> 8) & 0xFF;
     buffer[1] = SCD30_CMD_READ_MEASUREMENT & 0xFF;
     
@@ -78,6 +79,14 @@ float co2_read_sensor( float* tempPtr, float* humidityPtr )
     while( !co2_sensor_data_ready() )
     {
 //        log_error( "co2 sensor data not ready...\n" );
+        ++timeout;
+        
+        if( timeout > 30 )
+        {
+            log_error( "co2 sensor read timed out waiting for data ready\n" );
+            return 0.0f;
+        }
+
         sleep( 1 );
     }
     
