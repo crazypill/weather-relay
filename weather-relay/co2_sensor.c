@@ -19,6 +19,8 @@
 #define SCD30_I2CADDR_DEFAULT       0x61   ///< SCD30 default i2c address
 #define SCD30_CMD_READ_MEASUREMENT  0x0300 ///< Main data register
 
+#define kCO2SensorReadyTimeout      5
+
 
 static int s_sensor_fd = -1;
 
@@ -78,10 +80,9 @@ float co2_read_sensor( float* tempPtr, float* humidityPtr )
     // wait a second if the data isn't ready and try again - note: there is no timeout, we could in theory get stuck here forever !!@
     while( !co2_sensor_data_ready() )
     {
-//        log_error( "co2 sensor data not ready...\n" );
         ++timeout;
         
-        if( timeout > 30 )
+        if( timeout > kCO2SensorReadyTimeout )
         {
             log_error( "co2 sensor read timed out waiting for data ready\n" );
             return 0.0f;
