@@ -836,53 +836,53 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
 
     float rain_in_mm = rawRainCount2mm( rain_count );
     float rain_in_inches = rawRainCount2inches( rain_count );
+    
+    // skip rain count when count is -1, that means the sensor thread is still starting up
+    if( rain_count < 0 )
+        return;
+    
+    data->flags |= kDataFlag_rain;
 
-    if( rain_count )
-        data->flags |= kDataFlag_rain;
+    bool frameOk = true;
 
-    if( data->flags & kDataFlag_rain )
+    if( rain_in_mm < kRainLowBar || rain_in_mm > kRainHighBar )
     {
-        bool frameOk = true;
+        data->flags &= ~kDataFlag_rain;
+        log_error( " rain out of range: %0.2f mm\n", rain_in_mm );
+        frameOk = false;
+    }
 
-        if( rain_in_mm < kRainLowBar || rain_in_mm > kRainHighBar )
-        {
-            data->flags &= ~kDataFlag_rain;
-            log_error( " rain out of range: %0.2f mm\n", rain_in_mm );
-            frameOk = false;
-        }
+    // we check to see if this is the first rain measurement- we do this to get around non-zero starting point with the sensor
+    if( frameOk && s_rain_measurement_done && (fabs( rain_in_inches - ave->rain ) > kRainTemporalLimitInches) )
+    {
+        // blow off this entire frame of data- it's probably all wrong
+        log_error( " rain temporal check failed: %0.2f inches, ave: %0.2f inches\n", rain_in_inches, ave->rain );
+        data->flags &= ~kDataFlag_rain;
+        frameOk = false;
+    }
 
-        // we check to see if this is the first rain measurement- we do this to get around non-zero starting point with the sensor
-        if( frameOk && s_rain_measurement_done && (fabs( rain_in_inches - ave->rain ) > kRainTemporalLimitInches) )
-        {
-            // blow off this entire frame of data- it's probably all wrong
-            log_error( " rain temporal check failed: %0.2f inches, ave: %0.2f inches\n", rain_in_inches, ave->rain );
-            data->flags &= ~kDataFlag_rain;
-            frameOk = false;
-        }
+    if( frameOk )
+    {
+        data->rain = rain_in_inches;
+        ave->rain = data->rain;
+        if( !s_rain_measurement_done )
+            log_error( " rain first measurement: %0.2f inches, ave: %0.2f inches\n", rain_in_inches, ave->rain );
 
-        if( frameOk )
-        {
-            data->rain = rain_in_inches;
-            ave->rain = data->rain;
-            if( !s_rain_measurement_done )
-                log_error( " rain first measurement: %0.2f inches, ave: %0.2f inches\n", rain_in_inches, ave->rain );
-
-            s_rain_measurement_done = true;
-            
-            // temporary to see what's going on with the weird rain measurements lately... !!@
+        s_rain_measurement_done = true;
+        
+        // temporary to see what's going on with the weird rain measurements lately... !!@
 //            if( ave->rain )
 //                log_error( "  recording ave rain: %0.2f inches\n", ave->rain );
 
 #ifdef TRACE_STATS
-            printTime( false );
-            stats( " rain: %0.2f mm, %0.2f inches", rain_in_mm, data->rain );
+        printTime( false );
+        stats( " rain: %0.2f mm, %0.2f inches", rain_in_mm, data->rain );
 #endif
-        }
-        else
-        {
-            // use last measurement instead of a zero
-            data->rain = ave->rain;
-        }
+    }
+    else
+    {
+        // use last measurement instead of a zero
+        data->rain = ave->rain;
     }
 }
 

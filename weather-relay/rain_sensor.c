@@ -27,7 +27,7 @@
 
 
 static sig_atomic_t s_quit = 0;
-static sig_atomic_t s_raw_rain_count = 0;
+static sig_atomic_t s_raw_rain_count = -1;
 
  
 void process_rain_frame( RainFrame* frame )
