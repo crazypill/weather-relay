@@ -864,6 +864,9 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         {
             data->rain = rain_in_inches;
             ave->rain = data->rain;
+            if( !s_rain_measurement_done )
+                log_error( " rain first measurement: %0.2f inches, ave: %0.2f inches\n", rain_in_inches, ave->rain );
+
             s_rain_measurement_done = true;
             
             // temporary to see what's going on with the weird rain measurements lately... !!@
