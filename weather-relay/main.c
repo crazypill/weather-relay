@@ -95,12 +95,12 @@ static time_t s_last_log_roll     = 0;
 static time_t s_lastWxWideTime    = 0;
 static time_t s_lastTelemetryWideTime = 0;
 
-
 //static float s_localOffsetInHg = 0.33f;
 static float s_localOffsetInHg = 0.33f + 0.10f;         // added 0.10 offset on 8/20 during hurricane's low pressure
 static float s_localTempErrorC = 2.033333333333333;
 
 static bool s_debug = false;
+static bool s_rain_measurement_done = false;
 
 
 static time_t s_sendInterval     = kSendInterval;
@@ -851,7 +851,8 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
             frameOk = false;
         }
 
-        if( frameOk && (fabs( rain_in_inches - ave->rain ) > kRainTemporalLimitInches) )
+        // we check to see if this is the first rain measurement- we do this to get around non-zero starting point with the sensor
+        if( frameOk && s_rain_measurement_done && (fabs( rain_in_inches - ave->rain ) > kRainTemporalLimitInches) )
         {
             // blow off this entire frame of data- it's probably all wrong
             log_error( " rain temporal check failed: %0.2f inches, ave: %0.2f inches\n", rain_in_inches, ave->rain );
@@ -863,6 +864,7 @@ void updateStats( Frame* data, Frame* min, Frame* max, Frame* ave )
         {
             data->rain = rain_in_inches;
             ave->rain = data->rain;
+            s_rain_measurement_done = true;
             
             // temporary to see what's going on with the weird rain measurements lately... !!@
 //            if( ave->rain )
